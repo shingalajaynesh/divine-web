@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "placeholder-api-key",
@@ -17,7 +17,7 @@ const app = initializeApp(firebaseConfig);
 const appCheckSiteKey = import.meta.env.VITE_FIREBASE_APP_CHECK_SITE_KEY;
 if (appCheckSiteKey) {
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(appCheckSiteKey),
+    provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
     isTokenAutoRefreshEnabled: true,
   });
 }
