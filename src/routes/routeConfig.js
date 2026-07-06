@@ -42,6 +42,11 @@ export const routeConfig = [
     roles: ['MOTHER', 'STAFF', 'ADMIN']
   },
   {
+    path: '/diet-planner',
+    component: lazy(() => import('../views/DietPlanner')),
+    roles: ['MOTHER', 'STAFF', 'ADMIN']
+  },
+  {
     path: '/expert-consulting',
     component: lazy(() => import('../views/ExpertConsultation')),
     roles: ['MOTHER', 'STAFF', 'ADMIN']

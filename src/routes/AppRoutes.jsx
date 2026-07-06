@@ -119,7 +119,7 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
   };
 
   const navigation = (
-    <>
+    <div className="sidebar-nav-container">
       <Menu
         mode="inline"
         selectedKeys={[selectedPath]}
@@ -132,7 +132,7 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
         <div><strong>Need help?</strong><span>Our support team is available.</span></div>
         <Button type="link" href={SUPPORT_URL} target="_blank">WhatsApp</Button>
       </div>
-    </>
+    </div>
   );
 
   return (

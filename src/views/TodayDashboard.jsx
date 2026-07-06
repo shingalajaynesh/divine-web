@@ -3,6 +3,8 @@ import { useQuery, useMutation } from '@apollo/client';
 import { GET_DAILY_CONTENT_QUERY, GET_BABY_DEVELOPMENT_QUERY, MY_DAILY_PROGRESS_QUERY, MY_TIMELINE_OVERVIEW_QUERY, TOGGLE_DAILY_ACTIVITY_MUTATION, SAVE_DAILY_ACTIVITY_DETAILS_MUTATION, GET_DAILY_QUIZ_QUERY, GET_MY_QUIZ_ATTEMPT_QUERY, SUBMIT_QUIZ_ANSWER_MUTATION, GET_PARTNER_ACTIVITY_QUERY, GET_MY_PARTNER_ACTIVITY_LOG_QUERY, ACKNOWLEDGE_PARTNER_ACTIVITY_MUTATION, GET_SENSORY_ACTIVITY_QUERY, GET_MY_SENSORY_ACTIVITY_LOG_QUERY, TOGGLE_SENSORY_ACTIVITY_MUTATION } from '../graphql/operations';
 import toast from 'react-hot-toast';
 import VideoPlayerModal from '../components/VideoPlayerModal';
+import AudioPlayerModal from '../components/AudioPlayerModal';
+import ReadingModeModal from '../components/ReadingModeModal';
 import { 
   Card, 
   Slider, 
@@ -23,7 +25,8 @@ import {
   SoundOutlined, 
   CheckCircleOutlined,
   CheckCircleFilled,
-  CloseCircleFilled
+  CloseCircleFilled,
+  BookOutlined
 } from '@ant-design/icons';
 
 const { Title, Paragraph, Text } = Typography;
@@ -124,6 +127,8 @@ export default function TodayDashboard({ user, t }) {
   const [selectedDay, setSelectedDay] = useState(user.pregnancyDay || 1);
   const [activeQuotient, setActiveQuotient] = useState('PQ');
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+  const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
+  const [readingModalVisible, setReadingModalVisible] = useState(false);
   const userLang = user.language || 'en';
   const isHi = userLang === 'hi';
 
@@ -632,6 +637,25 @@ export default function TodayDashboard({ user, t }) {
             <Paragraph type="secondary" style={{ margin: 0, fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
               {quotients[activeQuotient].description}
             </Paragraph>
+
+            {activeQuotient === 'PQ' && quotients.PQ.category === 'yoga' && (
+              <div style={{ margin: '16px 0', padding: '16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px' }}>
+                <span style={{ fontWeight: 'bold', color: '#b45309', display: 'block', marginBottom: '6px', fontSize: '13px' }}>
+                  ⚠️ {isHi ? "प्रसव-पूर्व सुरक्षा और सावधानियां" : "Prenatal Safety & Precautions"} (Trimester {selectedDay <= 90 ? '1' : selectedDay <= 180 ? '2' : '3'})
+                </span>
+                <Text style={{ fontSize: '12px', color: '#78350f', display: 'block', marginBottom: '8px', lineHeight: '1.5' }}>
+                  {selectedDay <= 90 
+                    ? (isHi ? "त्रैमासिक 1 सावधानियां: पेट पर दबाव डालने वाले आसनों से बचें, झटकेदार आंदोलनों से बचें, और यदि ऐंठन या रक्तस्राव हो तो अभ्यास तुरंत रोक दें।" : "Trimester 1 Precautions: Avoid abdominal pressure, sudden twists or high-impact jumps. Stop immediately if experiencing cramping or spotting.")
+                    : selectedDay <= 180
+                    ? (isHi ? "त्रैमासिक 2 सावधानियां: पीठ के बल अधिक देर तक लेटने से बचें, संतुलन के लिए दीवार या सहारा लें, और अत्यधिक खिंचाव से बचें।" : "Trimester 2 Precautions: Avoid lying flat on your back for long. Use wall or chair support for balance. Do not over-stretch.")
+                    : (isHi ? "त्रैमासिक 3 सावधानियां: पीठ के बल लेटने वाले आसन न करें, सांस रोकने से बचें, और हमेशा सहारे के साथ अभ्यास करें।" : "Trimester 3 Precautions: Absolutely avoid supine positions (on your back) and breath retention. Always use support (blocks/cushions).")
+                  }
+                </Text>
+                <Text style={{ fontSize: '11px', color: '#9a3412', fontWeight: 'bold', display: 'block' }}>
+                  {isHi ? "*चिकित्सीय अस्वीकरण: किसी भी व्यायाम को शुरू करने से पहले अपने स्त्री रोग विशेषज्ञ से परामर्श लें।" : "*Medical Disclaimer: Consult your obstetrician/gynecologist before performing any exercises."}
+                </Text>
+              </div>
+            )}
             
             <Divider style={{ margin: '16px 0' }} />
             
@@ -693,6 +717,16 @@ export default function TodayDashboard({ user, t }) {
                 >
                   {isHi ? "विवरण सहेजें" : "Save Details"}
                 </Button>
+
+                {['story', 'article', 'dialogue', 'affirmation'].includes(quotients[activeQuotient].category) && (
+                  <Button 
+                    type="default" 
+                    icon={<BookOutlined />}
+                    onClick={() => setReadingModalVisible(true)}
+                  >
+                    {isHi ? "रीडर मोड में पढ़ें" : "Open in Reader"}
+                  </Button>
+                )}
               </Space>
 
               {content?.mediaUrl && activeQuotient === 'SQ' && (
@@ -914,7 +948,14 @@ export default function TodayDashboard({ user, t }) {
             : (isHi ? "आज का ऑडियो अभी प्रकाशित नहीं हुआ है।" : "Today’s audio has not been published yet.")}</Text>
         </div>
         {content?.mediaUrl ? (
-          <Button type="primary" icon={<PlayCircleOutlined />} onClick={() => setVideoPlayerVisible(true)}>
+          <Button 
+            type="primary" 
+            icon={<PlayCircleOutlined />} 
+            onClick={() => {
+              if (content.category === 'video') setVideoPlayerVisible(true);
+              else setAudioPlayerVisible(true);
+            }}
+          >
             {isHi ? "अभ्यास चलाएं" : "Play practice"}
           </Button>
         ) : (
@@ -1055,6 +1096,25 @@ export default function TodayDashboard({ user, t }) {
           isHi={isHi}
         />
       )}
+
+      {content?.mediaUrl && (
+        <AudioPlayerModal
+          visible={audioPlayerVisible}
+          onClose={() => setAudioPlayerVisible(false)}
+          mediaUrl={content.mediaUrl}
+          contentItemId={content.id}
+          title={isHi ? content.titleHi || content.title : content.titleEn || content.title}
+          isHi={isHi}
+        />
+      )}
+
+      <ReadingModeModal
+        visible={readingModalVisible}
+        onClose={() => setReadingModalVisible(false)}
+        title={quotients[activeQuotient].title}
+        body={quotients[activeQuotient].description}
+        lang={userLang}
+      />
     </Space>
   );
 }

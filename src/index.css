@@ -262,12 +262,15 @@ a:focus-visible {
   padding: 22px 16px 16px;
   border-right: 1px solid var(--line);
   box-shadow: 5px 0 24px rgba(63, 10, 17, .03);
+  display: flex;
+  flex-direction: column;
 }
 
 .app-sider .brand-lockup {
   padding: 0 8px 22px;
   border-bottom: 1px solid var(--line);
   margin-bottom: 18px;
+  flex: none;
 }
 
 .sidebar-caption {
@@ -277,11 +280,22 @@ a:focus-visible {
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
+  flex: none;
+}
+
+.sidebar-nav-container {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
 }
 
 .app-menu {
   border-inline-end: 0 !important;
   font-weight: 600;
+  flex: none;
 }
 
 .app-menu .ant-menu-item {
@@ -293,10 +307,9 @@ a:focus-visible {
 }
 
 .sidebar-support {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 50px;
+  position: relative;
+  margin-top: 24px;
+  margin-bottom: 8px;
   display: grid;
   grid-template-columns: 28px 1fr;
   gap: 3px 8px;
@@ -305,6 +318,7 @@ a:focus-visible {
   color: var(--brand-maroon);
   background: var(--soft-saffron);
   border: 1px solid #f2dfb7;
+  flex: none;
 }
 
 .sidebar-support>.anticon {
@@ -338,12 +352,14 @@ a:focus-visible {
 }
 
 .sidebar-version {
-  position: absolute;
-  bottom: 16px;
-  left: 28px;
+  position: relative;
+  margin-top: auto;
+  padding-top: 12px;
+  left: 12px;
   color: #a29591;
   font-size: 9px;
   font-weight: 600;
+  flex: none;
 }
 
 .app-main-layout {

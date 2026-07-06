@@ -3,6 +3,9 @@ import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import { Button, Card, Col, Empty, Input, Row, Segmented, Skeleton, Tag, Typography } from 'antd';
 import { AudioOutlined, BookOutlined, ClockCircleOutlined, HeartOutlined, PlayCircleOutlined, SearchOutlined, StarOutlined } from '@ant-design/icons';
 import { CLEAR_RECENT_CONTENT_SEARCHES_MUTATION, CONTENT_FEED_QUERY, RECENT_CONTENT_SEARCHES_QUERY, SAVED_CONTENT_QUERY, SEARCH_CONTENT_QUERY, SET_CONTENT_BOOKMARK_MUTATION } from '../graphql/operations';
+import VideoPlayerModal from '../components/VideoPlayerModal';
+import AudioPlayerModal from '../components/AudioPlayerModal';
+import ReadingModeModal from '../components/ReadingModeModal';
 
 const { Title, Paragraph } = Typography;
 const filters = [{ label: 'All', value: '' }, { label: 'Stories', value: 'story' }, { label: 'Audio', value: 'audio' }, { label: 'Video', value: 'video' }, { label: 'Meditation', value: 'meditation' }, { label: 'Yoga', value: 'yoga' }, { label: 'Affirmations', value: 'affirmation' }];
@@ -13,6 +16,9 @@ export default function ContentLibrary({ lang = 'en' }) {
   const [type, setType] = useState('');
   const [view, setView] = useState('explore');
   const [query, setQuery] = useState('');
+  const [playingVideo, setPlayingVideo] = useState(null);
+  const [playingAudio, setPlayingAudio] = useState(null);
+  const [readingItem, setReadingItem] = useState(null);
   const [activeQuery, setActiveQuery] = useState('');
   const [notice, setNotice] = useState('');
   const feed = useQuery(CONTENT_FEED_QUERY, { variables: { language: lang, contentType: type || null }, skip: view !== 'explore' || Boolean(activeQuery) });
@@ -45,6 +51,39 @@ export default function ContentLibrary({ lang = 'en' }) {
       {view === 'explore' ? <Segmented block options={filters} value={type} onChange={(value) => { setType(value); if (activeQuery) search({ variables: { query: activeQuery, language: lang, contentType: value || null } }); }} /> : null}
       {notice ? <div className="library-notice" role="status">{notice}</div> : null}
     </div>
-    {loading ? <Card><Skeleton active /></Card> : error ? <Empty description="Library could not be loaded." /> : items?.length ? <Row gutter={[16, 16]}>{items.map((item) => <Col xs={24} sm={12} lg={8} key={item.id}><Card className="library-content-card"><div className="library-content-icon">{iconFor(item.contentType)}</div><Tag>{item.category?.name || item.contentType}</Tag><Title level={4}>{item.translation?.title}</Title><Paragraph ellipsis={{ rows: 3 }}>{item.translation?.summary || item.translation?.body}</Paragraph><small>{item.visibility === 'free' ? 'Included' : `${item.visibility} access`}</small><div className="library-card-actions">{view === 'explore' ? <><Button disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')}>Save</Button>{['video', 'audio'].includes(item.contentType) ? <Button disabled={bookmarkState.loading} icon={<ClockCircleOutlined />} onClick={() => save(item.id, 'watch_later')}>Later</Button> : null}</> : <Button danger disabled={bookmarkState.loading} onClick={() => save(item.id, view, false)}>Remove</Button>}</div></Card></Col>)}</Row> : <Empty description={activeQuery ? `No results for “${activeQuery}”.` : 'No saved content yet.'} />}
+    {loading ? <Card><Skeleton active /></Card> : error ? <Empty description="Library could not be loaded." /> : items?.length ? <Row gutter={[16, 16]}>{items.map((item) => <Col xs={24} sm={12} lg={8} key={item.id}><Card className="library-content-card"><div className="library-content-icon">{iconFor(item.contentType)}</div><Tag>{item.category?.name || item.contentType}</Tag><Title level={4}>{item.translation?.title}</Title><Paragraph ellipsis={{ rows: 3 }}>{item.translation?.summary || item.translation?.body}</Paragraph><small>{item.visibility === 'free' ? 'Included' : `${item.visibility} access`}</small><div className="library-card-actions">{view === 'explore' ? <><Button disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')}>Save</Button>{['video', 'audio'].includes(item.contentType) ? <Button disabled={bookmarkState.loading} icon={<ClockCircleOutlined />} onClick={() => save(item.id, 'watch_later')}>Later</Button> : null}{['video', 'audio'].includes(item.contentType) ? <Button type="primary" icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else setPlayingAudio(item); }}>Play</Button> : null}{['story', 'prayer', 'affirmation', 'article'].includes(item.contentType) ? <Button type="primary" icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button> : null}</> : <><Button danger disabled={bookmarkState.loading} onClick={() => save(item.id, view, false)}>Remove</Button>{['video', 'audio'].includes(item.contentType) ? <Button type="primary" icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else setPlayingAudio(item); }}>Play</Button> : null}{['story', 'prayer', 'affirmation', 'article'].includes(item.contentType) ? <Button type="primary" icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button> : null}</>}</div></Card></Col>)}</Row> : <Empty description={activeQuery ? `No results for “${activeQuery}”.` : 'No saved content yet.'} />}
+
+    {playingVideo && (
+      <VideoPlayerModal
+        visible={!!playingVideo}
+        onClose={() => setPlayingVideo(null)}
+        mediaUrl={playingVideo.translation?.body?.startsWith('http') ? playingVideo.translation.body : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
+        contentItemId={playingVideo.id}
+        title={playingVideo.translation?.title}
+        isHi={lang === 'hi'}
+      />
+    )}
+
+    {playingAudio && (
+      <AudioPlayerModal
+        visible={!!playingAudio}
+        onClose={() => setPlayingAudio(null)}
+        mediaUrl={playingAudio.translation?.body?.startsWith('http') ? playingAudio.translation.body : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'}
+        contentItemId={playingAudio.id}
+        title={playingAudio.translation?.title}
+        isHi={lang === 'hi'}
+      />
+    )}
+
+    {readingItem && (
+      <ReadingModeModal
+        visible={!!readingItem}
+        onClose={() => setReadingItem(null)}
+        title={readingItem.translation?.title}
+        body={readingItem.translation?.body}
+        translations={readingItem.translations}
+        lang={lang}
+      />
+    )}
   </div>;
 }

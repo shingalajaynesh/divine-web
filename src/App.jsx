@@ -20,7 +20,8 @@ import {
   CustomerServiceOutlined, 
   SettingOutlined, 
   SolutionOutlined,
-  BellOutlined
+  BellOutlined,
+  ShoppingCartOutlined
 } from '@ant-design/icons';
 
 // Operations & Translations Imports
@@ -159,6 +160,11 @@ function App() {
       key: '/vitals',
       icon: <BarChartOutlined />,
       label: lang === 'hi' ? 'महत्वपूर्ण आँकड़े' : 'Vitals Tracker',
+    },
+    {
+      key: '/diet-planner',
+      icon: <ShoppingCartOutlined />,
+      label: lang === 'hi' ? 'भोजन योजना' : 'Diet Planner',
     },
     {
       key: '/expert-consulting',
