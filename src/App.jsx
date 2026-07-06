@@ -29,9 +29,9 @@ import {
 import { TRANSLATIONS } from './translations/translations';
 
 // Components Imports
-import StripeCheckoutModal from './components/StripeCheckoutModal';
 import OnboardingCalculator from './views/OnboardingCalculator';
 import DeviceLockScreen from './views/DeviceLockScreen';
+import { divineTheme } from './theme/themeConfig';
 
 // Routing Imports
 import AppRoutes, { WelcomeScreen } from './routes/AppRoutes';
@@ -41,7 +41,6 @@ function App() {
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
   const navigate = useNavigate();
   const [activeRole, setActiveRole] = useState('MOTHER');
-  const [activeCheckoutPlan, setActiveCheckoutPlan] = useState(null);
   
   const { data: meData, loading: meLoading, error: meError, refetch: refetchMe } = useQuery(ME_QUERY);
 
@@ -107,10 +106,6 @@ function App() {
     }
   };
 
-  const onSubscribe = (plan) => {
-    setActiveCheckoutPlan(plan);
-  };
-
   const menuItems = [
     {
       key: '/dashboard',
@@ -163,28 +158,10 @@ function App() {
 
   return (
     <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: '#d97706',
-          borderRadius: 16,
-          fontFamily: 'Outfit, Playfair Display, sans-serif'
-        }
-      }}
+      theme={divineTheme}
     >
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Toaster position="top-center" reverseOrder={false} />
-
-        {activeCheckoutPlan && (
-          <StripeCheckoutModal
-            plan={activeCheckoutPlan}
-            onClose={() => setActiveCheckoutPlan(null)}
-            onPaymentSuccess={() => {
-              setActiveCheckoutPlan(null);
-              refetchMe();
-            }}
-            t={t}
-          />
-        )}
 
         <SignedOut>
           <WelcomeScreen t={t} />
@@ -209,7 +186,6 @@ function App() {
               t={t}
               lang={lang}
               handleLanguageToggle={handleLanguageToggle}
-              onSubscribe={onSubscribe}
             />
           ) : null}
         </SignedIn>

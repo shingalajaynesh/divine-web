@@ -1,303 +1,247 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
 import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { UserButton } from '@clerk/clerk-react';
+import { SignInButton, UserButton } from '@clerk/clerk-react';
 import {
+  Avatar,
+  Button,
+  Drawer,
+  Grid,
   Layout,
   Menu,
-  Avatar,
+  Select,
   Space,
-  Typography,
   Spin,
   Tag,
-  Grid,
-  Button,
-  Drawer
+  Tooltip,
+  Typography,
 } from 'antd';
-import { GlobalOutlined, MenuOutlined } from '@ant-design/icons';
+import {
+  CustomerServiceOutlined,
+  GlobalOutlined,
+  MenuOutlined,
+  MoreOutlined,
+  PhoneOutlined,
+  SafetyCertificateOutlined,
+} from '@ant-design/icons';
 import { routeConfig } from './routeConfig';
 
 const { Header, Content, Sider } = Layout;
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { useBreakpoint } = Grid;
 
-// Welcome Screen for Unauthenticated Users
+const MARKETING_URL = import.meta.env.VITE_MARKETING_URL || 'https://www.thedivinegarbhsanskar.com';
+const SUPPORT_URL = 'https://wa.me/919638484545?text=Hello%20Divine%20Garbh%20Sanskar%20support';
+
 export function WelcomeScreen({ t }) {
   return (
-    <Layout style={{ minHeight: '100vh', background: 'linear-gradient(135deg, var(--color-brand-light) 0%, #fff5ea 100%)' }}>
-      <Header style={{ background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 24px', height: '70px', borderBottom: '1px solid var(--border-delicate)' }}>
-        <Space size="middle">
-          <Avatar src="/logo.jpg" size={44} style={{ border: '2px solid #fff3f0' }} />
-          <Title level={4} style={{ margin: 0, color: 'var(--color-brand-secondary)', fontFamily: 'var(--font-serif)', fontWeight: 900 }}>
-            Divine Garbh Sanskar
-          </Title>
-        </Space>
-      </Header>
-      <Content style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }}>
-        <div style={{ textAlign: 'center', maxWidth: '600px' }}>
-          <Tag color="orange" style={{ marginBottom: '16px', fontWeight: 'bold', borderRadius: '12px' }}>{t.welcome}</Tag>
-          <Title level={1} style={{ fontSize: '40px', fontWeight: 900, fontFamily: 'var(--font-serif)', color: 'var(--color-brand-secondary)' }}>
-            Begin Your Sacred Journey of <span style={{ color: 'var(--color-brand-primary)' }}>Conscious Pregnancy</span>
-          </Title>
-          <Text type="secondary" style={{ fontSize: '16px', display: 'block', margin: '24px 0', fontFamily: 'var(--font-primary)' }}>{t.journey_desc}</Text>
+    <main className="welcome-shell">
+      <header className="welcome-header">
+        <div className="brand-lockup">
+          <Avatar src="/logo.jpg" size={52} shape="square" className="brand-logo" />
+          <div>
+            <strong>Divine Garbh Sanskar</strong>
+            <span>Weaving cultural roots into motherhood</span>
+          </div>
         </div>
-      </Content>
-    </Layout>
+        <Button href={MARKETING_URL}>Visit website</Button>
+      </header>
+
+      <section className="welcome-content">
+        <div className="welcome-copy">
+          <Tag className="eyebrow-tag">{t.welcome}</Tag>
+          <Title>Thoughtful guidance for every week of your pregnancy.</Title>
+          <Paragraph>{t.journey_desc}</Paragraph>
+          <Space wrap size={12}>
+            <SignInButton mode="modal">
+              <Button type="primary" size="large">Sign in to your dashboard</Button>
+            </SignInButton>
+            <Button size="large" icon={<PhoneOutlined />} href={SUPPORT_URL} target="_blank">
+              Talk to a counsellor
+            </Button>
+          </Space>
+          <div className="welcome-trust-row">
+            <span><SafetyCertificateOutlined /> Private account</span>
+            <span>Hindi & English</span>
+            <span>Web, iOS & Android</span>
+          </div>
+        </div>
+
+        <aside className="welcome-preview" aria-label="Product highlights">
+          <img src="/logo.jpg" alt="Divine Garbh Sanskar" />
+          <div className="preview-card preview-card-main">
+            <small>Your journey</small>
+            <strong>Daily wellness, baby growth and expert guidance</strong>
+            <span>One calm, organised place for your pregnancy programme.</span>
+          </div>
+          <div className="preview-card preview-card-small">40-week personalised path</div>
+        </aside>
+      </section>
+    </main>
   );
 }
 
-// Layout wrapper including Sider and Header
+function BrandBlock({ compact = false }) {
+  return (
+    <div className={`brand-lockup ${compact ? 'brand-lockup-compact' : ''}`}>
+      <Avatar src="/logo.jpg" size={compact ? 38 : 48} shape="square" className="brand-logo" />
+      {!compact && (
+        <div>
+          <strong>Divine Garbh Sanskar</strong>
+          <span>Motherhood companion</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole }) {
   const location = useLocation();
   const navigate = useNavigate();
   const screens = useBreakpoint();
-  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const isDesktop = Boolean(screens.lg);
+  const selectedPath = location.pathname === '/' ? '/dashboard' : location.pathname;
+  const currentItem = menuItems.find((item) => item.key === selectedPath) || menuItems[0];
+  const primaryMobileItems = menuItems.slice(0, 4);
 
-  // Treat screen size below large (lg) as mobile viewport for Drawer toggle compatibility
-  const isMobile = !screens.lg;
+  const roleLabel = useMemo(() => ({
+    MOTHER: 'Mother account',
+    GUIDE: 'Expert account',
+    STAFF: 'Staff account',
+    ADMIN: 'Administrator',
+  }[activeRole] || 'Member account'), [activeRole]);
 
-  const handleMenuClick = ({ key }) => {
+  const goTo = ({ key }) => {
     navigate(key);
-    if (isMobile) {
-      setDrawerVisible(false);
-    }
+    setNavOpen(false);
   };
 
+  const navigation = (
+    <>
+      <Menu
+        mode="inline"
+        selectedKeys={[selectedPath]}
+        items={menuItems}
+        onClick={goTo}
+        className="app-menu"
+      />
+      <div className="sidebar-support">
+        <CustomerServiceOutlined />
+        <div><strong>Need help?</strong><span>Our support team is available.</span></div>
+        <Button type="link" href={SUPPORT_URL} target="_blank">WhatsApp</Button>
+      </div>
+    </>
+  );
+
   return (
-    <Layout style={{ minHeight: '100vh', background: '#fbf8f6' }}>
-      {/* Application Header */}
-      <Header className="header-glass" style={{ padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '70px', position: 'sticky', top: 0, zIndex: 100 }}>
-        <Space size="middle" align="center">
-          {isMobile && (
-            <Button 
-              type="text" 
-              icon={<MenuOutlined style={{ fontSize: '18px', color: '#1e293b' }} />} 
-              onClick={() => setDrawerVisible(true)} 
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, width: '40px', height: '40px' }}
-            />
-          )}
-          <Avatar src="/logo.jpg" size={46} style={{ border: '2px solid #fff3f0', boxShadow: '0 2px 8px rgba(99, 18, 7, 0.08)' }} />
-          {!isMobile && (
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Title level={4} style={{ margin: 0, fontWeight: 900, color: 'var(--color-brand-secondary)', fontFamily: 'var(--font-serif)', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-                Divine Garbh Sanskar
-              </Title>
-              <Text style={{ fontSize: '10px', fontWeight: 800, color: 'var(--color-brand-primary)', letterSpacing: '0.5px', display: 'block', marginTop: '2px' }}>
-                📍 {user?.center?.name || 'Divine Garbh Sanskar Main Center'}
-              </Text>
-            </div>
-          )}
-        </Space>
+    <Layout className="app-shell">
+      {isDesktop && (
+        <Sider width={260} theme="light" className="app-sider">
+          <BrandBlock />
+          <div className="sidebar-caption">Programme</div>
+          {navigation}
+          <div className="sidebar-version">Divine App · v1.1.0</div>
+        </Sider>
+      )}
 
-        {/* Desktop Horizontal Navigation Menu */}
-        {!isMobile && (
-          <Menu
-            mode="horizontal"
-            selectedKeys={[location.pathname === '/' ? '/dashboard' : location.pathname]}
-            items={menuItems}
-            onClick={handleMenuClick}
-            style={{ 
-              flex: 1, 
-              justifyContent: 'center', 
-              borderBottom: 0, 
-              maxWidth: '750px',
-              fontSize: '14.5px',
-              fontWeight: 700
-            }}
-          />
-        )}
-
-        <Space size={isMobile ? 'middle' : 'large'} align="center">
-          <Space size="small" align="center">
-            <GlobalOutlined style={{ color: 'var(--color-brand-primary)' }} />
-            <select
-              value={lang}
-              onChange={(e) => handleLanguageToggle(e.target.value)}
-              style={{
-                border: '1px solid #e2d4cf',
-                borderRadius: '24px',
-                padding: '6px 14px',
-                fontSize: '12px',
-                outline: 'none',
-                background: '#fff',
-                color: 'var(--text-main)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-              }}
-            >
-              <option value="en">English</option>
-              <option value="hi">हिंदी (Hindi)</option>
-            </select>
+      <Layout className="app-main-layout">
+        <Header className="app-topbar">
+          <Space size={12}>
+            {!isDesktop && (
+              <Button type="text" icon={<MenuOutlined />} onClick={() => setNavOpen(true)} aria-label="Open navigation" />
+            )}
+            {!isDesktop && <BrandBlock compact />}
+            {isDesktop && (
+              <div className="page-context">
+                <Text>{currentItem?.label || 'Dashboard'}</Text>
+                <span>{user?.center?.name || 'Divine Garbh Sanskar'}</span>
+              </div>
+            )}
           </Space>
 
-          {user && !isMobile && (
-            <div style={{ 
-              textAlign: 'right', 
-              marginRight: '8px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              justifyContent: 'center',
-              lineHeight: 1
-            }}>
-              <span style={{ 
-                fontWeight: 700, 
-                color: 'var(--text-main)', 
-                fontSize: '13px', 
-                margin: 0, 
-                padding: 0 
-              }}>
-                {user.displayName}
-              </span>
-              <span style={{ 
-                fontSize: '9px', 
-                fontWeight: 800, 
-                color: 'var(--color-brand-primary)', 
-                textTransform: 'uppercase', 
-                margin: 0, 
-                padding: 0, 
-                marginTop: '3px'
-              }}>
-                {activeRole || 'Mother'}
-              </span>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: { width: '38px', height: '38px', borderRadius: '12px' } } }} />
-          </div>
-        </Space>
-      </Header>
-
-      <Layout>
-        {/* Mobile Navigation Drawer */}
-        {isMobile && (
-          <Drawer
-            placement="left"
-            closable={false}
-            onClose={() => setDrawerVisible(false)}
-            open={drawerVisible}
-            style={{ width: 260 }}
-            styles={{ body: { padding: '20px 0' } }}
-            title={
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Avatar src="/logo.jpg" size={36} />
-                <div>
-                  <Title level={5} style={{ margin: 0, fontWeight: 900, color: 'var(--color-brand-secondary)', fontFamily: 'var(--font-serif)' }}>Divine Garbh Sanskar</Title>
-                </div>
-              </div>
-            }
-          >
-            <Menu
-              mode="inline"
-              selectedKeys={[location.pathname === '/' ? '/dashboard' : location.pathname]}
-              items={menuItems}
-              onClick={handleMenuClick}
-              style={{ borderRight: 0 }}
+          <Space size={isDesktop ? 16 : 8}>
+            <Select
+              value={lang}
+              onChange={handleLanguageToggle}
+              options={[{ value: 'en', label: 'English' }, { value: 'hi', label: 'हिन्दी' }]}
+              suffixIcon={<GlobalOutlined />}
+              className="language-select"
+              aria-label="Choose language"
             />
-          </Drawer>
-        )}
+            {isDesktop && (
+              <div className="user-summary">
+                <strong>{user?.displayName || 'Member'}</strong>
+                <span>{roleLabel}</span>
+              </div>
+            )}
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{ elements: { avatarBox: { width: '38px', height: '38px', borderRadius: '10px' } } }}
+            />
+          </Space>
+        </Header>
 
-        {/* Main Content Area */}
-        <Layout style={{ padding: isMobile ? '12px 12px 40px' : '32px 32px 64px', background: '#fbf8f6' }}>
-          {isMobile && (
-            <div 
-              className="mobile-tabs-scroll"
-              style={{ 
-                display: 'flex', 
-                gap: '8px', 
-                overflowX: 'auto', 
-                paddingBottom: '12px', 
-                marginBottom: '16px',
-                width: '100%',
-                scrollBehavior: 'smooth',
-                WebkitOverflowScrolling: 'touch'
-              }}
-            >
-              <style>{`
-                .mobile-tabs-scroll::-webkit-scrollbar {
-                  display: none;
-                }
-              `}</style>
-              {menuItems.map((item) => {
-                const isActive = location.pathname === item.key || (item.key === '/dashboard' && location.pathname === '/');
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => handleMenuClick({ key: item.key })}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      border: isActive ? '1px solid var(--color-brand-primary)' : '1px solid #e2d4cf',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.2s',
-                      background: isActive ? 'var(--bg-tertiary)' : '#fff',
-                      color: isActive ? 'var(--color-brand-secondary)' : 'var(--text-muted)'
-                    }}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                );
-              })}
+        <Content className="app-content">
+          <div className="content-heading">
+            <div>
+              <span className="content-kicker">{roleLabel}</span>
+              <Title level={2}>{currentItem?.label || 'Dashboard'}</Title>
             </div>
-          )}
-          <Content style={{ padding: 0, margin: 0, minHeight: 280, maxWidth: '1440px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
-            <Outlet />
-          </Content>
-        </Layout>
+            {user?.currentWeek && (
+              <Tag className="week-tag">Week {user.currentWeek} · Trimester {user.currentTrimester}</Tag>
+            )}
+          </div>
+          <div className="content-frame"><Outlet /></div>
+        </Content>
+
+        {!isDesktop && (
+          <nav className="mobile-bottom-nav" aria-label="Primary navigation">
+            {primaryMobileItems.map((item) => (
+              <button key={item.key} className={selectedPath === item.key ? 'active' : ''} onClick={() => goTo(item)}>
+                {item.icon}<span>{item.label}</span>
+              </button>
+            ))}
+            <button className={primaryMobileItems.some((item) => item.key === selectedPath) ? '' : 'active'} onClick={() => setNavOpen(true)}>
+              <MoreOutlined /><span>More</span>
+            </button>
+          </nav>
+        )}
       </Layout>
+
+      <Drawer
+        placement="left"
+        open={!isDesktop && navOpen}
+        onClose={() => setNavOpen(false)}
+        width={300}
+        title={<BrandBlock />}
+        className="mobile-nav-drawer"
+      >
+        <div className="mobile-profile-card">
+          <strong>{user?.displayName || 'Member'}</strong>
+          <span>{roleLabel}</span>
+        </div>
+        {navigation}
+      </Drawer>
     </Layout>
   );
 }
 
-export default function AppRoutes({ user, menuItems, activeRole, t, lang, handleLanguageToggle, onSubscribe }) {
+export default function AppRoutes({ user, menuItems, activeRole, t, lang, handleLanguageToggle }) {
   return (
     <Routes>
-      <Route element={
-        <MainAppLayout
-          user={user}
-          menuItems={menuItems}
-          lang={lang}
-          handleLanguageToggle={handleLanguageToggle}
-          activeRole={activeRole}
-        />
-      }>
+      <Route element={<MainAppLayout user={user} menuItems={menuItems} lang={lang} handleLanguageToggle={handleLanguageToggle} activeRole={activeRole} />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-        {routeConfig.map(({ path, component: Component, roles }) => {
-          const isAuthorized = roles.includes(activeRole);
-          return (
-            <Route
-              key={path}
-              path={path}
-              element={
-                isAuthorized ? (
-                  <Suspense fallback={
-                    <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                      <Spin description="Loading section..." size="large" />
-                    </div>
-                  }>
-                    <Component
-                      user={user}
-                      t={t}
-                      lang={lang}
-                      onSubscribe={onSubscribe}
-                    />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/dashboard" replace />
-                )
-              }
-            />
-          );
-        })}
-
+        {routeConfig.map(({ path, component: Component, roles }) => (
+          <Route
+            key={path}
+            path={path}
+            element={roles.includes(activeRole) ? (
+              <Suspense fallback={<div className="route-loader"><Spin size="large" /><span>Loading your workspace…</span></div>}>
+                <Component user={user} t={t} lang={lang} />
+              </Suspense>
+            ) : <Navigate to="/dashboard" replace />}
+          />
+        ))}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

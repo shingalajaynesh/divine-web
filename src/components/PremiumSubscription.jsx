@@ -17,7 +17,9 @@ const GET_MY_BILLING_HISTORY = gql`
   }
 `;
 
-export default function PremiumSubscription({ user, t, onSubscribe }) {
+const SUPPORT_URL = 'https://wa.me/919638484545?text=Hello%2C%20I%20want%20to%20know%20about%20Divine%20programme%20access.';
+
+export default function PremiumSubscription({ user, t }) {
   const isPremium = user.subscriptionStatus && user.subscriptionStatus !== 'free';
   const { data: billingData } = useQuery(GET_MY_BILLING_HISTORY);
   const bills = billingData?.getMyBillingHistory || [];
@@ -43,11 +45,9 @@ export default function PremiumSubscription({ user, t, onSubscribe }) {
       ) : (
         <div style={{ marginTop: '16px' }}>
           <Paragraph style={{ fontSize: '12px', color: '#475569', marginBottom: '12px' }}>{t.subscribe_banner}:</Paragraph>
-          <Space orientation="vertical" style={{ width: '100%' }}>
-            <Button onClick={() => onSubscribe('monthly')} block style={{ fontWeight: 'bold' }}>{t.subscribe_monthly}</Button>
-            <Button onClick={() => onSubscribe('quarterly')} block style={{ fontWeight: 'bold' }}>{t.subscribe_quarterly}</Button>
-            <Button type="primary" onClick={() => onSubscribe('lifetime')} block style={{ fontWeight: 'bold' }}>🚀 {t.subscribe_lifetime}</Button>
-          </Space>
+          <Button type="primary" href={SUPPORT_URL} target="_blank" block>
+            Ask about programme access
+          </Button>
         </div>
       )}
 
@@ -68,9 +68,9 @@ export default function PremiumSubscription({ user, t, onSubscribe }) {
                     </Text>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <Text strong style={{ fontSize: '12px', display: 'block' }}>${bill.amount}</Text>
-                    <Tag color={bill.status === 'succeeded' || bill.status === 'pending' ? 'success' : 'error'} style={{ fontSize: '8px', fontWeight: 'bold', margin: 0 }}>
-                      {bill.status === 'pending' ? 'PAID' : bill.status.toUpperCase()}
+                    <Text strong style={{ fontSize: '12px', display: 'block' }}>₹{bill.amount}</Text>
+                    <Tag color={bill.status === 'succeeded' ? 'success' : bill.status === 'pending' ? 'warning' : 'error'} style={{ fontSize: '8px', fontWeight: 'bold', margin: 0 }}>
+                      {bill.status.toUpperCase()}
                     </Tag>
                   </div>
                 </div>

@@ -47,3 +47,12 @@ export const REPLY_TO_INQUIRY = gql`
     }
   }
 `;
+
+export const SUBMIT_INQUIRY = gql`
+  mutation SubmitInquiry($input: SubmitInquiryInput!) {
+    submitInquiry(input: $input) {
+      id
+      status
+    }
+  }
+`;

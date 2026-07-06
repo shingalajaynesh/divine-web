@@ -9,13 +9,11 @@ export default function DedicatedGuides({ t }) {
       name: 'Dr. Sunita Sharma',
       role: 'Chief Garbh Sanskar Trainer',
       color: 'orange',
-      action: () => toast.success('Launching chat connection with Dr. Sunita...')
     },
     {
       name: 'Mrs. Priya Patel',
       role: 'Prenatal Yoga Expert',
       color: 'pink',
-      action: () => toast.success('Launching chat connection with Mrs. Priya...')
     }
   ];
 
@@ -38,8 +36,8 @@ export default function DedicatedGuides({ t }) {
                 <Text type="secondary" style={{ fontSize: '10px' }}>{guide.role}</Text>
               </div>
             </div>
-            <Button size="small" type="default" onClick={guide.action} style={{ fontWeight: 'bold' }}>
-              {t.chat}
+            <Button size="small" type="default" href="/expert-consulting">
+              View slots
             </Button>
           </div>
         ))}

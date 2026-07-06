@@ -18,9 +18,6 @@ import {
 } from 'antd';
 import { 
   PlayCircleOutlined, 
-  PauseCircleOutlined, 
-  StepBackwardOutlined, 
-  StepForwardOutlined, 
   DownloadOutlined, 
   SoundOutlined, 
   CheckCircleOutlined 
@@ -177,16 +174,6 @@ export default function TodayDashboard({ user, t }) {
   };
 
   // Music Player State
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState(0);
-  const [trackProgress, setTrackProgress] = useState(35);
-
-  const tracks = [
-    { title: isHi ? "गर्भ संस्कार अल्फा ब्रेनवेव्स (ध्यान)" : "Garbh Sanskar Alpha Brainwaves (Sync)", duration: "15:40", desc: "Classical flute & soft ambient synth" },
-    { title: isHi ? "राग कल्याण - मानसिक शांति" : "Raag Kalyan - Monthly Raga Meditation", duration: "24:12", desc: "Deep meditative Sitar melodies" },
-    { title: isHi ? "गर्भ ध्वनि वातावरण (सुरक्षा)" : "Deep Womb Soundscapes (Soothing)", duration: "30:00", desc: "Gentle mother's heartbeat & ocean waves" }
-  ];
-
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       {/* Waveforms Styles Injection */}
@@ -355,76 +342,22 @@ export default function TodayDashboard({ user, t }) {
         </div>
       </Card>
 
-      {/* Music & Meditation Player */}
-      <Card style={{ background: '#0f172a', border: 0, borderRadius: 24 }} styles={{ body: { padding: '32px' } }}>
-        <Row align="middle" justify="space-between" gutter={[16, 16]}>
-          <Col xs={24} md={18}>
-            <Space orientation="vertical" size={4}>
-              <Tag color="rgba(249, 115, 22, 0.2)" style={{ color: '#fb923c', border: 0, fontWeight: 'bold' }}>
-                🎼 {isHi ? "गर्भावस्था नाद चिकित्सा" : "Pregnancy Raga & Alpha Soundwaves"}
-              </Tag>
-              <Title level={5} style={{ color: '#fff', margin: '8px 0 0 0' }}>{tracks[currentTrack].title}</Title>
-              <Text style={{ color: '#94a3b8', fontSize: '12px' }}>{tracks[currentTrack].desc}</Text>
-            </Space>
-          </Col>
-          <Col xs={24} md={6} style={{ display: 'flex', justifyItems: 'end', justifyContent: 'end' }}>
-            <div style={{ display: 'flex', alignItems: 'end', gap: '6px', height: '24px' }}>
-              <div style={{ width: '4px', background: '#ec4899', borderRadius: '4px' }} className={isPlaying ? 'animate-wave-1' : ''}></div>
-              <div style={{ width: '4px', background: '#f97316', borderRadius: '4px' }} className={isPlaying ? 'animate-wave-2' : ''}></div>
-              <div style={{ width: '4px', background: '#eab308', borderRadius: '4px' }} className={isPlaying ? 'animate-wave-3' : ''}></div>
-              <div style={{ width: '4px', background: '#f43f5e', borderRadius: '4px' }} className={isPlaying ? 'animate-wave-4' : ''}></div>
-            </div>
-          </Col>
-        </Row>
-
-        <div style={{ marginTop: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94a3b8', fontSize: '11px' }}>
-            <Text style={{ color: '#94a3b8' }}>05:12</Text>
-            <div style={{ flexGrow: 1, margin: '0 16px' }}>
-              <Slider 
-                value={trackProgress} 
-                onChange={setTrackProgress} 
-                tooltip={{ open: false }} 
-                styles={{ track: { background: 'linear-gradient(to right, #f97316, #ec4899)' }, handle: { background: '#fff', border: '2px solid #f97316' } }}
-              />
-            </div>
-            <Text style={{ color: '#94a3b8' }}>{tracks[currentTrack].duration}</Text>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px' }}>
-            <Space size="middle">
-              <Button 
-                shape="circle" 
-                icon={<StepBackwardOutlined />} 
-                style={{ background: '#1e293b', border: 0, color: '#fff' }} 
-                onClick={() => {
-                  setCurrentTrack(prev => (prev - 1 + tracks.length) % tracks.length);
-                  setIsPlaying(true);
-                }}
-              />
-              <Button 
-                type="primary" 
-                shape="circle" 
-                size="large"
-                icon={isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />} 
-                onClick={() => setIsPlaying(!isPlaying)}
-              />
-              <Button 
-                shape="circle" 
-                icon={<StepForwardOutlined />} 
-                style={{ background: '#1e293b', border: 0, color: '#fff' }} 
-                onClick={() => {
-                  setCurrentTrack(prev => (prev + 1) % tracks.length);
-                  setIsPlaying(true);
-                }}
-              />
-            </Space>
-
-            <Tag color="#1e293b" style={{ color: '#94a3b8', border: 0, fontWeight: 'bold', padding: '4px 12px', borderRadius: '12px' }}>
-              Track {currentTrack + 1} / {tracks.length}
-            </Tag>
-          </div>
+      {/* Music & Meditation */}
+      <Card className="meditation-card">
+        <div className="meditation-copy">
+          <Tag>Audio practice</Tag>
+          <Title level={4}>{isHi ? "आज का ध्यान और संगीत" : "Today’s meditation & music"}</Title>
+          <Text>{content?.mediaUrl
+            ? (isHi ? "शांत स्थान चुनें और आज का निर्देशित अभ्यास सुनें।" : "Choose a quiet place and listen to today’s guided practice.")
+            : (isHi ? "आज का ऑडियो अभी प्रकाशित नहीं हुआ है।" : "Today’s audio has not been published yet.")}</Text>
         </div>
+        {content?.mediaUrl ? (
+          <Button type="primary" icon={<PlayCircleOutlined />} href={content.mediaUrl} target="_blank">
+            {isHi ? "अभ्यास खोलें" : "Open audio practice"}
+          </Button>
+        ) : (
+          <Button disabled>{isHi ? "जल्द उपलब्ध" : "Available soon"}</Button>
+        )}
       </Card>
 
       {/* Dream Child Chart */}

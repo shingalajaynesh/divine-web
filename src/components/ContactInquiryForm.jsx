@@ -2,53 +2,32 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Card, Form, Input, Button, Typography } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
+import { useMutation } from '@apollo/client';
+import { SUBMIT_INQUIRY } from '../features/inquiries/inquiryOperations';
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
 export default function ContactInquiryForm({ user, isHi }) {
   const [form] = Form.useForm();
-  const [submitting, setSubmitting] = useState(false);
+  const [submitInquiry, { loading: submitting }] = useMutation(SUBMIT_INQUIRY);
 
-  const handleSubmit = (values) => {
-    const { name, email, phone, message } = values;
-    setSubmitting(true);
-
-    setTimeout(() => {
-      const newInquiry = {
-        id: 'inq_' + Math.random().toString(36).substring(7),
-        name,
-        email,
-        phone,
-        message,
-        status: 'pending',
-        replies: [],
-        createdAt: new Date().toISOString()
-      };
-
-      const existing = localStorage.getItem('divine_inquiries');
-      const list = existing ? JSON.parse(existing) : [];
-      list.unshift(newInquiry);
-      localStorage.setItem('divine_inquiries', JSON.stringify(list));
-
+  const handleSubmit = async (values) => {
+    try {
+      await submitInquiry({ variables: { input: {
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        city: values.city,
+        language: isHi ? 'hi' : 'en',
+        message: values.message,
+        source: 'member_web',
+      } } });
       toast.success(isHi ? "पूछताछ दर्ज की गई! हमारे प्रतिनिधि आपसे संपर्क करेंगे।" : "Inquiry submitted! Our support team will contact you shortly.");
-      
-      // Simulate real-time staff alert on new ticket
-      setTimeout(() => {
-        toast(`🔔 Staff Notification: New support inquiry from ${name}`, {
-          icon: '✉️',
-          duration: 4000,
-          style: {
-            background: '#1e293b',
-            color: '#fff',
-            borderRadius: '12px'
-          }
-        });
-      }, 2500);
-
-      form.setFieldsValue({ message: '', phone: '' });
-      setSubmitting(false);
-    }, 1000);
+      form.setFieldsValue({ message: '' });
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   return (
@@ -76,6 +55,10 @@ export default function ContactInquiryForm({ user, isHi }) {
 
         <Form.Item name="phone" rules={[{ required: true }]} style={{ marginBottom: '12px' }}>
           <Input placeholder={isHi ? "मोबाइल नंबर" : "Phone Number"} />
+        </Form.Item>
+
+        <Form.Item name="city" rules={[{ required: true }]} style={{ marginBottom: '12px' }}>
+          <Input placeholder={isHi ? "शहर" : "City / Town"} />
         </Form.Item>
 
         <Form.Item name="message" rules={[{ required: true }]} style={{ marginBottom: '16px' }}>

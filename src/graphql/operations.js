@@ -141,11 +141,6 @@ export const BOOK_LIVE_CLASS_MUTATION = gql`
   }
 `;
 
-export const CREATE_STRIPE_CHECKOUT_MUTATION = gql`
-  mutation CreateStripeCheckout($plan: String!) {
-    createStripeCheckout(plan: $plan)
-  }
-`;
 
 export const ADMIN_ADD_CONTENT_MUTATION = gql`
   mutation AdminAddContent($dayNumber: Int!, $category: String!, $titleEn: String!, $titleHi: String!, $bodyEn: String!, $bodyHi: String!, $mediaUrl: String) {
