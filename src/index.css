@@ -1,3 +1,107 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+:root {
+  --font-primary: 'Outfit', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  
+  --color-brand-primary: #d97706;     /* Saffron Gold */
+  --color-brand-secondary: #631207;   /* Mahogany Brown */
+  --color-brand-light: #fffdf5;       /* Warm Cream */
+  --color-accent-pink: #f43f5e;
+  
+  --bg-primary: #fffbf7;              /* Soft Peach Cream base background */
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #fbf1e8;
+  
+  --text-main: #2b1f1d;
+  --text-muted: #5c4d4a;
+  --text-light: #9c8e8b;
+  
+  --border-delicate: rgba(99, 18, 7, 0.08);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-primary);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e2d4cf;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cbbab5;
+}
+
+/* Human-designed premium header styles */
+.header-glass {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-delicate);
+  box-shadow: 0 4px 20px rgba(99, 18, 7, 0.02);
+}
+
+/* Elegant Ant Design overrides */
+.ant-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-delicate);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(99, 18, 7, 0.05) !important;
+  border-color: rgba(99, 18, 7, 0.15) !important;
+}
+
+.ant-menu {
+  background: transparent !important;
+}
+
+.ant-menu-item-selected {
+  background: var(--bg-tertiary) !important;
+  color: var(--color-brand-secondary) !important;
+  font-weight: 700 !important;
+}
+
+.ant-menu-item {
+  border-radius: 12px !important;
+  margin: 4px 8px !important;
+  font-family: var(--font-primary);
+}
+
+.ant-btn-primary {
+  background: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-secondary) 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(99, 18, 7, 0.15) !important;
+  color: #fff !important;
+}
+
+.ant-btn-primary:hover {
+  opacity: 0.95;
+  box-shadow: 0 6px 20px rgba(99, 18, 7, 0.25) !important;
+}
+
+/* Custom styled inputs for human touch */
+.ant-input, .ant-input-number, .ant-select-selector {
+  border-radius: 12px !important;
+  border-color: #e2d4cf !important;
+}
+
+.ant-input:focus, .ant-input-focused, .ant-select-focused .ant-select-selector {
+  border-color: var(--color-brand-primary) !important;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.1) !important;
+}
