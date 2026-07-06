@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { useAuth, SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { setClerkTokenProvider } from './graphql/client.js';
+import { auth } from './config/firebase.js';
+import { onAuthStateChanged } from 'firebase/auth';
+import AuthModal from './components/AuthModal.jsx';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
   ConfigProvider, 
@@ -37,10 +38,11 @@ import { divineTheme } from './theme/themeConfig';
 import AppRoutes, { WelcomeScreen } from './routes/AppRoutes';
 
 function App() {
-  const { getToken } = useAuth();
-  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
   const navigate = useNavigate();
   const [activeRole, setActiveRole] = useState('MOTHER');
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [authLoaded, setAuthLoaded] = useState(false);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
   
   const { data: meData, loading: meLoading, error: meError, refetch: refetchMe } = useQuery(ME_QUERY);
 
@@ -58,7 +60,15 @@ function App() {
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    if (clerkLoaded && clerkUser && !meLoading) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      setAuthLoaded(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (authLoaded && firebaseUser && !meLoading) {
       const dbUser = meData?.me;
       if (!dbUser && !syncing) {
         setSyncing(true);
@@ -70,11 +80,7 @@ function App() {
           });
       }
     }
-  }, [clerkLoaded, clerkUser, meData, meLoading, syncing]);
-
-  useEffect(() => {
-    setClerkTokenProvider(getToken);
-  }, [getToken]);
+  }, [authLoaded, firebaseUser, meData, meLoading, syncing]);
 
   const user = meData?.me;
   const lang = user?.language || 'en';
@@ -169,32 +175,35 @@ function App() {
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Toaster position="top-center" reverseOrder={false} />
 
-        <SignedOut>
-          <WelcomeScreen t={t} />
-        </SignedOut>
-
-        <SignedIn>
-          {meLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-              <Spin size="large" description="Loading session..." />
-            </div>
-          ) : isLockScreen ? (
-            <DeviceLockScreen refetchMe={refetchMe} />
-          ) : user && !user.lmpDate ? (
-            <Layout style={{ minHeight: '100vh', padding: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <OnboardingCalculator saveOnboarding={saveOnboarding} t={t} />
-            </Layout>
-          ) : user ? (
-            <AppRoutes 
-              user={user}
-              menuItems={menuItems}
-              activeRole={activeRole}
-              t={t}
-              lang={lang}
-              handleLanguageToggle={handleLanguageToggle}
-            />
-          ) : null}
-        </SignedIn>
+        {!authLoaded || (firebaseUser && meLoading) ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <Spin size="large" description="Loading session..." />
+          </div>
+        ) : !firebaseUser ? (
+          <>
+            <WelcomeScreen t={t} onSignInClick={() => setAuthModalVisible(true)} />
+            <AuthModal visible={authModalVisible} onClose={() => setAuthModalVisible(false)} />
+          </>
+        ) : (
+          <>
+            {isLockScreen ? (
+              <DeviceLockScreen refetchMe={refetchMe} />
+            ) : user && !user.lmpDate ? (
+              <Layout style={{ minHeight: '100vh', padding: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <OnboardingCalculator saveOnboarding={saveOnboarding} t={t} />
+              </Layout>
+            ) : user ? (
+              <AppRoutes 
+                user={user}
+                menuItems={menuItems}
+                activeRole={activeRole}
+                t={t}
+                lang={lang}
+                handleLanguageToggle={handleLanguageToggle}
+              />
+            ) : null}
+          </>
+        )}
       </div>
     </ConfigProvider>
   );

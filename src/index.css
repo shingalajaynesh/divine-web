@@ -461,6 +461,142 @@ a:focus-visible {
   align-items: start;
 }
 
+.experience-home {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.home-greeting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.home-greeting h1.ant-typography {
+  margin: 5px 0 6px;
+  color: var(--brand-maroon-dark);
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -.04em;
+}
+
+.home-greeting p.ant-typography {
+  margin: 0;
+  color: var(--muted);
+}
+
+.home-kicker {
+  color: var(--brand-saffron);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.inspiration-rail {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.inspiration-tile {
+  min-height: 164px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-align: left;
+  border: 0;
+  border-radius: 24px;
+  color: white;
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.inspiration-tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.inspiration-tile.tone-maroon { background: linear-gradient(145deg, #68111b, #9d3542); }
+.inspiration-tile.tone-saffron { background: linear-gradient(145deg, #a64a08, #f59e0b); }
+.inspiration-tile.tone-plum { background: linear-gradient(145deg, #402044, #75417b); }
+.inspiration-tile .tile-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 15px; background: rgba(255,255,255,.16); font-size: 22px; }
+.inspiration-tile strong, .inspiration-tile small { display: block; }
+.inspiration-tile strong { font-size: 18px; }
+.inspiration-tile small { margin-top: 5px; color: rgba(255,255,255,.75); font-size: 11px; }
+
+.care-banner {
+  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #d5e8dc;
+  border-radius: 22px;
+  background: #e8f4ed;
+}
+
+.care-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 18px; color: var(--brand-maroon); background: white; font-size: 28px; }
+.care-banner h3.ant-typography { margin: 0; color: var(--brand-maroon-dark); }
+.care-banner .ant-typography { color: var(--muted); font-size: 12px; }
+
+.journey-banner {
+  min-height: 260px;
+  padding: clamp(26px, 4vw, 48px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  overflow: hidden;
+  border-radius: 30px;
+  background: linear-gradient(125deg, #fff3d2, #f7dfdc);
+}
+
+.journey-banner .ant-tag { border: 0; color: var(--brand-maroon); background: rgba(255,255,255,.7); }
+.journey-banner h2.ant-typography { margin: 12px 0 8px; color: var(--brand-maroon-dark); font-size: clamp(34px, 5vw, 54px); }
+.journey-banner p.ant-typography { max-width: 680px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.journey-banner .ant-space span { padding: 7px 11px; border-radius: 10px; color: var(--brand-maroon); background: rgba(255,255,255,.68); font-size: 10px; font-weight: 750; }
+.journey-mark { width: 150px; height: 150px; display: grid; place-items: center; border: 14px solid rgba(255,255,255,.45); border-radius: 50%; color: var(--brand-maroon); background: rgba(255,255,255,.72); font-size: 58px; }
+
+.home-section-heading { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.home-section-heading h2.ant-typography { margin: 0; color: var(--brand-maroon-dark); font-size: 23px; }
+
+.home-action-card {
+  width: 100%;
+  min-height: 158px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  border: 0;
+  border-radius: 22px;
+  cursor: pointer;
+}
+
+.home-action-card > span { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 15px; color: var(--brand-maroon); background: rgba(255,255,255,.72); font-size: 21px; }
+.home-action-card strong { margin-top: 14px; color: var(--brand-maroon-dark); font-size: 14px; }
+.home-action-card small { margin-top: 4px; color: var(--muted); }
+.home-action-card.tone-pink { background: #fce8ec; }
+.home-action-card.tone-amber { background: #fff0d1; }
+.home-action-card.tone-green { background: #e4f2e9; }
+.home-action-card.tone-lavender { background: #efe8f7; }
+
+.home-content-row { margin-top: 2px; }
+.today-practice-card, .programme-card { height: 100%; border-radius: 24px; }
+.today-practice-card .ant-card-body { height: 100%; display: flex; align-items: flex-start; gap: 18px; }
+.practice-icon { flex: none; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px; color: var(--brand-saffron); background: var(--soft-saffron); font-size: 24px; }
+.today-practice-card h3.ant-typography, .programme-card h3.ant-typography { margin: 6px 0; color: var(--brand-maroon-dark); }
+.today-practice-card p.ant-typography, .programme-card p.ant-typography { color: var(--muted); line-height: 1.65; }
+.programme-card { color: white; background: var(--soft-maroon); border-color: #ebcfd4; }
+.programme-icon { color: var(--brand-saffron); font-size: 28px; }
+.programme-card .ant-btn { color: white; background: var(--brand-maroon); border: 0; }
+
+.testimonial-card { padding: 28px; border-radius: 24px; background: #e4f3f8; }
+.testimonial-card > span { color: var(--brand-saffron); font-size: 54px; font-weight: 900; line-height: .7; }
+.testimonial-card p.ant-typography { max-width: 800px; margin: 12px 0; color: var(--brand-maroon-dark); font-size: 16px; line-height: 1.7; }
+.testimonial-card strong { color: var(--brand-maroon); font-size: 12px; }
+.web-floating-help { position: fixed; right: 26px; bottom: 26px; z-index: 60; width: 56px; height: 56px; display: grid; place-items: center; border: 4px solid white; border-radius: 20px; color: white; background: var(--brand-saffron); box-shadow: var(--shadow-md); font-size: 22px; }
+
 .dashboard-primary,
 .dashboard-sidebar {
   min-width: 0;
@@ -758,6 +894,16 @@ a:focus-visible {
     max-width: calc(100vw - 24px);
     margin: 12px auto;
   }
+
+  .home-greeting .ant-avatar { display: none; }
+  .inspiration-rail { display: flex; margin-right: -16px; padding-right: 16px; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .inspiration-tile { min-width: 210px; scroll-snap-align: start; }
+  .care-banner { grid-template-columns: auto 1fr; }
+  .care-banner .ant-space { grid-column: 1 / -1; }
+  .journey-banner { min-height: 230px; grid-template-columns: 1fr; }
+  .journey-mark { display: none; }
+  .today-practice-card .ant-card-body { flex-direction: column; }
+  .web-floating-help { right: 16px; bottom: 88px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

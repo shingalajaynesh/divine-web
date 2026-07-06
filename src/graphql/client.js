@@ -5,12 +5,7 @@ const httpLink = createHttpLink({
   uri: import.meta.env.VITE_GRAPHQL_API_URL || 'http://localhost:4000/graphql',
 });
 
-// Shared reference to resolve Clerk token getter function asynchronously
-let getClerkTokenFn = null;
-
-export const setClerkTokenProvider = (fn) => {
-  getClerkTokenFn = fn;
-};
+import { auth } from '../config/firebase.js';
 
 // Generate/retrieve a persistent device ID
 let deviceId = localStorage.getItem('divine_device_id');
@@ -43,10 +38,12 @@ const deviceName = getDeviceName();
 
 const authLink = setContext(async (_, { headers }) => {
   let token = null;
-  if (getClerkTokenFn) {
-    token = await getClerkTokenFn();
-  } else if (window.Clerk?.session) {
-    token = await window.Clerk.session.getToken();
+  try {
+    if (auth.currentUser) {
+      token = await auth.currentUser.getIdToken();
+    }
+  } catch (e) {
+    console.error('Error fetching Firebase ID token:', e);
   }
 
   return {

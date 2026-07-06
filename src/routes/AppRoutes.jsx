@@ -1,6 +1,5 @@
 import React, { Suspense, useMemo, useState } from 'react';
 import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { SignInButton, UserButton } from '@clerk/clerk-react';
 import {
   Avatar,
   Button,
@@ -12,8 +11,8 @@ import {
   Space,
   Spin,
   Tag,
-  Tooltip,
   Typography,
+  Dropdown,
 } from 'antd';
 import {
   CustomerServiceOutlined,
@@ -22,7 +21,10 @@ import {
   MoreOutlined,
   PhoneOutlined,
   SafetyCertificateOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase.js';
 import { routeConfig } from './routeConfig';
 
 const { Header, Content, Sider } = Layout;
@@ -32,7 +34,7 @@ const { useBreakpoint } = Grid;
 const MARKETING_URL = import.meta.env.VITE_MARKETING_URL || 'https://www.thedivinegarbhsanskar.com';
 const SUPPORT_URL = 'https://wa.me/919638484545?text=Hello%20Divine%20Garbh%20Sanskar%20support';
 
-export function WelcomeScreen({ t }) {
+export function WelcomeScreen({ t, onSignInClick }) {
   return (
     <main className="welcome-shell">
       <header className="welcome-header">
@@ -52,9 +54,9 @@ export function WelcomeScreen({ t }) {
           <Title>Thoughtful guidance for every week of your pregnancy.</Title>
           <Paragraph>{t.journey_desc}</Paragraph>
           <Space wrap size={12}>
-            <SignInButton mode="modal">
-              <Button type="primary" size="large">Sign in to your dashboard</Button>
-            </SignInButton>
+            <Button type="primary" size="large" onClick={onSignInClick}>
+              Sign in to your dashboard
+            </Button>
             <Button size="large" icon={<PhoneOutlined />} href={SUPPORT_URL} target="_blank">
               Talk to a counsellor
             </Button>
@@ -175,16 +177,33 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{ elements: { avatarBox: { width: '38px', height: '38px', borderRadius: '10px' } } }}
-              />
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'logout',
+                      icon: <LogoutOutlined />,
+                      label: 'Sign Out',
+                      onClick: () => signOut(auth)
+                    }
+                  ]
+                }}
+                placement="bottomRight"
+              >
+                <Avatar 
+                  style={{ backgroundColor: '#f43f5e', cursor: 'pointer' }}
+                  size={38}
+                  shape="square"
+                >
+                  {(user?.displayName || 'M').charAt(0).toUpperCase()}
+                </Avatar>
+              </Dropdown>
             </div>
           </Space>
         </Header>
 
         <Content className="app-content">
-          <div className="content-heading">
+          {selectedPath !== '/dashboard' && <div className="content-heading">
             <div>
               <span className="content-kicker">{roleLabel}</span>
               <Title level={2}>{currentItem?.label || 'Dashboard'}</Title>
@@ -192,7 +211,7 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
             {user?.currentWeek && (
               <Tag className="week-tag">Week {user.currentWeek} · Trimester {user.currentTrimester}</Tag>
             )}
-          </div>
+          </div>}
           <div className="content-frame"><Outlet /></div>
         </Content>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import toast from 'react-hot-toast';
-import { Card, Button, Input, Tag, Spin, Space, Divider, Typography, Modal } from 'antd';
+import { Avatar, Card, Button, Input, Tag, Spin, Space, Divider, Typography, Modal } from 'antd';
 import { SecurityScanOutlined, LaptopOutlined, MobileOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph, Text } = Typography;
