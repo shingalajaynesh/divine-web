@@ -159,11 +159,11 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
             )}
           </Space>
 
-          <Space size={isDesktop ? 16 : 8}>
+          <Space size={isDesktop ? 16 : 8} align="center">
             <Select
               value={lang}
               onChange={handleLanguageToggle}
-              options={[{ value: 'en', label: 'English' }, { value: 'hi', label: 'हिन्दी' }]}
+              options={[{ value: 'en', label: 'English' }, { value: 'hi', label: 'हिन्दी' }, { value: 'gu', label: 'ગુજરાતી' }]}
               suffixIcon={<GlobalOutlined />}
               className="language-select"
               aria-label="Choose language"
@@ -174,10 +174,12 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
                 <span>{roleLabel}</span>
               </div>
             )}
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{ elements: { avatarBox: { width: '38px', height: '38px', borderRadius: '10px' } } }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{ elements: { avatarBox: { width: '38px', height: '38px', borderRadius: '10px' } } }}
+              />
+            </div>
           </Space>
         </Header>
 

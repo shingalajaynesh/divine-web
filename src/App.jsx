@@ -100,7 +100,13 @@ function App() {
           language: newLang
         }
       });
-      toast.success(newLang === 'hi' ? "भाषा हिंदी में बदली गई" : "Language switched to English");
+      if (newLang === 'hi') {
+        toast.success("भाषा हिंदी में बदली गई");
+      } else if (newLang === 'gu') {
+        toast.success("ભાષા બદલીને ગુજરાતી કરવામાં આવી");
+      } else {
+        toast.success("Language switched to English");
+      }
     } catch (e) {
       toast.error(e.message);
     }
