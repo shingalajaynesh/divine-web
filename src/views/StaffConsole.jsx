@@ -1,39 +1,133 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import toast from 'react-hot-toast';
-import { Card, Table, Button, Input, Select, Tag, Space, Modal, Form, Typography, Row, Col } from 'antd';
-import { SearchOutlined, MessageOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Input, Select, Tag, Space, Modal, Form, Typography, Row, Col, Tabs, Drawer, List, Divider } from 'antd';
+import { 
+  SearchOutlined, 
+  MessageOutlined, 
+  CheckCircleOutlined, 
+  InfoCircleOutlined,
+  UserOutlined,
+  BookOutlined,
+  HistoryOutlined,
+  PlusOutlined
+} from '@ant-design/icons';
 import {
   GET_INQUIRIES,
   REPLY_TO_INQUIRY,
   UPDATE_INQUIRY_STATUS,
 } from '../features/inquiries/inquiryOperations';
+import { gql } from '@apollo/client';
+
+const GET_CRM_USERS_QUERY = gql`
+  query GetCrmUsers {
+    getCrmUsers {
+      id
+      displayName
+      email
+      phone
+      pregnancyStartDate
+      pregnancyDay
+      role {
+        roleType
+      }
+      subscriptions {
+        id
+        status
+        plan {
+          name
+        }
+      }
+    }
+  }
+`;
+
+const GET_CRM_NOTES_QUERY = gql`
+  query GetCrmNotes($userId: ID!) {
+    getCrmNotes(userId: $userId) {
+      id
+      note
+      createdAt
+      author {
+        displayName
+      }
+    }
+  }
+`;
+
+const ADD_CRM_NOTE_MUTATION = gql`
+  mutation AddCrmNote($userId: ID!, $note: String!) {
+    addCrmNote(userId: $userId, note: $note) {
+      id
+      note
+    }
+  }
+`;
+
+const GET_AUDIT_LOGS_QUERY = gql`
+  query GetAuditLogs {
+    getAuditLogs {
+      id
+      action
+      targetType
+      targetId
+      payload
+      createdAt
+      user {
+        displayName
+        email
+      }
+    }
+  }
+`;
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
 export default function StaffConsole({ isHi }) {
+  const [activeTab, setActiveTab] = useState('tickets');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedInqId, setSelectedInqId] = useState(null);
 
-  const { data, loading, error, refetch } = useQuery(GET_INQUIRIES, {
-    variables: {
-      status: null,
-      limit: 100,
-      offset: 0,
-    },
+  // CRM states
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [crmSearch, setCrmSearch] = useState('');
+  const [newCrmNote, setNewCrmNote] = useState('');
+
+  // Queries & Mutations
+  const { data, loading, refetch } = useQuery(GET_INQUIRIES, {
+    variables: { status: null, limit: 100, offset: 0 },
     fetchPolicy: 'network-only',
   });
-  const [updateInquiryStatus, { loading: updatingStatus }] = useMutation(UPDATE_INQUIRY_STATUS);
-  const [replyToInquiry, { loading: sendingReply }] = useMutation(REPLY_TO_INQUIRY);
+  const [updateInquiryStatus] = useMutation(UPDATE_INQUIRY_STATUS, { onCompleted: () => refetch() });
+  const [replyToInquiry] = useMutation(REPLY_TO_INQUIRY, { onCompleted: () => { refetch(); setReplyText(''); setSelectedInqId(null); toast.success("Reply recorded and ticket resolved!"); } });
+
+  // CRM Queries & Mutations
+  const crmUsersQuery = useQuery(GET_CRM_USERS_QUERY, { skip: activeTab !== 'crm' });
+  const crmNotesQuery = useQuery(GET_CRM_NOTES_QUERY, {
+    variables: { userId: selectedUser?.id },
+    skip: !selectedUser
+  });
+  const auditLogsQuery = useQuery(GET_AUDIT_LOGS_QUERY, { skip: activeTab !== 'audit' });
+
+  const [addCrmNote] = useMutation(ADD_CRM_NOTE_MUTATION, {
+    onCompleted: () => {
+      crmNotesQuery.refetch();
+      setNewCrmNote('');
+      toast.success('Clinical coaching note saved');
+    }
+  });
+
   const inquiries = data?.getInquiries?.items || [];
+  const crmUsers = crmUsersQuery.data?.getCrmUsers || [];
+  const crmNotes = crmNotesQuery.data?.getCrmNotes || [];
+  const auditLogs = auditLogsQuery.data?.getAuditLogs || [];
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       await updateInquiryStatus({ variables: { id, status: newStatus } });
-      await refetch();
       toast.success(`Ticket status updated to ${newStatus}!`);
     } catch (mutationError) {
       toast.error(mutationError.message);
@@ -44,31 +138,36 @@ export default function StaffConsole({ isHi }) {
     if (!replyText.trim()) return;
     try {
       await replyToInquiry({ variables: { id: selectedInqId, content: replyText.trim() } });
-      await refetch();
-      setReplyText('');
-      setSelectedInqId(null);
-      toast.success("Reply recorded and ticket resolved!");
     } catch (mutationError) {
       toast.error(mutationError.message);
     }
   };
 
-  const filtered = inquiries.filter(inq => {
+  const handleAddCrmNoteSubmit = async () => {
+    if (!newCrmNote.trim() || !selectedUser) return;
+    try {
+      await addCrmNote({ variables: { userId: selectedUser.id, note: newCrmNote.trim() } });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const filteredInquiries = inquiries.filter(inq => {
     const matchesStatus = filterStatus === 'all' || inq.status === filterStatus;
     const query = searchQuery.toLowerCase();
-    const matchesSearch = inq.name.toLowerCase().includes(query) ||
-                          (inq.email || '').toLowerCase().includes(query) ||
-                          inq.phone.toLowerCase().includes(query) ||
-                          (inq.message || '').toLowerCase().includes(query);
-    return matchesStatus && matchesSearch;
+    return matchesStatus && (
+      inq.name.toLowerCase().includes(query) ||
+      (inq.email || '').toLowerCase().includes(query) ||
+      inq.phone.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredCrmUsers = crmUsers.filter(u => {
+    const q = crmSearch.toLowerCase();
+    return u.displayName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.phone || '').includes(q);
   });
 
   const selectedInq = inquiries.find(i => i.id === selectedInqId);
-
-  const total = inquiries.length;
-  const pending = inquiries.filter(i => i.status === 'pending').length;
-  const inProgress = inquiries.filter(i => i.status === 'in_progress').length;
-  const resolved = inquiries.filter(i => i.status === 'resolved').length;
 
   const columns = [
     {
@@ -104,29 +203,27 @@ export default function StaffConsole({ isHi }) {
       key: 'actions',
       width: 180,
       render: (_, record) => (
-        <Space size="small">
-          {record.status === 'pending' && (
-            <Button 
-              size="small" 
-              type="default" 
-              onClick={() => handleUpdateStatus(record.id, 'in_progress')}
-              loading={updatingStatus}
-            >
-              Start work
-            </Button>
-          )}
+        <Space direction="vertical" style={{ width: '100%' }}>
           {record.status !== 'resolved' && (
             <Button 
-              size="small" 
               type="primary" 
+              icon={<MessageOutlined />} 
+              block 
               onClick={() => setSelectedInqId(record.id)}
+              style={{ background: '#be123c', borderColor: '#be123c' }}
             >
-              Reply
+              Reply & Resolve
             </Button>
           )}
-          {record.status === 'resolved' && (
-            <Tag color="success" style={{ fontWeight: 'bold' }}>Resolved</Tag>
-          )}
+          <Select 
+            value={record.status} 
+            onChange={(val) => handleUpdateStatus(record.id, val)}
+            style={{ width: '100%' }}
+          >
+            <Select.Option value="pending">Pending</Select.Option>
+            <Select.Option value="in_progress">In Progress</Select.Option>
+            <Select.Option value="resolved">Resolved</Select.Option>
+          </Select>
         </Space>
       )
     }
@@ -134,88 +231,218 @@ export default function StaffConsole({ isHi }) {
 
   return (
     <Card style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <Title level={4} style={{ margin: 0 }}>💼 Staff Inquiry Console</Title>
+          <Title level={4} style={{ margin: 0 }}>🩺 {isHi ? "चिकित्सीय एवं प्रशासनिक कंसोल" : "Clinical & Coaching Console"}</Title>
           <Paragraph type="secondary" style={{ margin: 0, fontSize: '13px' }}>
-            Manage, reply, and resolve client ticket submissions
+            Manage user directories, clinical notes logs, ticket inquiries, and audit events.
           </Paragraph>
         </div>
-
-        <Space>
-          <Tag color="warning" style={{ padding: '4px 12px', borderRadius: '12px', fontWeight: 'bold' }}>Pending: {pending}</Tag>
-          <Tag color="processing" style={{ padding: '4px 12px', borderRadius: '12px', fontWeight: 'bold' }}>Progress: {inProgress}</Tag>
-          <Tag color="success" style={{ padding: '4px 12px', borderRadius: '12px', fontWeight: 'bold' }}>Resolved: {resolved}</Tag>
-        </Space>
       </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: '20px' }}>
-        <Col xs={24} sm={16}>
-          <Input 
-            placeholder="Search inquiries (Name, Email, Message)..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            prefix={<SearchOutlined />}
-            size="large"
-          />
-        </Col>
-        <Col xs={24} sm={8}>
-          <Select 
-            value={filterStatus}
-            onChange={setFilterStatus}
-            style={{ width: '100%' }}
-            size="large"
-            options={[
-              { value: 'all', label: `All Inquiries (${total})` },
-              { value: 'pending', label: `Pending (${pending})` },
-              { value: 'in_progress', label: `In Progress (${inProgress})` },
-              { value: 'resolved', label: `Resolved (${resolved})` }
-            ]}
-          />
-        </Col>
-      </Row>
-
-      <Table 
-        dataSource={filtered} 
-        columns={columns} 
-        rowKey="id" 
-        loading={loading}
-        locale={{ emptyText: error ? `Unable to load inquiries: ${error.message}` : 'No inquiries found' }}
-        pagination={{ pageSize: 5 }}
-        style={{ borderRadius: 16, overflow: 'hidden' }}
-        scroll={{ x: 'max-content' }}
+      <Tabs 
+        activeKey={activeTab} 
+        onChange={setActiveTab}
+        items={[
+          { key: 'tickets', label: '📞 Member Inquiries' },
+          { key: 'crm', label: '👥 CRM Member Directory' },
+          { key: 'audit', label: '🛡️ Security Audit Trail' }
+        ]}
+        style={{ marginBottom: '24px' }}
       />
 
-      {/* Reply Modal */}
+      {activeTab === 'tickets' && (
+        <div>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <Input 
+              placeholder="Search by name, email or phone..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+              style={{ flex: 1, minWidth: '240px', borderRadius: '10px' }}
+            />
+            <Select 
+              value={filterStatus} 
+              onChange={setFilterStatus}
+              style={{ width: '160px' }}
+            >
+              <Select.Option value="all">All Tickets</Select.Option>
+              <Select.Option value="pending">Pending</Select.Option>
+              <Select.Option value="in_progress">In Progress</Select.Option>
+              <Select.Option value="resolved">Resolved</Select.Option>
+            </Select>
+          </div>
+
+          <Table 
+            dataSource={filteredInquiries} 
+            columns={columns} 
+            rowKey="id"
+            loading={loading}
+            pagination={{ pageSize: 10 }}
+            style={{ borderRadius: '12px', overflow: 'hidden' }}
+          />
+        </div>
+      )}
+
+      {activeTab === 'crm' && (
+        <div>
+          <Input 
+            placeholder="Search CRM by name, email or phone..." 
+            value={crmSearch}
+            onChange={e => setCrmSearch(e.target.value)}
+            prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+            style={{ marginBottom: '20px', borderRadius: '10px' }}
+          />
+
+          <Table
+            dataSource={filteredCrmUsers}
+            rowKey="id"
+            columns={[
+              {
+                title: 'Name',
+                dataIndex: 'displayName',
+                key: 'displayName',
+                render: (text, record) => (
+                  <div>
+                    <Text strong>{text}</Text>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>{record.email}</div>
+                  </div>
+                )
+              },
+              {
+                title: 'Pregnancy Day',
+                dataIndex: 'pregnancyDay',
+                key: 'pregnancyDay',
+                render: (day) => day ? `Day ${day}` : 'Not set'
+              },
+              {
+                title: 'Subscription Status',
+                key: 'sub',
+                render: (_, record) => {
+                  const sub = record.subscriptions?.[0];
+                  if (!sub) return <Tag color="gray">Free Tier</Tag>;
+                  return <Tag color="rose">{sub.plan?.name} ({sub.status.toUpperCase()})</Tag>;
+                }
+              },
+              {
+                title: 'Action',
+                key: 'action',
+                render: (_, record) => (
+                  <Button type="link" icon={<UserOutlined />} onClick={() => setSelectedUser(record)}>
+                    View clinical profile
+                  </Button>
+                )
+              }
+            ]}
+          />
+        </div>
+      )}
+
+      {activeTab === 'audit' && (
+        <Table
+          dataSource={auditLogs}
+          rowKey="id"
+          columns={[
+            {
+              title: 'Staff/Admin',
+              key: 'user',
+              render: (_, record) => `${record.user?.displayName} (${record.user?.email})`
+            },
+            {
+              title: 'Action',
+              dataIndex: 'action',
+              key: 'action',
+              render: (act) => <Tag color="blue">{act.toUpperCase()}</Tag>
+            },
+            {
+              title: 'Target ID',
+              key: 'target',
+              render: (_, record) => `${record.targetType || ''} (${record.targetId || ''})`
+            },
+            {
+              title: 'Timestamp',
+              dataIndex: 'createdAt',
+              key: 'createdAt',
+              render: (t) => new Date(t).toLocaleString()
+            }
+          ]}
+        />
+      )}
+
+      {/* Ticket response dialog */}
       <Modal
-        title={`Respond to ${selectedInq?.name}`}
+        title="Reply & Close Ticket Inquiry"
         open={selectedInqId !== null}
         onCancel={() => setSelectedInqId(null)}
-        onOk={handleSendReply}
-        confirmLoading={sendingReply}
-        okText="Send response & resolve ticket"
-        destroyOnClose
+        footer={[
+          <Button key="cancel" onClick={() => setSelectedInqId(null)}>Cancel</Button>,
+          <Button key="send" type="primary" onClick={handleSendReply} style={{ background: '#be123c', borderColor: '#be123c' }}>
+            Submit Reply
+          </Button>
+        ]}
       >
         {selectedInq && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', marginTop: '12px' }}>
-            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-              <Text type="secondary" strong style={{ fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Original Message</Text>
-              <Text italic style={{ fontSize: '13px', color: '#475569' }}>"{selectedInq.message}"</Text>
-            </div>
-            
-            <Form layout="vertical">
-              <Form.Item label={<Text strong style={{ fontSize: '12px' }}>Reply message / Action taken:</Text>} required>
-                <TextArea 
-                  rows={4} 
-                  value={replyText} 
-                  onChange={(e) => setReplyText(e.target.value)} 
-                  placeholder="Describe responses or medical suggestions..."
-                />
-              </Form.Item>
-            </Form>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '10px 0' }}>
+            <Text><strong>Ticket sender:</strong> {selectedInq.name}</Text>
+            <Text><strong>Inquiry message:</strong> "{selectedInq.message}"</Text>
+            <TextArea 
+              rows={4} 
+              placeholder="Type clinical advice or administrative response here..." 
+              value={replyText} 
+              onChange={e => setReplyText(e.target.value)} 
+            />
           </div>
         )}
       </Modal>
+
+      {/* CRM User Clinical profile drawer */}
+      <Drawer
+        title={`🩺 Clinical Profile - ${selectedUser?.displayName}`}
+        width={480}
+        onClose={() => setSelectedUser(null)}
+        open={selectedUser !== null}
+      >
+        {selectedUser && (
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            <div>
+              <Title level={5}>Patient Info</Title>
+              <Paragraph style={{ margin: 0 }}>Email: {selectedUser.email}</Paragraph>
+              <Paragraph style={{ margin: 0 }}>Phone: {selectedUser.phone || 'Not provided'}</Paragraph>
+              <Paragraph style={{ margin: 0 }}>Pregnancy Start: {selectedUser.pregnancyStartDate ? new Date(selectedUser.pregnancyStartDate).toLocaleDateString() : 'Not set'}</Paragraph>
+              <Paragraph style={{ margin: 0 }}>Current Day: Day {selectedUser.pregnancyDay || 'Not set'}</Paragraph>
+            </div>
+
+            <Divider />
+
+            <div>
+              <Title level={5}>Coaching & Clinical Notes</Title>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                <TextArea 
+                  rows={3} 
+                  placeholder="Enter medical coach note, daily diet tweaks, etc..." 
+                  value={newCrmNote}
+                  onChange={e => setNewCrmNote(e.target.value)}
+                />
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleAddCrmNoteSubmit} style={{ background: '#be123c', borderColor: '#be123c', alignSelf: 'flex-end' }}>
+                  Save Note
+                </Button>
+              </div>
+
+              <List
+                dataSource={crmNotes}
+                renderItem={n => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={<Text strong style={{ fontSize: '12px' }}>{n.author?.displayName} · <span style={{ fontWeight: 'normal', color: '#94a3b8' }}>{new Date(n.createdAt).toLocaleDateString()}</span></Text>}
+                      description={<Text style={{ fontSize: '12px', color: '#334155' }}>"{n.note}"</Text>}
+                    />
+                  </List.Item>
+                )}
+              />
+            </div>
+          </Space>
+        )}
+      </Drawer>
     </Card>
   );
 }

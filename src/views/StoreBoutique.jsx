@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import toast from 'react-hot-toast';
-import { Card, Button, List, Tag, Typography, Row, Col, Space, Drawer, Input, Form, Divider, Badge, Tabs, Alert } from 'antd';
+import { Card, Button, List, Tag, Typography, Row, Col, Space, Drawer, Input, Form, Divider, Badge, Tabs, Alert, Select, DatePicker } from 'antd';
 import { 
   GET_STORE_DATA_QUERY, 
   ADD_TO_CART_MUTATION, 
@@ -19,21 +19,114 @@ import {
   EnvironmentOutlined, 
   CheckCircleOutlined, 
   BookOutlined, 
-  GiftOutlined 
+  GiftOutlined,
+  InfoCircleOutlined,
+  CompassOutlined,
+  SwapOutlined
 } from '@ant-design/icons';
+import { gql } from '@apollo/client';
 
-const { Title, Paragraph, Text } = Typography;
+const GET_ADMIN_ORDERS_QUERY = gql`
+  query GetAdminOrders {
+    getAdminOrders {
+      id
+      totalAmount
+      status
+      createdAt
+      carrier
+      trackingNumber
+      estimatedDeliveryDate
+      shippedAt
+      deliveredAt
+      user {
+        displayName
+      }
+      address {
+        fullName
+        addressLine1
+        city
+        phone
+      }
+      items {
+        id
+        quantity
+        price
+        product {
+          title
+        }
+      }
+      returnRequest {
+        id
+        reason
+        status
+        adminNotes
+      }
+    }
+  }
+`;
+
+const UPDATE_ORDER_TRACKING_MUTATION = gql`
+  mutation UpdateOrderTracking($orderId: ID!, $carrier: String!, $trackingNumber: String!, $estimatedDeliveryDate: String) {
+    updateOrderTracking(orderId: $orderId, carrier: $carrier, trackingNumber: $trackingNumber, estimatedDeliveryDate: $estimatedDeliveryDate) {
+      id
+      carrier
+      trackingNumber
+      estimatedDeliveryDate
+    }
+  }
+`;
+
+const UPDATE_ORDER_STATUS_MUTATION = gql`
+  mutation UpdateOrderStatus($orderId: ID!, $status: String!) {
+    updateOrderStatus(orderId: $orderId, status: $status) {
+      id
+      status
+    }
+  }
+`;
+
+const REQUEST_ORDER_RETURN_MUTATION = gql`
+  mutation RequestOrderReturn($orderId: ID!, $reason: String!) {
+    requestOrderReturn(orderId: $orderId, reason: $reason) {
+      id
+      status
+    }
+  }
+`;
+
+const REVIEW_ORDER_RETURN_MUTATION = gql`
+  mutation ReviewOrderReturn($orderReturnId: ID!, $status: String!, $adminNotes: String) {
+    reviewOrderReturn(orderReturnId: $orderReturnId, status: $status, adminNotes: $adminNotes) {
+      id
+      status
+    }
+  }
+`;
 
 export default function StoreBoutique({ user, lang }) {
   const isHi = lang === 'hi';
+  const isStaff = user?.role?.roleType === 'ADMIN' || user?.role?.roleType === 'STAFF';
 
   const [activeTab, setActiveTab] = useState('shop');
   const [cartOpen, setCartOpen] = useState(false);
   const [addressDrawerOpen, setAddressDrawerOpen] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
 
+  // Return request states
+  const [returnReason, setReturnReason] = useState('');
+  const [returningOrderId, setReturningOrderId] = useState(null);
+
+  // Staff action states
+  const [editingOrderId, setEditingOrderId] = useState(null);
+  const [carrier, setCarrier] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState(null);
+  const [adminNotes, setAdminNotes] = useState('');
+
   // Queries & Mutations
   const { data, loading, refetch } = useQuery(GET_STORE_DATA_QUERY);
+  const adminQuery = useQuery(GET_ADMIN_ORDERS_QUERY, { skip: !isStaff });
+
   const [addToCart] = useMutation(ADD_TO_CART_MUTATION, { onCompleted: () => refetch() });
   const [updateCartQty] = useMutation(UPDATE_CART_QUANTITY_MUTATION, { onCompleted: () => refetch() });
   const [removeFromCart] = useMutation(REMOVE_FROM_CART_MUTATION, { onCompleted: () => refetch() });
@@ -48,6 +141,11 @@ export default function StoreBoutique({ user, lang }) {
     } 
   });
 
+  const [updateTracking] = useMutation(UPDATE_ORDER_TRACKING_MUTATION, { onCompleted: () => { adminQuery.refetch(); toast.success('Tracking information updated'); setEditingOrderId(null); } });
+  const [updateStatus] = useMutation(UPDATE_ORDER_STATUS_MUTATION, { onCompleted: () => { adminQuery.refetch(); refetch(); toast.success('Order status updated'); } });
+  const [requestReturn] = useMutation(REQUEST_ORDER_RETURN_MUTATION, { onCompleted: () => { refetch(); toast.success('Return request submitted'); setReturningOrderId(null); setReturnReason(''); } });
+  const [reviewReturn] = useMutation(REVIEW_ORDER_RETURN_MUTATION, { onCompleted: () => { adminQuery.refetch(); toast.success('Return reviewed'); } });
+
   // Address form states
   const [fullName, setFullName] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
@@ -61,6 +159,7 @@ export default function StoreBoutique({ user, lang }) {
   const cartItems = data?.getCart || [];
   const addresses = data?.getAddresses || [];
   const orders = data?.getMyOrders || [];
+  const adminOrders = adminQuery.data?.getAdminOrders || [];
 
   const cartCount = cartItems.reduce((acc, curr) => acc + curr.quantity, 0);
   const cartSubtotal = cartItems.reduce((acc, curr) => acc + (curr.quantity * parseFloat(curr.product.price)), 0);
@@ -125,6 +224,30 @@ export default function StoreBoutique({ user, lang }) {
     }
   };
 
+  const handleRequestReturnSubmit = async () => {
+    if (!returnReason || !returningOrderId) return;
+    try {
+      await requestReturn({ variables: { orderId: returningOrderId, reason: returnReason } });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleSaveTracking = async (orderId) => {
+    try {
+      await updateTracking({
+        variables: {
+          orderId,
+          carrier,
+          trackingNumber,
+          estimatedDeliveryDate: estimatedDeliveryDate ? estimatedDeliveryDate.toISOString() : null
+        }
+      });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   return (
     <Card style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -156,7 +279,8 @@ export default function StoreBoutique({ user, lang }) {
         onChange={setActiveTab}
         items={[
           { key: 'shop', label: isHi ? 'दुकान' : 'Catalogue' },
-          { key: 'orders', label: isHi ? 'मेरे ऑर्डर' : 'My Order History' }
+          { key: 'orders', label: isHi ? 'मेरे ऑर्डर' : 'My Order History' },
+          ...(isStaff ? [{ key: 'fulfillment', label: '🚚 Logistics & Fulfilment' }] : [])
         ]}
         style={{ marginBottom: '24px' }}
       />
@@ -216,8 +340,22 @@ export default function StoreBoutique({ user, lang }) {
             <Card key={order.id} style={{ borderRadius: 16, marginBottom: '16px', border: '1px solid #e2e8f0' }} styles={{ body: { padding: '16px' } }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <Text strong style={{ color: '#be123c' }}>Order #{order.id.substring(0, 8).toUpperCase()}</Text>
-                <Tag color="green">{order.status.toUpperCase()}</Tag>
+                <Space>
+                  <Tag color={order.status === 'delivered' ? 'green' : 'orange'}>{order.status.toUpperCase()}</Tag>
+                  {order.returnRequest && <Tag color="magenta">Return: {order.returnRequest.status.toUpperCase()}</Tag>}
+                </Space>
               </div>
+
+              {order.carrier && (
+                <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CompassOutlined style={{ color: '#be123c' }} />
+                  <Text style={{ fontSize: '11px' }}>
+                    Shipped via <strong>{order.carrier}</strong> · Tracking ID: <strong>{order.trackingNumber}</strong>
+                    {order.estimatedDeliveryDate && ` · Est. Delivery: ${new Date(order.estimatedDeliveryDate).toLocaleDateString()}`}
+                  </Text>
+                </div>
+              )}
+
               <Paragraph type="secondary" style={{ fontSize: '11px', margin: 0 }}>
                 Placed Date: {new Date(order.createdAt).toLocaleDateString()}
               </Paragraph>
@@ -242,6 +380,86 @@ export default function StoreBoutique({ user, lang }) {
                 <Text strong>Grand Total:</Text>
                 <Text strong style={{ fontSize: '16px', color: '#be123c' }}>₹{order.totalAmount}</Text>
               </div>
+
+              {order.status === 'delivered' && !order.returnRequest && (
+                <div style={{ marginTop: '14px', textAlign: 'right' }}>
+                  <Button type="dashed" danger onClick={() => setReturningOrderId(order.id)}>
+                    Request Item Return
+                  </Button>
+                </div>
+              )}
+            </Card>
+          )}
+        />
+      )}
+
+      {activeTab === 'fulfillment' && (
+        <List
+          dataSource={adminOrders}
+          renderItem={order => (
+            <Card key={order.id} style={{ borderRadius: 16, marginBottom: '16px', border: '1px solid #cbd5e1' }} styles={{ body: { padding: '16px' } }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text strong>Customer: {order.user?.displayName || 'Unknown'}</Text>
+                <Space>
+                  <Select 
+                    value={order.status} 
+                    onChange={(s) => updateStatus({ variables: { orderId: order.id, status: s } })}
+                    style={{ width: '120px' }}
+                  >
+                    <Select.Option value="pending">Pending</Select.Option>
+                    <Select.Option value="processing">Processing</Select.Option>
+                    <Select.Option value="shipped">Shipped</Select.Option>
+                    <Select.Option value="delivered">Delivered</Select.Option>
+                    <Select.Option value="cancelled">Cancelled</Select.Option>
+                  </Select>
+                </Space>
+              </div>
+
+              <div style={{ marginTop: '8px' }}>
+                <Text type="secondary" style={{ fontSize: '11px' }}>
+                  Total: ₹{order.totalAmount} · Placed: {new Date(order.createdAt).toLocaleDateString()}
+                </Text>
+                <Text style={{ fontSize: '11px', display: 'block' }}>
+                  Address: {order.address?.fullName}, {order.address?.addressLine1}, {order.address?.city} ({order.address?.phone})
+                </Text>
+              </div>
+
+              <Divider style={{ margin: '10px 0' }} />
+
+              {/* Edit Tracking details */}
+              {editingOrderId === order.id ? (
+                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                  <Input placeholder="Carrier (e.g. Delhivery)" value={carrier} onChange={e => setCarrier(e.target.value)} />
+                  <Input placeholder="Tracking Number" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} />
+                  <Button type="primary" onClick={() => handleSaveTracking(order.id)}>Save Logistics info</Button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: '11px' }}>
+                    {order.carrier ? `Tracking: ${order.carrier} - ${order.trackingNumber}` : 'No tracking registered yet'}
+                  </Text>
+                  <Button size="small" type="link" onClick={() => { setEditingOrderId(order.id); setCarrier(order.carrier || ''); setTrackingNumber(order.trackingNumber || ''); }}>
+                    Edit Logistics
+                  </Button>
+                </div>
+              )}
+
+              {/* Return request controls */}
+              {order.returnRequest && (
+                <div style={{ marginTop: '12px', background: '#fff5f5', padding: '12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                  <Text strong style={{ color: '#be123c', fontSize: '12px' }}>⚠️ Return Requested</Text>
+                  <Text style={{ display: 'block', fontSize: '11px', margin: '4px 0' }}>Reason: "{order.returnRequest.reason}"</Text>
+                  <Text style={{ display: 'block', fontSize: '11px' }}>Status: {order.returnRequest.status.toUpperCase()}</Text>
+                  
+                  {order.returnRequest.status === 'requested' && (
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                      <Input placeholder="Admin notes..." value={adminNotes} onChange={e => setAdminNotes(e.target.value)} size="small" style={{ flex: 1 }} />
+                      <Button size="small" type="primary" onClick={() => reviewReturn({ variables: { orderReturnId: order.returnRequest.id, status: 'approved', adminNotes } })}>Approve</Button>
+                      <Button size="small" danger onClick={() => reviewReturn({ variables: { orderReturnId: order.returnRequest.id, status: 'rejected', adminNotes } })}>Reject</Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </Card>
           )}
         />
@@ -387,6 +605,30 @@ export default function StoreBoutique({ user, lang }) {
 
           <Button type="primary" onClick={handleAddAddress} block style={{ background: '#be123c', borderColor: '#be123c' }}>
             Save Address Destination
+          </Button>
+        </Space>
+      </Drawer>
+
+      {/* Return Request drawer */}
+      <Drawer
+        title="↩️ Request Item Return"
+        placement="right"
+        width={380}
+        onClose={() => setReturningOrderId(null)}
+        open={returningOrderId !== null}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Paragraph type="secondary">
+            Our shipping agents will retrieve the returned package from your delivery address. Please explain the reason for the return below:
+          </Paragraph>
+          <Input.TextArea 
+            rows={4} 
+            placeholder="e.g. The yoga ball is punctured, or book pages are missing..." 
+            value={returnReason}
+            onChange={e => setReturnReason(e.target.value)}
+          />
+          <Button type="primary" danger block onClick={handleRequestReturnSubmit}>
+            Submit Return Request
           </Button>
         </Space>
       </Drawer>

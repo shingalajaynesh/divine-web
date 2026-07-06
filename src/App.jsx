@@ -186,6 +186,11 @@ function App() {
       icon: <ShoppingCartOutlined />,
       label: lang === 'hi' ? 'मातृ बुटीक' : 'Maternal Store',
     },
+    {
+      key: '/pricing',
+      icon: <SafetyCertificateOutlined />,
+      label: lang === 'hi' ? 'सदस्यता प्लान' : 'Membership Plans',
+    },
     ...(activeRole === 'ADMIN' ? [{
       key: '/admin',
       icon: <SettingOutlined />,
