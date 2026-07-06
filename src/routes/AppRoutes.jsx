@@ -106,6 +106,68 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
   const currentItem = menuItems.find((item) => item.key === selectedPath) || menuItems[0];
   const primaryMobileItems = menuItems.slice(0, 4);
 
+  // Accessibility State
+  const [highContrast, setHighContrast] = useState(() => localStorage.getItem('accessibility_high_contrast') === 'true');
+  const [fontScale, setFontScale] = useState(() => localStorage.getItem('accessibility_font_scale') || 'default');
+
+  React.useEffect(() => {
+    // Apply font scale on load
+    if (fontScale === 'large') {
+      document.documentElement.style.fontSize = '18px';
+    } else if (fontScale === 'xlarge') {
+      document.documentElement.style.fontSize = '22px';
+    } else {
+      document.documentElement.style.fontSize = '14px';
+    }
+  }, [fontScale]);
+
+  const toggleHighContrast = () => {
+    const next = !highContrast;
+    setHighContrast(next);
+    localStorage.setItem('accessibility_high_contrast', String(next));
+  };
+
+  const handleFontScale = (scale) => {
+    setFontScale(scale);
+    localStorage.setItem('accessibility_font_scale', scale);
+  };
+
+  const highContrastStyle = highContrast ? (
+    <style>{`
+      .app-shell, .app-main-layout, .app-topbar, .ant-layout, .ant-card, .ant-list, .ant-menu, .welcome-shell, .welcome-header, .welcome-content {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+      }
+      .ant-typography, p, span, h1, h2, h3, h4, h5, h6, strong, a, li, .ant-menu-title-content {
+        color: #ffffff !important;
+      }
+      .ant-btn {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+      }
+      .ant-btn-primary {
+        background-color: #ffff00 !important;
+        color: #000000 !important;
+        border-color: #ffff00 !important;
+      }
+      .ant-tag {
+        background-color: #111111 !important;
+        color: #ffff00 !important;
+        border-color: #ffff00 !important;
+      }
+      .ant-select-selector {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+      }
+      .ant-select-selection-item {
+        color: #ffffff !important;
+      }
+    `}</style>
+  ) : null;
+
   const roleLabel = useMemo(() => ({
     MOTHER: 'Mother account',
     GUIDE: 'Expert account',
@@ -137,6 +199,7 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
 
   return (
     <Layout className="app-shell">
+      {highContrastStyle}
       {isDesktop && (
         <Sider width={260} theme="light" className="app-sider">
           <BrandBlock />
@@ -170,6 +233,35 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
               className="language-select"
               aria-label="Choose language"
             />
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'contrast',
+                    label: highContrast ? 'Disable High Contrast' : 'Enable High Contrast',
+                    onClick: toggleHighContrast
+                  },
+                  {
+                    key: 'font-default',
+                    label: 'Text Size: Default',
+                    onClick: () => handleFontScale('default')
+                  },
+                  {
+                    key: 'font-large',
+                    label: 'Text Size: Large',
+                    onClick: () => handleFontScale('large')
+                  },
+                  {
+                    key: 'font-xlarge',
+                    label: 'Text Size: Extra Large',
+                    onClick: () => handleFontScale('xlarge')
+                  }
+                ]
+              }}
+              placement="bottomRight"
+            >
+              <Button icon={<span role="img" aria-label="accessibility">♿</span>}>Accessibility</Button>
+            </Dropdown>
             {isDesktop && (
               <div className="user-summary">
                 <strong>{user?.displayName || 'Member'}</strong>

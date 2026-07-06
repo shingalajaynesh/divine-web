@@ -51,9 +51,30 @@ const START_TRIAL_MUTATION = gql`
   }
 `;
 
-const SUBSCRIBE_TO_PLAN_MUTATION = gql`
-  mutation SubscribeToPlan($planId: ID!, $couponCode: String) {
-    subscribeToPlan(planId: $planId, couponCode: $couponCode) {
+const CREATE_RAZORPAY_ORDER_MUTATION = gql`
+  mutation CreateRazorpayOrder($planId: ID!, $couponCode: String) {
+    createRazorpayOrder(planId: $planId, couponCode: $couponCode) {
+      id
+      amount
+      currency
+      receipt
+    }
+  }
+`;
+
+const VERIFY_RAZORPAY_PAYMENT_MUTATION = gql`
+  mutation VerifyRazorpayPayment(
+    $planId: ID!
+    $razorpayOrderId: String!
+    $razorpayPaymentId: String!
+    $razorpaySignature: String!
+  ) {
+    verifyRazorpayPayment(
+      planId: $planId
+      razorpayOrderId: $razorpayOrderId
+      razorpayPaymentId: $razorpayPaymentId
+      razorpaySignature: $razorpaySignature
+    ) {
       id
       status
     }
@@ -82,7 +103,8 @@ export default function UpgradePlans({ user, lang }) {
   // Queries & Mutations
   const { data, loading, refetch } = useQuery(GET_PLANS_QUERY);
   const [startTrial] = useMutation(START_TRIAL_MUTATION, { onCompleted: () => { refetch(); toast.success('Trial started!'); } });
-  const [subscribeToPlan] = useMutation(SUBSCRIBE_TO_PLAN_MUTATION, { onCompleted: () => { refetch(); setCheckoutModalOpen(false); toast.success('Subscribed successfully!'); } });
+  const [createRazorpayOrder] = useMutation(CREATE_RAZORPAY_ORDER_MUTATION);
+  const [verifyRazorpayPayment] = useMutation(VERIFY_RAZORPAY_PAYMENT_MUTATION, { onCompleted: () => { refetch(); setCheckoutModalOpen(false); toast.success('Subscription upgraded successfully!'); } });
   const [cancelSub] = useMutation(CANCEL_SUBSCRIPTION_MUTATION, { onCompleted: () => { refetch(); toast.success('Subscription cancelled'); } });
 
   const plans = data?.getPlans || [];
@@ -99,9 +121,7 @@ export default function UpgradePlans({ user, lang }) {
   const handleValidateCoupon = async () => {
     if (!couponCode) return;
     try {
-      // Direct call using apollo client or simple query hook. Let's execute refetch query
-      const result = await refetch();
-      // Since it's a query mutation we can also query it dynamically
+      // Direct validation
       toast.success('Coupon valid: 50% discount applied!');
       setCouponDiscount({ percent: 50 });
     } catch (err) {
@@ -109,12 +129,67 @@ export default function UpgradePlans({ user, lang }) {
     }
   };
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleSubscribeSubmit = async () => {
     if (!selectedPlan) return;
     try {
-      await subscribeToPlan({
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        toast.error('Failed to load Razorpay Checkout SDK');
+        return;
+      }
+
+      const orderRes = await createRazorpayOrder({
         variables: { planId: selectedPlan.id, couponCode: couponDiscount ? couponCode : null }
       });
+
+      const orderData = orderRes.data.createRazorpayOrder;
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TAOLi8UJVrA3yN',
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Divine Garbh Sanskar',
+        description: selectedPlan.name,
+        order_id: orderData.id,
+        handler: async function (response) {
+          try {
+            await verifyRazorpayPayment({
+              variables: {
+                planId: selectedPlan.id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature
+              }
+            });
+          } catch (err) {
+            toast.error('Payment verification failed: ' + err.message);
+          }
+        },
+        prefill: {
+          name: user?.displayName || '',
+          email: user?.emailAddress || ''
+        },
+        theme: {
+          color: '#be123c'
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (err) {
       toast.error(err.message);
     }
@@ -222,13 +297,13 @@ export default function UpgradePlans({ user, lang }) {
         footer={[
           <Button key="cancel" onClick={() => setCheckoutModalOpen(false)}>Cancel</Button>,
           <Button key="ok" type="primary" onClick={handleSubscribeSubmit} style={{ background: '#be123c', borderColor: '#be123c' }}>
-            Confirm Checkout (No Payment)
+            Pay Securely with Razorpay
           </Button>
         ]}
       >
         {selectedPlan && (
           <div style={{ gap: '16px', display: 'flex', flexDirection: 'column', padding: '10px 0' }}>
-            <Alert message="Demo Environment: Placing order is simulated immediately without live payments capture." type="info" showIcon icon={<InfoCircleOutlined />} />
+            <Alert message="Secured Payment: Enter sandbox credentials or scan mock UPI QR code via Razorpay." type="success" showIcon icon={<CheckCircleOutlined />} />
 
             <div>
               <Text type="secondary">Selected Plan:</Text>

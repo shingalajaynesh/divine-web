@@ -21,7 +21,8 @@ import {
   SettingOutlined, 
   SolutionOutlined,
   BellOutlined,
-  ShoppingCartOutlined
+  ShoppingCartOutlined,
+  SafetyCertificateOutlined
 } from '@ant-design/icons';
 
 // Operations & Translations Imports

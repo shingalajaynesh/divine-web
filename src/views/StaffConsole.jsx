@@ -81,6 +81,32 @@ const GET_AUDIT_LOGS_QUERY = gql`
   }
 `;
 
+const MANAGE_CONTENT_QUERY = gql`
+  query ManageContent {
+    manageContent {
+      id
+      slug
+      contentType
+      status
+      medicalReviewed
+      translations {
+        id
+        language
+        title
+      }
+    }
+  }
+`;
+
+const REVIEW_CONTENT_ITEM_MUTATION = gql`
+  mutation ReviewContentItem($id: ID!, $reviewed: Boolean!) {
+    reviewContentItem(id: $id, reviewed: $reviewed) {
+      id
+      medicalReviewed
+    }
+  }
+`;
+
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
@@ -106,6 +132,9 @@ export default function StaffConsole({ isHi }) {
 
   // CRM Queries & Mutations
   const crmUsersQuery = useQuery(GET_CRM_USERS_QUERY, { skip: activeTab !== 'crm' });
+  const manageContentQuery = useQuery(MANAGE_CONTENT_QUERY, { skip: activeTab !== 'review' });
+  const [reviewContent] = useMutation(REVIEW_CONTENT_ITEM_MUTATION, { onCompleted: () => { manageContentQuery.refetch(); toast.success('Content medical review updated'); } });
+
   const crmNotesQuery = useQuery(GET_CRM_NOTES_QUERY, {
     variables: { userId: selectedUser?.id },
     skip: !selectedUser
@@ -246,6 +275,7 @@ export default function StaffConsole({ isHi }) {
         items={[
           { key: 'tickets', label: '📞 Member Inquiries' },
           { key: 'crm', label: '👥 CRM Member Directory' },
+          { key: 'review', label: '🩺 Medical Article Review' },
           { key: 'audit', label: '🛡️ Security Audit Trail' }
         ]}
         style={{ marginBottom: '24px' }}
@@ -364,6 +394,63 @@ export default function StaffConsole({ isHi }) {
               dataIndex: 'createdAt',
               key: 'createdAt',
               render: (t) => new Date(t).toLocaleString()
+            }
+          ]}
+        />
+      )}
+
+      {activeTab === 'review' && (
+        <Table
+          dataSource={manageContentQuery.data?.manageContent || []}
+          rowKey="id"
+          columns={[
+            {
+              title: 'Article / Guide Title',
+              key: 'title',
+              render: (_, record) => {
+                const translation = record.translations?.find(t => t.language === 'en') || record.translations?.[0];
+                return (
+                  <div>
+                    <Text strong>{translation?.title || record.slug}</Text>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>Type: {record.contentType} · Status: {record.status}</div>
+                  </div>
+                );
+              }
+            },
+            {
+              title: 'Medical Review Status',
+              dataIndex: 'medicalReviewed',
+              key: 'medicalReviewed',
+              render: (reviewed) => (
+                <Tag color={reviewed ? 'green' : 'red'}>
+                  {reviewed ? 'APPROVED CLINICAL GUIDE' : 'PENDING REVIEW'}
+                </Tag>
+              )
+            },
+            {
+              title: 'Action',
+              key: 'action',
+              render: (_, record) => (
+                <Space>
+                  {!record.medicalReviewed ? (
+                    <Button 
+                      size="small" 
+                      type="primary" 
+                      onClick={() => reviewContent({ variables: { id: record.id, reviewed: true } })}
+                      style={{ background: '#be123c', borderColor: '#be123c' }}
+                    >
+                      Approve Clinical Guide
+                    </Button>
+                  ) : (
+                    <Button 
+                      size="small" 
+                      onClick={() => reviewContent({ variables: { id: record.id, reviewed: false } })}
+                    >
+                      Revoke Approval
+                    </Button>
+                  )}
+                </Space>
+              )
             }
           ]}
         />
