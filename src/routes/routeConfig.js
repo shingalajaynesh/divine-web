@@ -70,5 +70,15 @@ export const routeConfig = [
     path: '/weekly-report',
     component: lazy(() => import('../views/WeeklyReport')),
     roles: ['MOTHER', 'STAFF', 'ADMIN']
+  },
+  {
+    path: '/support',
+    component: lazy(() => import('../views/SupportHub')),
+    roles: ['MOTHER', 'STAFF', 'ADMIN']
+  },
+  {
+    path: '/store',
+    component: lazy(() => import('../views/StoreBoutique')),
+    roles: ['MOTHER', 'STAFF', 'ADMIN']
   }
 ];

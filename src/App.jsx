@@ -163,7 +163,7 @@ function App() {
     },
     {
       key: '/diet-planner',
-      icon: <ShoppingCartOutlined />,
+      icon: <HeartOutlined />,
       label: lang === 'hi' ? 'भोजन योजना' : 'Diet Planner',
     },
     {
@@ -175,6 +175,16 @@ function App() {
       key: '/weekly-report',
       icon: <BarChartOutlined />,
       label: lang === 'hi' ? 'साप्ताहिक रिपोर्ट' : 'Weekly Reports',
+    },
+    {
+      key: '/support',
+      icon: <CustomerServiceOutlined />,
+      label: lang === 'hi' ? 'सहायता केंद्र' : 'Help & Support',
+    },
+    {
+      key: '/store',
+      icon: <ShoppingCartOutlined />,
+      label: lang === 'hi' ? 'मातृ बुटीक' : 'Maternal Store',
     },
     ...(activeRole === 'ADMIN' ? [{
       key: '/admin',
