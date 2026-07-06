@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useMutation, useQuery } from '@apollo/client';
 import toast from 'react-hot-toast';
 import { Card, Table, Button, Input, Select, Tag, Space, Modal, Form, Typography, Row, Col } from 'antd';
 import { SearchOutlined, MessageOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import {
+  GET_INQUIRIES,
+  REPLY_TO_INQUIRY,
+  UPDATE_INQUIRY_STATUS,
+} from '../features/inquiries/inquiryOperations';
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
@@ -9,56 +15,51 @@ const { TextArea } = Input;
 export default function StaffConsole({ isHi }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [inquiries, setInquiries] = useState([]);
   const [replyText, setReplyText] = useState('');
   const [selectedInqId, setSelectedInqId] = useState(null);
 
-  const loadInquiries = () => {
-    const saved = localStorage.getItem('divine_inquiries');
-    setInquiries(saved ? JSON.parse(saved) : []);
+  const { data, loading, error, refetch } = useQuery(GET_INQUIRIES, {
+    variables: {
+      status: null,
+      limit: 100,
+      offset: 0,
+    },
+    fetchPolicy: 'network-only',
+  });
+  const [updateInquiryStatus, { loading: updatingStatus }] = useMutation(UPDATE_INQUIRY_STATUS);
+  const [replyToInquiry, { loading: sendingReply }] = useMutation(REPLY_TO_INQUIRY);
+  const inquiries = data?.getInquiries?.items || [];
+
+  const handleUpdateStatus = async (id, newStatus) => {
+    try {
+      await updateInquiryStatus({ variables: { id, status: newStatus } });
+      await refetch();
+      toast.success(`Ticket status updated to ${newStatus}!`);
+    } catch (mutationError) {
+      toast.error(mutationError.message);
+    }
   };
 
-  useEffect(() => {
-    loadInquiries();
-  }, []);
-
-  const handleUpdateStatus = (id, newStatus) => {
-    const updated = inquiries.map(inq => {
-      if (inq.id === id) {
-        return { ...inq, status: newStatus };
-      }
-      return inq;
-    });
-    localStorage.setItem('divine_inquiries', JSON.stringify(updated));
-    setInquiries(updated);
-    toast.success(`Ticket status updated to ${newStatus}!`);
-  };
-
-  const handleSendReply = () => {
+  const handleSendReply = async () => {
     if (!replyText.trim()) return;
-
-    const updated = inquiries.map(inq => {
-      if (inq.id === selectedInqId) {
-        return {
-          ...inq,
-          status: 'resolved',
-          replies: [...(inq.replies || []), { text: replyText, date: new Date().toISOString() }]
-        };
-      }
-      return inq;
-    });
-    localStorage.setItem('divine_inquiries', JSON.stringify(updated));
-    setInquiries(updated);
-    setReplyText('');
-    setSelectedInqId(null);
-    toast.success("Reply recorded and ticket resolved!");
+    try {
+      await replyToInquiry({ variables: { id: selectedInqId, content: replyText.trim() } });
+      await refetch();
+      setReplyText('');
+      setSelectedInqId(null);
+      toast.success("Reply recorded and ticket resolved!");
+    } catch (mutationError) {
+      toast.error(mutationError.message);
+    }
   };
 
   const filtered = inquiries.filter(inq => {
     const matchesStatus = filterStatus === 'all' || inq.status === filterStatus;
-    const matchesSearch = inq.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          inq.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          inq.message.toLowerCase().includes(searchQuery.toLowerCase());
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = inq.name.toLowerCase().includes(query) ||
+                          (inq.email || '').toLowerCase().includes(query) ||
+                          inq.phone.toLowerCase().includes(query) ||
+                          (inq.message || '').toLowerCase().includes(query);
     return matchesStatus && matchesSearch;
   });
 
@@ -90,9 +91,9 @@ export default function StaffConsole({ isHi }) {
           <Paragraph type="secondary" style={{ fontStyle: 'italic', fontSize: '12px', margin: '8px 0 0 0', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px' }}>
             "{record.message}"
           </Paragraph>
-          {record.replies && record.replies.map((r, idx) => (
-            <div key={idx} style={{ fontSize: '11px', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1', marginTop: '6px', color: '#475569' }}>
-              <strong>Reply:</strong> "{r.text}"
+          {record.responses?.map((response) => (
+            <div key={response.id} style={{ fontSize: '11px', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1', marginTop: '6px', color: '#475569' }}>
+              <strong>{response.author?.displayName || 'Staff'}:</strong> "{response.content}"
             </div>
           ))}
         </div>
@@ -109,6 +110,7 @@ export default function StaffConsole({ isHi }) {
               size="small" 
               type="default" 
               onClick={() => handleUpdateStatus(record.id, 'in_progress')}
+              loading={updatingStatus}
             >
               Start work
             </Button>
@@ -177,6 +179,8 @@ export default function StaffConsole({ isHi }) {
         dataSource={filtered} 
         columns={columns} 
         rowKey="id" 
+        loading={loading}
+        locale={{ emptyText: error ? `Unable to load inquiries: ${error.message}` : 'No inquiries found' }}
         pagination={{ pageSize: 5 }}
         style={{ borderRadius: 16, overflow: 'hidden' }}
         scroll={{ x: 'max-content' }}
@@ -188,6 +192,7 @@ export default function StaffConsole({ isHi }) {
         open={selectedInqId !== null}
         onCancel={() => setSelectedInqId(null)}
         onOk={handleSendReply}
+        confirmLoading={sendingReply}
         okText="Send response & resolve ticket"
         destroyOnClose
       >

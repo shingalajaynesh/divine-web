@@ -46,8 +46,8 @@ function App() {
   const { data: meData, loading: meLoading, error: meError, refetch: refetchMe } = useQuery(ME_QUERY);
 
   const [syncUser] = useMutation(gql`
-    mutation SyncUser($payload: String!) {
-      syncUser(clerkUserPayload: $payload) {
+    mutation SyncUser {
+      syncUser {
         id
         emailAddress
       }
@@ -63,16 +63,7 @@ function App() {
       const dbUser = meData?.me;
       if (!dbUser && !syncing) {
         setSyncing(true);
-        const payload = {
-          id: clerkUser.id,
-          first_name: clerkUser.firstName,
-          last_name: clerkUser.lastName,
-          image_url: clerkUser.imageUrl,
-          email_addresses: clerkUser.emailAddresses.map(email => ({
-            email_address: email.emailAddress
-          }))
-        };
-        syncUser({ variables: { payload: JSON.stringify(payload) } })
+        syncUser()
           .then(() => setSyncing(false))
           .catch((err) => {
             console.error('Failed to sync user:', err);
