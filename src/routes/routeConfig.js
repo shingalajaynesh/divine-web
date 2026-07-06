@@ -12,6 +12,16 @@ export const routeConfig = [
     roles: ['MOTHER', 'STAFF', 'ADMIN']
   },
   {
+    path: '/programmes',
+    component: lazy(() => import('../views/Programmes')),
+    roles: ['MOTHER', 'STAFF', 'ADMIN']
+  },
+  {
+    path: '/notifications',
+    component: lazy(() => import('../views/NotificationCentre')),
+    roles: ['MOTHER', 'STAFF', 'ADMIN']
+  },
+  {
     path: '/baby-growth',
     component: lazy(() => import('../views/BabyGrowthTracker')),
     roles: ['MOTHER', 'STAFF', 'ADMIN']
@@ -45,5 +55,15 @@ export const routeConfig = [
     path: '/staff',
     component: lazy(() => import('../views/StaffConsole')),
     roles: ['STAFF', 'ADMIN']
+  },
+  {
+    path: '/content-studio',
+    component: lazy(() => import('../views/ContentCms')),
+    roles: ['STAFF', 'ADMIN']
+  },
+  {
+    path: '/weekly-report',
+    component: lazy(() => import('../views/WeeklyReport')),
+    roles: ['MOTHER', 'STAFF', 'ADMIN']
   }
 ];

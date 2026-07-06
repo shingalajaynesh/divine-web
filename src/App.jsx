@@ -19,7 +19,8 @@ import {
   BarChartOutlined, 
   CustomerServiceOutlined, 
   SettingOutlined, 
-  SolutionOutlined 
+  SolutionOutlined,
+  BellOutlined
 } from '@ant-design/icons';
 
 // Operations & Translations Imports
@@ -130,6 +131,16 @@ function App() {
       label: t.tab_library,
     },
     {
+      key: '/programmes',
+      icon: <SolutionOutlined />,
+      label: 'Programmes',
+    },
+    {
+      key: '/notifications',
+      icon: <BellOutlined />,
+      label: 'Notifications',
+    },
+    {
       key: '/baby-growth',
       icon: <HeartOutlined />,
       label: t.tab_baby,
@@ -154,6 +165,11 @@ function App() {
       icon: <CustomerServiceOutlined />,
       label: lang === 'hi' ? 'विशेषज्ञ सलाह' : 'Expert Consulting',
     },
+    {
+      key: '/weekly-report',
+      icon: <BarChartOutlined />,
+      label: lang === 'hi' ? 'साप्ताहिक रिपोर्ट' : 'Weekly Reports',
+    },
     ...(activeRole === 'ADMIN' ? [{
       key: '/admin',
       icon: <SettingOutlined />,
@@ -163,6 +179,10 @@ function App() {
       key: '/staff',
       icon: <SolutionOutlined />,
       label: 'Staff Console',
+    }, {
+      key: '/content-studio',
+      icon: <BookOutlined />,
+      label: 'Content Studio',
     }] : [])
   ];
 

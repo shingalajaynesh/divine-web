@@ -1,81 +1,50 @@
-import React, { useState } from 'react';
-import { useQuery } from '@apollo/client';
-import { GET_CONTENT_LIBRARY_QUERY } from '../graphql/operations';
-import { Card, Tabs, Spin, Button, Typography, Tag, Row, Col } from 'antd';
-import { BookOutlined, PlayCircleOutlined, CustomerServiceOutlined, MessageOutlined, FileTextOutlined } from '@ant-design/icons';
+import React, { useMemo, useState } from 'react';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { Button, Card, Col, Empty, Input, Row, Segmented, Skeleton, Tag, Typography } from 'antd';
+import { AudioOutlined, BookOutlined, ClockCircleOutlined, HeartOutlined, PlayCircleOutlined, SearchOutlined, StarOutlined } from '@ant-design/icons';
+import { CLEAR_RECENT_CONTENT_SEARCHES_MUTATION, CONTENT_FEED_QUERY, RECENT_CONTENT_SEARCHES_QUERY, SAVED_CONTENT_QUERY, SEARCH_CONTENT_QUERY, SET_CONTENT_BOOKMARK_MUTATION } from '../graphql/operations';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
+const filters = [{ label: 'All', value: '' }, { label: 'Stories', value: 'story' }, { label: 'Audio', value: 'audio' }, { label: 'Video', value: 'video' }, { label: 'Meditation', value: 'meditation' }, { label: 'Yoga', value: 'yoga' }, { label: 'Affirmations', value: 'affirmation' }];
+const views = [{ label: 'Explore', value: 'explore' }, { label: 'Bookmarks', value: 'bookmark' }, { label: 'Watch later', value: 'watch_later' }];
+const iconFor = (type) => type === 'audio' ? <AudioOutlined /> : type === 'video' ? <PlayCircleOutlined /> : type === 'affirmation' ? <HeartOutlined /> : <BookOutlined />;
 
-export default function ContentLibrary({ t }) {
-  const [category, setCategory] = useState('story');
-  const { data, loading } = useQuery(GET_CONTENT_LIBRARY_QUERY, {
-    variables: { category }
-  });
+export default function ContentLibrary({ lang = 'en' }) {
+  const [type, setType] = useState('');
+  const [view, setView] = useState('explore');
+  const [query, setQuery] = useState('');
+  const [activeQuery, setActiveQuery] = useState('');
+  const [notice, setNotice] = useState('');
+  const feed = useQuery(CONTENT_FEED_QUERY, { variables: { language: lang, contentType: type || null }, skip: view !== 'explore' || Boolean(activeQuery) });
+  const [search, searchState] = useLazyQuery(SEARCH_CONTENT_QUERY, { fetchPolicy: 'network-only' });
+  const recent = useQuery(RECENT_CONTENT_SEARCHES_QUERY, { fetchPolicy: 'cache-and-network' });
+  const saved = useQuery(SAVED_CONTENT_QUERY, { variables: { language: lang, kind: view }, skip: view === 'explore', fetchPolicy: 'cache-and-network' });
+  const [setBookmark, bookmarkState] = useMutation(SET_CONTENT_BOOKMARK_MUTATION);
+  const [clearRecent] = useMutation(CLEAR_RECENT_CONTENT_SEARCHES_MUTATION);
 
-  const categories = [
-    { key: 'story', label: '📖 Stories' },
-    { key: 'video', label: '🎥 Videos' },
-    { key: 'music', label: '🎵 Lullabies' },
-    { key: 'yoga', label: '🧘‍♀️ Yoga' },
-    { key: 'recipe', label: '🥗 Recipes' },
-    { key: 'mantra', label: '🕉️ Mantras' },
-    { key: 'article', label: '📚 Articles' }
-  ];
+  const runSearch = (value = query) => {
+    const clean = value.trim();
+    if (clean.length < 2) return;
+    setQuery(clean); setActiveQuery(clean); setView('explore');
+    search({ variables: { query: clean, language: lang, contentType: type || null } }).then(() => recent.refetch());
+  };
+  const items = useMemo(() => view !== 'explore' ? saved.data?.savedContent : activeQuery ? searchState.data?.searchContent : feed.data?.contentFeed, [view, saved.data, activeQuery, searchState.data, feed.data]);
+  const loading = view !== 'explore' ? saved.loading : activeQuery ? searchState.loading : feed.loading;
+  const error = view !== 'explore' ? saved.error : activeQuery ? searchState.error : feed.error;
+  const save = async (contentItemId, kind, savedValue = true) => {
+    await setBookmark({ variables: { input: { contentItemId, kind, saved: savedValue } } });
+    setNotice(savedValue ? (kind === 'watch_later' ? 'Added to watch later.' : 'Bookmarked for you.') : 'Removed from your saved list.');
+    if (view !== 'explore') saved.refetch();
+  };
 
-  return (
-    <Card style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <Title level={4} style={{ margin: 0 }}>📚 Content Library</Title>
-        <Paragraph type="secondary" style={{ margin: 0, fontSize: '13px' }}>
-          Explore curated prenatal resources, daily logs, and meditation material
-        </Paragraph>
-      </div>
-
-      <Tabs 
-        activeKey={category} 
-        onChange={(key) => setCategory(key)}
-        items={categories}
-        type="card"
-      />
-
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin description="Loading library resources..." />
-        </div>
-      ) : data?.getContentLibrary && data.getContentLibrary.length > 0 ? (
-        <Row gutter={[16, 16]}>
-          {data.getContentLibrary.map((item) => (
-            <Col xs={24} sm={12} key={item.id}>
-              <Card 
-                style={{ borderRadius: 16, height: '220px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' } }}
-              >
-                <div>
-                  <Tag color="orange" style={{ fontWeight: 'bold', marginBottom: '8px' }}>Day {item.dayNumber}</Tag>
-                  <Title level={5} style={{ margin: '4px 0 8px 0', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</Title>
-                  <Paragraph type="secondary" style={{ fontSize: '12px', margin: 0, lineHeight: 1.5 }} ellipsis={{ rows: 3 }}>
-                    {item.body}
-                  </Paragraph>
-                </div>
-                {item.mediaUrl && (
-                  <Button 
-                    type="link" 
-                    href={item.mediaUrl} 
-                    target="_blank" 
-                    style={{ padding: 0, textAlign: 'left', fontWeight: 'bold' }}
-                  >
-                    View Attachment →
-                  </Button>
-                )}
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      ) : (
-        <Paragraph type="secondary" style={{ textAlign: 'center', padding: '40px 0', margin: 0, fontStyle: 'italic' }}>
-          No library items uploaded under this category yet.
-        </Paragraph>
-      )}
-    </Card>
-  );
+  return <div className="modern-library">
+    <div className="library-heading"><Tag>DIVINE LIBRARY</Tag><Title>Learn, listen and connect</Title><Paragraph>Search original practices and save useful guidance for later.</Paragraph>
+      <Input.Search className="library-search" size="large" value={query} onChange={(event) => setQuery(event.target.value)} onSearch={runSearch} enterButton={<SearchOutlined />} placeholder="Search meditation, stories, yoga…" />
+      {recent.data?.recentContentSearches?.length ? <div className="recent-searches"><span>Recent</span>{recent.data.recentContentSearches.slice(0, 5).map((item) => <Button size="small" shape="round" key={item.id} onClick={() => runSearch(item.query)}>{item.query}</Button>)}<Button size="small" type="text" onClick={async () => { await clearRecent(); recent.refetch(); }}>Clear</Button></div> : null}
+      <Segmented block options={views} value={view} onChange={(value) => { setView(value); if (value !== 'explore') setActiveQuery(''); }} />
+      {view === 'explore' ? <Segmented block options={filters} value={type} onChange={(value) => { setType(value); if (activeQuery) search({ variables: { query: activeQuery, language: lang, contentType: value || null } }); }} /> : null}
+      {notice ? <div className="library-notice" role="status">{notice}</div> : null}
+    </div>
+    {loading ? <Card><Skeleton active /></Card> : error ? <Empty description="Library could not be loaded." /> : items?.length ? <Row gutter={[16, 16]}>{items.map((item) => <Col xs={24} sm={12} lg={8} key={item.id}><Card className="library-content-card"><div className="library-content-icon">{iconFor(item.contentType)}</div><Tag>{item.category?.name || item.contentType}</Tag><Title level={4}>{item.translation?.title}</Title><Paragraph ellipsis={{ rows: 3 }}>{item.translation?.summary || item.translation?.body}</Paragraph><small>{item.visibility === 'free' ? 'Included' : `${item.visibility} access`}</small><div className="library-card-actions">{view === 'explore' ? <><Button disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')}>Save</Button>{['video', 'audio'].includes(item.contentType) ? <Button disabled={bookmarkState.loading} icon={<ClockCircleOutlined />} onClick={() => save(item.id, 'watch_later')}>Later</Button> : null}</> : <Button danger disabled={bookmarkState.loading} onClick={() => save(item.id, view, false)}>Remove</Button>}</div></Card></Col>)}</Row> : <Empty description={activeQuery ? `No results for “${activeQuery}”.` : 'No saved content yet.'} />}
+  </div>;
 }

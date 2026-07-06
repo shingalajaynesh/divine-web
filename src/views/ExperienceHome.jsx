@@ -26,7 +26,7 @@ const inspiration = [
 
 const actions = [
   { title: 'Baby growth', copy: 'Weekly milestones', icon: <HeartOutlined />, path: '/baby-growth', tone: 'pink' },
-  { title: 'Daily activities', copy: 'Mind, body and values', icon: <CalendarOutlined />, path: '/dashboard', tone: 'amber' },
+  { title: 'Daily activities', copy: 'Mind, body and values', icon: <CalendarOutlined />, path: '/programmes', tone: 'amber' },
   { title: 'Explore library', copy: 'Stories, yoga and music', icon: <BookOutlined />, path: '/library', tone: 'green' },
   { title: 'Community', copy: 'Ask, share and support', icon: <TeamOutlined />, path: '/forum', tone: 'lavender' },
 ];
@@ -66,11 +66,11 @@ export default function ExperienceHome({ user }) {
         <Col xs={24} lg={15}>
           <Card className="today-practice-card">
             <div className="practice-icon"><SafetyCertificateOutlined /></div>
-            <div><Text className="home-kicker">TODAY FOR YOU</Text><Title level={3}>A quiet moment with your baby</Title><Paragraph>Sit comfortably, take five slow breaths and share one loving thought with your baby.</Paragraph><Button type="primary" icon={<PlayCircleOutlined />} onClick={() => navigate('/library')}>Start today’s practice</Button></div>
+            <div><Text className="home-kicker">TODAY FOR YOU</Text><Title level={3}>A quiet moment with your baby</Title><Paragraph>Sit comfortably, take five slow breaths and share one loving thought with your baby.</Paragraph><Button type="primary" icon={<PlayCircleOutlined />} onClick={() => navigate('/programmes')}>Start today’s practice</Button></div>
           </Card>
         </Col>
         <Col xs={24} lg={9}>
-          <Card className="programme-card"><VideoCameraOutlined className="programme-icon" /><Title level={3}>Divine Complete Programme</Title><Paragraph>Daily activities, meditation, yoga, diet guidance and live expert sessions.</Paragraph><Button block onClick={() => navigate('/expert-consulting')}>Explore programme <ArrowRightOutlined /></Button></Card>
+          <Card className="programme-card"><VideoCameraOutlined className="programme-icon" /><Title level={3}>Divine Complete Programme</Title><Paragraph>Daily activities, meditation, yoga, diet guidance and live expert sessions.</Paragraph><Button block onClick={() => navigate('/programmes')}>Explore programme <ArrowRightOutlined /></Button></Card>
         </Col>
       </Row>
 
