@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
-import { Button, Card, Col, Empty, Input, Row, Segmented, Skeleton, Tag, Typography, List, Modal, Space, Divider } from 'antd';
+import { Button, Card, Col, Empty, Input, Row, Segmented, Skeleton, Tag, Typography, List, Modal, Space, Divider, Badge, Alert } from 'antd';
 import { 
   AudioOutlined, BookOutlined, ClockCircleOutlined, HeartOutlined, 
   PlayCircleOutlined, SearchOutlined, StarOutlined, PlusOutlined, 
-  DeleteOutlined, CustomerServiceOutlined 
+  DeleteOutlined, CustomerServiceOutlined, DownloadOutlined,
+  FilePdfOutlined, CheckCircleOutlined, InfoCircleOutlined
 } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import { 
@@ -29,7 +30,61 @@ const views = [
   { label: 'Explore', value: 'explore' }, 
   { label: 'Bookmarks', value: 'bookmark' }, 
   { label: 'Watch Later', value: 'watch_later' },
-  { label: 'My Playlists', value: 'playlists' }
+  { label: 'My Playlists', value: 'playlists' },
+  { label: '📥 Downloads', value: 'downloads' }
+];
+
+const downloadableResources = [
+  {
+    id: 'res-1',
+    title: 'Garbh Sanskar Daily Checklist',
+    description: 'A comprehensive daily activity log for tracking physical, cognitive, emotional, and spiritual quotient milestones.',
+    category: 'printable',
+    fileSize: '1.2 MB',
+    fileType: 'PDF Document',
+    tags: ['General', 'Checklist', 'Daily Routine'],
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+  },
+  {
+    id: 'res-2',
+    title: 'Trimester 1 Diet Chart & Meal Planner',
+    description: 'Nutritional food checklists, meal timings, healthy snack options, and hydration indexes for the first trimester.',
+    category: 'pdf',
+    fileSize: '2.4 MB',
+    fileType: 'PDF Guidebook',
+    tags: ['Trimester 1', 'Diet', 'Nutrition'],
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+  },
+  {
+    id: 'res-3',
+    title: 'Prenatal Yoga Guide & Safety Posters',
+    description: 'Illustrated guides showcasing safe prenatal postures, breathing techniques, and trimester-wise precautions.',
+    category: 'yoga',
+    fileSize: '4.8 MB',
+    fileType: 'PDF Poster',
+    tags: ['Yoga', 'Asanas', 'Illustrated'],
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+  },
+  {
+    id: 'res-4',
+    title: 'Baby Kick Count Logging Chart',
+    description: 'Printable log sheet designed to record fetal kick counts, movement frequencies, and activity bursts.',
+    category: 'printable',
+    fileSize: '850 KB',
+    fileType: 'PDF Sheet',
+    tags: ['Trimester 3', 'Tracker', 'Fetal Movement'],
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+  },
+  {
+    id: 'res-5',
+    title: 'Garbhini Postpartum Care Kit',
+    description: 'A complete checklist guide details postpartum recovery rules, lactation tips, and maternal mental wellness tools.',
+    category: 'kit',
+    fileSize: '5.2 MB',
+    fileType: 'PDF Toolkit',
+    tags: ['Postpartum', 'Toolkit', 'Mother Care'],
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+  }
 ];
 
 const iconFor = (type) => type === 'audio' ? <AudioOutlined /> : type === 'video' ? <PlayCircleOutlined /> : type === 'affirmation' ? <HeartOutlined /> : <BookOutlined />;
@@ -43,6 +98,10 @@ export default function ContentLibrary({ lang = 'en' }) {
   const [readingItem, setReadingItem] = useState(null);
   const [activeQuery, setActiveQuery] = useState('');
   const [notice, setNotice] = useState('');
+  
+  // Downloads center states
+  const [selectedDownloadCategory, setSelectedDownloadCategory] = useState('');
+  const [downloadCount, setDownloadCount] = useState(() => parseInt(localStorage.getItem('total_downloads_count') || '0'));
 
   // Queue playback states
   const [playbackTracks, setPlaybackTracks] = useState([]);
@@ -52,7 +111,7 @@ export default function ContentLibrary({ lang = 'en' }) {
   const feed = useQuery(CONTENT_FEED_QUERY, { variables: { language: lang, contentType: type || null }, skip: view !== 'explore' || Boolean(activeQuery) });
   const [search, searchState] = useLazyQuery(SEARCH_CONTENT_QUERY, { fetchPolicy: 'network-only' });
   const recent = useQuery(RECENT_CONTENT_SEARCHES_QUERY, { fetchPolicy: 'cache-and-network' });
-  const saved = useQuery(SAVED_CONTENT_QUERY, { variables: { language: lang, kind: view }, skip: ['explore', 'playlists'].includes(view), fetchPolicy: 'cache-and-network' });
+  const saved = useQuery(SAVED_CONTENT_QUERY, { variables: { language: lang, kind: view }, skip: ['explore', 'playlists', 'downloads'].includes(view), fetchPolicy: 'cache-and-network' });
   
   // Playlists operations
   const { data: playlistData, loading: playlistLoading, refetch: refetchPlaylists } = useQuery(GET_MY_PLAYLISTS_QUERY, {
@@ -76,12 +135,12 @@ export default function ContentLibrary({ lang = 'en' }) {
   };
 
   const items = useMemo(() => {
-    if (view === 'playlists') return [];
+    if (['playlists', 'downloads'].includes(view)) return [];
     return view !== 'explore' ? saved.data?.savedContent : activeQuery ? searchState.data?.searchContent : feed.data?.contentFeed;
   }, [view, saved.data, activeQuery, searchState.data, feed.data]);
 
-  const loading = view === 'playlists' ? playlistLoading : (view !== 'explore' ? saved.loading : activeQuery ? searchState.loading : feed.loading);
-  const error = view === 'playlists' ? null : (view !== 'explore' ? saved.error : activeQuery ? searchState.error : feed.error);
+  const loading = ['playlists', 'downloads'].includes(view) ? false : (view !== 'explore' ? saved.loading : activeQuery ? searchState.loading : feed.loading);
+  const error = ['playlists', 'downloads'].includes(view) ? null : (view !== 'explore' ? saved.error : activeQuery ? searchState.error : feed.error);
 
   const save = async (contentItemId, kind, savedValue = true) => {
     await setBookmark({ variables: { input: { contentItemId, kind, saved: savedValue } } });
@@ -302,6 +361,128 @@ export default function ContentLibrary({ lang = 'en' }) {
             )}
           </Col>
         </Row>
+      ) : view === 'downloads' ? (
+        <div>
+          {/* Download Center Welcome banner & Total stats */}
+          <Alert
+            message={
+              <Text strong style={{ color: '#0f766e' }}>
+                📥 Your Garbh Sanskar Material Center
+              </Text>
+            }
+            description={
+              <div>
+                <p style={{ margin: '4px 0 0 0' }}>
+                  Access premium downloadable guides, workout maps, and worksheets. You have successfully downloaded{' '}
+                  <Badge 
+                    count={downloadCount} 
+                    style={{ backgroundColor: '#be123c', transform: 'scale(0.9)', verticalAlign: 'middle' }} 
+                  />{' '}
+                  documents to support your clinical routines.
+                </p>
+              </div>
+            }
+            type="success"
+            showIcon
+            icon={<CheckCircleOutlined style={{ color: '#0f766e' }} />}
+            style={{ borderRadius: '16px', marginBottom: '24px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}
+          />
+
+          {/* Downloads Filter Category tabs */}
+          <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
+            <Segmented
+              options={[
+                { label: 'All Resources', value: '' },
+                { label: 'PDF E-Books', value: 'pdf' },
+                { label: 'Printable Worksheets', value: 'printable' },
+                { label: 'Yoga Safety Guides', value: 'yoga' },
+                { label: 'Wellness Kits', value: 'kit' }
+              ]}
+              value={selectedDownloadCategory}
+              onChange={setSelectedDownloadCategory}
+              style={{ borderRadius: '10px' }}
+            />
+          </div>
+
+          {/* Download Cards Grid */}
+          <Row gutter={[20, 20]}>
+            {downloadableResources
+              .filter(res => !selectedDownloadCategory || res.category === selectedDownloadCategory)
+              .map(res => (
+                <Col xs={24} sm={12} lg={8} key={res.id}>
+                  <Card
+                    hoverable
+                    style={{
+                      borderRadius: '20px',
+                      border: '1px solid #f1f5f9',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.01)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    styles={{ body: { padding: '24px' } }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fdf2f8', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#be123c' }}>
+                        <FilePdfOutlined style={{ fontSize: '20px' }} />
+                      </div>
+                      <Tag color="cyan">{res.fileSize} · {res.fileType}</Tag>
+                    </div>
+
+                    <Title level={4} style={{ fontSize: '16px', color: 'var(--brand-maroon-dark)', margin: '0 0 8px 0', minHeight: '44px' }}>
+                      {res.title}
+                    </Title>
+
+                    <Paragraph type="secondary" style={{ fontSize: '13px', minHeight: '60px', marginBottom: '16px' }}>
+                      {res.description}
+                    </Paragraph>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '20px', minHeight: '28px' }}>
+                      {res.tags.map(tag => (
+                        <Tag key={tag} style={{ borderRadius: '6px', fontSize: '10px' }}>
+                          {tag}
+                        </Tag>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+                      <Button
+                        style={{ flex: 1 }}
+                        onClick={() => {
+                          setReadingItem({
+                            id: res.id,
+                            contentType: 'pdf',
+                            slug: res.title.toLowerCase().replace(/ /g, '-') + '.pdf',
+                            translation: {
+                              title: res.title,
+                              body: res.description
+                            },
+                            translations: [
+                              { language: 'en', title: res.title, body: res.description }
+                            ]
+                          });
+                        }}
+                      >
+                        Preview
+                      </Button>
+                      <Button
+                        type="primary"
+                        icon={<DownloadOutlined />}
+                        style={{ flex: 1, background: '#be123c', borderColor: '#be123c' }}
+                        onClick={() => {
+                          const nextCount = downloadCount + 1;
+                          setDownloadCount(nextCount);
+                          localStorage.setItem('total_downloads_count', nextCount.toString());
+                          toast.success(`Downloading ${res.title}...`);
+                          window.open(res.url, '_blank');
+                        }}
+                      >
+                        Download
+                      </Button>
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+          </Row>
+        </div>
       ) : items?.length ? (
         <Row gutter={[20, 20]}>
           {items.map((item) => (

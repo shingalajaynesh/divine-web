@@ -457,8 +457,14 @@ export default function TodayDashboard({ user, t }) {
     ? new Date(timelineOverview.unlockDate).toLocaleDateString(userLang === 'hi' ? 'hi-IN' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : '';
 
-  // Skeleton Loading Layout to optimize LCP and CLS
-  if (contentLoading || babyLoading || progressLoading || timelineLoading) {
+  // Skeleton Loading Layout to optimize LCP and CLS (only on initial load to avoid flash-on-mutation)
+  const isInitialLoading = 
+    (contentLoading && !content) || 
+    (babyLoading && !baby) || 
+    (progressLoading && !progressData) || 
+    (timelineLoading && !timelineOverviewData);
+
+  if (isInitialLoading) {
     return (
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* Banner Card Skeleton */}
