@@ -20,7 +20,8 @@ import {
   Tag,
   Space,
   Divider,
-  Avatar
+  Avatar,
+  Skeleton
 } from 'antd';
 import {
   PlayCircleOutlined,
@@ -173,24 +174,24 @@ export default function TodayDashboard({ user, t }) {
     }
   }, [selectedTrimester, isHi]);
 
-  const { data: contentData } = useQuery(GET_DAILY_CONTENT_QUERY, {
+  const { data: contentData, loading: contentLoading } = useQuery(GET_DAILY_CONTENT_QUERY, {
     variables: { dayNumber: selectedDay }
   });
 
   const content = contentData?.getDailyContent;
-  const { data: recData } = useQuery(GET_RECOMMENDATIONS_QUERY);
+  const { data: recData, loading: recLoading } = useQuery(GET_RECOMMENDATIONS_QUERY);
   const recommendations = recData?.myRecommendations || [];
-  const { data: babyData } = useQuery(GET_BABY_DEVELOPMENT_QUERY, {
+  const { data: babyData, loading: babyLoading } = useQuery(GET_BABY_DEVELOPMENT_QUERY, {
     variables: { weekNumber: selectedWeek }
   });
   const baby = babyData?.getBabyDevelopment;
 
-  const { data: progressData } = useQuery(MY_DAILY_PROGRESS_QUERY, {
+  const { data: progressData, loading: progressLoading } = useQuery(MY_DAILY_PROGRESS_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
 
-  const { data: timelineOverviewData } = useQuery(MY_TIMELINE_OVERVIEW_QUERY, {
+  const { data: timelineOverviewData, loading: timelineLoading } = useQuery(MY_TIMELINE_OVERVIEW_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
@@ -344,7 +345,7 @@ export default function TodayDashboard({ user, t }) {
     SQ: progressData?.myDailyProgress?.sqCompleted || false,
   };
 
-  const toggleActivity = async (qKey) => {
+  const toggleActivity = React.useCallback(async (qKey) => {
     try {
       await toggleDailyActivityMutation({
         variables: {
@@ -360,7 +361,7 @@ export default function TodayDashboard({ user, t }) {
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [selectedDay, completedActivities, toggleDailyActivityMutation]);
 
   const completedCount = timelineOverview?.completedCount ?? Object.values(completedActivities).filter(Boolean).length;
   const progressPercent = timelineOverview?.progressPercent ?? Math.round((completedCount / 4) * 100);
@@ -397,7 +398,7 @@ export default function TodayDashboard({ user, t }) {
     }
   });
 
-  const handleSaveDetails = async () => {
+  const handleSaveDetails = React.useCallback(async () => {
     try {
       await saveDailyActivityDetailsMutation({
         variables: {
@@ -413,7 +414,7 @@ export default function TodayDashboard({ user, t }) {
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [selectedDay, activeQuotient, durationValue, evidenceValue, notesValue, saveDailyActivityDetailsMutation]);
 
   // Dream Chart State
   const [babyName, setBabyName] = useState(() => localStorage.getItem('dream_child_name') || '');
@@ -431,7 +432,7 @@ export default function TodayDashboard({ user, t }) {
     { id: 'eloquence', label: isHi ? '🗣️ ओजस्वी वाणी' : '🗣️ Power of Speech', desc: isHi ? 'प्रभावशाली वक्तृत्व और स्पष्टता' : 'Expressive speaking & confidence' },
   ];
 
-  const handleVirtueToggle = (virtueId) => {
+  const handleVirtueToggle = React.useCallback((virtueId) => {
     let updated;
     if (selectedVirtues.includes(virtueId)) {
       updated = selectedVirtues.filter(v => v !== virtueId);
@@ -444,17 +445,56 @@ export default function TodayDashboard({ user, t }) {
     }
     setSelectedVirtues(updated);
     localStorage.setItem('dream_child_virtues', JSON.stringify(updated));
-  };
+  }, [selectedVirtues, isHi]);
 
-  const handleNameChange = (val) => {
+  const handleNameChange = React.useCallback((val) => {
     setBabyName(val);
     localStorage.setItem('dream_child_name', val);
-  };
+  }, []);
 
   const isLocked = timelineOverview?.isLocked ?? (selectedDay > (user.pregnancyDay || 1));
   const unlockDateString = timelineOverview?.unlockDate
     ? new Date(timelineOverview.unlockDate).toLocaleDateString(userLang === 'hi' ? 'hi-IN' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : '';
+
+  // Skeleton Loading Layout to optimize LCP and CLS
+  if (contentLoading || babyLoading || progressLoading || timelineLoading) {
+    return (
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        {/* Banner Card Skeleton */}
+        <Card
+          style={{
+            background: 'linear-gradient(135deg, var(--brand-maroon) 0%, var(--brand-maroon-dark) 100%)',
+            border: 0,
+            borderRadius: 24,
+            boxShadow: '0 8px 24px rgba(63, 10, 17, 0.18)',
+            height: 180,
+            display: 'flex',
+            alignItems: 'center'
+          }}
+          styles={{ body: { padding: '24px', width: '100%' } }}
+        >
+          <div style={{ width: '100%' }}>
+            <Skeleton active paragraph={{ rows: 2, width: ['60%', '40%'] }} title={{ width: '30%' }} />
+          </div>
+        </Card>
+
+        {/* Quick Actions Row Skeleton */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', margin: '8px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card key={i} style={{ borderRadius: 16, border: '1px solid var(--line)', background: '#fff', height: 82 }}>
+              <Skeleton active avatar={{ shape: 'square', size: 38 }} title={{ width: '50%' }} paragraph={{ rows: 1, width: '80%' }} />
+            </Card>
+          ))}
+        </div>
+
+        {/* Calendar Card Skeleton */}
+        <Card style={{ borderRadius: 24, border: '1px solid var(--line)', height: 350 }}>
+          <Skeleton active paragraph={{ rows: 6 }} />
+        </Card>
+      </Space>
+    );
+  }
 
   // Music Player State
   return (
@@ -515,7 +555,7 @@ export default function TodayDashboard({ user, t }) {
               justifyContent: 'center'
             }}>
               <Avatar
-                src="/smiling_baby.png"
+                src="/smiling_baby.jpg"
                 size={{ xs: 64, sm: 80, md: 100, lg: 110, xl: 120 }}
                 style={{
                   border: '2px solid rgba(255, 255, 255, 0.4)',

@@ -13,9 +13,9 @@ export default function Programmes() {
   const [enroll, { loading: enrolling, error: enrollError }] = useMutation(ENROLL_IN_PROGRAM_MUTATION, { onCompleted: () => refetch() });
   const [updateProgress] = useMutation(UPDATE_ACTIVITY_PROGRESS_MUTATION, { onCompleted: () => refetch() });
   
-  const enrollments = new Map((enrollmentData?.myProgramEnrollments || []).map((item) => [item.program.id, item]));
+  const enrollments = React.useMemo(() => new Map((enrollmentData?.myProgramEnrollments || []).map((item) => [item.program.id, item])), [enrollmentData]);
 
-  const handleToggleActivity = async (activityId, isCompleted) => {
+  const handleToggleActivity = React.useCallback(async (activityId, isCompleted) => {
     try {
       await updateProgress({
         variables: {
@@ -30,7 +30,7 @@ export default function Programmes() {
     } catch (e) {
       toast.error(e.message);
     }
-  };
+  }, [updateProgress]);
 
   if (loading) return <Card><Skeleton active /></Card>;
   if (error) return <Empty description="Programme catalogue could not be loaded." />;
