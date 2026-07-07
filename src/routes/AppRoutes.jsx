@@ -275,7 +275,7 @@ export default function AppRoutes({ user, menuItems, activeRole, t, lang, handle
             key={path}
             path={path}
             element={roles.includes(activeRole) ? (
-              <Suspense fallback={<div className="route-loader"><Spin size="large" /><span>Loading your workspace…</span></div>}>
+              <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px 0' }}><Spin size="large" /></div>}>
                 <Component user={user} t={t} lang={lang} />
               </Suspense>
             ) : <Navigate to={defaultRoute} replace />}

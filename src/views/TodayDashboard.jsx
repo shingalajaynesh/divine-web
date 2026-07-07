@@ -561,13 +561,19 @@ export default function TodayDashboard({ user, t }) {
               justifyContent: 'center'
             }}>
               <Avatar
-                src="/smiling_baby.jpg"
                 size={{ xs: 64, sm: 80, md: 100, lg: 110, xl: 120 }}
                 style={{
                   border: '2px solid rgba(255, 255, 255, 0.4)',
-                  backgroundColor: '#fff'
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                  fontSize: 'clamp(28px, 6vw, 48px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
-              />
+              >
+                👶
+              </Avatar>
             </div>
           </Col>
 

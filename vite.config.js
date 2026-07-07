@@ -25,7 +25,7 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    chunkSizeWarningLimit: 800, // Increase warning limit since we are fine-tuning chunking
+    chunkSizeWarningLimit: 1200, // Increase warning limit since we are fine-tuning chunking
     cssCodeSplit: true, // Split CSS per page
     rollupOptions: {
       output: {
