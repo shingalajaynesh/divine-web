@@ -11,20 +11,33 @@ export const brand = {
   line: '#EADFD8',
   success: '#287A55',
   info: '#315C88',
+
+  // Semantic Design Tokens
+  primary: '#68111B',      // Warm Devotional Maroon
+  primaryDark: '#3F0A11',  // Dark Maroon
+  accent: '#F59E0B',       // Saffron
+  accentWarm: '#FBBF24',   // Amber
+  canvas: '#F8F5EF',       // Canvas
+  surface: '#FFFFFF',      // Paper
+  ink: '#24191A',         // Ink
+  muted: '#76676A',        // Muted
+  border: '#EADFD8',       // Line
+  successGreen: '#287A55', // Success
+  infoBlue: '#315C88',     // Info
 };
 
 export const divineTheme = {
   token: {
-    colorPrimary: brand.maroon,
-    colorInfo: brand.info,
-    colorSuccess: brand.success,
-    colorWarning: brand.saffron,
+    colorPrimary: brand.primary,
+    colorInfo: brand.infoBlue,
+    colorSuccess: brand.successGreen,
+    colorWarning: brand.accent,
     colorError: '#B42318',
     colorText: brand.ink,
     colorTextSecondary: brand.muted,
-    colorBorder: brand.line,
-    colorBgLayout: '#F8F5EF',
-    colorBgContainer: brand.paper,
+    colorBorder: brand.border,
+    colorBgLayout: brand.canvas,
+    colorBgContainer: brand.surface,
     borderRadius: 12,
     borderRadiusLG: 18,
     controlHeight: 42,
@@ -46,13 +59,14 @@ export const divineTheme = {
       itemHeight: 44,
       itemMarginBlock: 4,
       itemSelectedBg: '#FFF1D6',
-      itemSelectedColor: brand.maroon,
+      itemSelectedColor: brand.primary,
       itemHoverBg: '#FFF8E8',
     },
-    Input: { activeBorderColor: brand.saffron, hoverBorderColor: brand.saffron },
-    Select: { activeBorderColor: brand.saffron, hoverBorderColor: brand.saffron },
-    DatePicker: { activeBorderColor: brand.saffron, hoverBorderColor: brand.saffron },
-    Tabs: { itemSelectedColor: brand.maroon, inkBarColor: brand.saffron },
-    Table: { headerBg: '#FBF7F0', headerColor: brand.maroonDark },
+    Input: { activeBorderColor: brand.accent, hoverBorderColor: brand.accent },
+    Select: { activeBorderColor: brand.accent, hoverBorderColor: brand.accent },
+    DatePicker: { activeBorderColor: brand.accent, hoverBorderColor: brand.accent },
+    Tabs: { itemSelectedColor: brand.primary, inkBarColor: brand.accent },
+    Table: { headerBg: '#FBF7F0', headerColor: brand.primaryDark },
   },
 };
+

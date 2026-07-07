@@ -15,8 +15,33 @@
   --soft-maroon: #f9eef0;
   --soft-saffron: #fff5df;
   --success: #287a55;
+
+  /* Spacing Scale Tokens */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+  --spacing-4xl: 64px;
+
+  /* Border Radius Tokens */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+
+  /* Elevation Shadows & Glassmorphism */
   --shadow-sm: 0 2px 10px rgba(63, 10, 17, 0.05);
   --shadow-md: 0 12px 32px rgba(63, 10, 17, 0.08);
+  --shadow-lg: 0 20px 48px rgba(63, 10, 17, 0.12);
+  --shadow-glass: 0 8px 32px 0 rgba(104, 17, 27, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(234, 223, 216, 0.6);
+
   --color-brand-primary: #b45309; /* Deep saffron/amber-700 for readability */
   --color-brand-secondary: var(--brand-maroon);
   --color-accent-pink: #be123c; /* Deep rose-700 for readability */
@@ -991,3 +1016,12 @@ a:focus-visible {
     animation-iteration-count: 1 !important;
   }
 }
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass);
+}
+

@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import toast from 'react-hot-toast';
-import { Card, Table, Button, Input, Select, Tag, Space, Modal, Form, Typography, Row, Col, Tabs, Drawer, List, Divider } from 'antd';
 import { 
-  SearchOutlined, 
-  MessageOutlined, 
-  CheckCircleOutlined, 
-  InfoCircleOutlined,
-  UserOutlined,
-  BookOutlined,
-  HistoryOutlined,
-  PlusOutlined
+  Card, Table, Button, Input, Select, Tag, Space, Modal, Form, 
+  Typography, Row, Col, Tabs, Drawer, List, Divider, Checkbox, DatePicker, Tooltip, Alert
+} from 'antd';
+import { 
+  SearchOutlined, MessageOutlined, CheckCircleOutlined, InfoCircleOutlined,
+  UserOutlined, BookOutlined, HistoryOutlined, PlusOutlined, DeleteOutlined, 
+  CalendarOutlined, CheckOutlined, AlertOutlined, SmileOutlined
 } from '@ant-design/icons';
-import {
-  GET_INQUIRIES,
-  REPLY_TO_INQUIRY,
-  UPDATE_INQUIRY_STATUS,
+import { 
+  GET_INQUIRIES, REPLY_TO_INQUIRY, UPDATE_INQUIRY_STATUS 
 } from '../features/inquiries/inquiryOperations';
 import { gql } from '@apollo/client';
 
+const { Title, Paragraph, Text } = Typography;
+const { TextArea } = Input;
+
+// Staff Dashboard GQL Queries & Mutations
 const GET_CRM_USERS_QUERY = gql`
   query GetCrmUsers {
     getCrmUsers {
@@ -107,8 +107,87 @@ const REVIEW_CONTENT_ITEM_MUTATION = gql`
   }
 `;
 
-const { Title, Paragraph, Text } = Typography;
-const { TextArea } = Input;
+// NEW operations for Staff Tasks, Classes, and Attendance
+const GET_STAFF_TASKS_QUERY = gql`
+  query GetStaffTasks {
+    getStaffTasks {
+      id
+      title
+      description
+      dueDate
+      completed
+      createdAt
+      user {
+        id
+        displayName
+        emailAddress
+      }
+    }
+  }
+`;
+
+const CREATE_STAFF_TASK_MUTATION = gql`
+  mutation CreateStaffTask($userId: ID, $title: String!, $description: String, $dueDate: String) {
+    createStaffTask(userId: $userId, title: $title, description: $description, dueDate: $dueDate) {
+      id
+      title
+      completed
+    }
+  }
+`;
+
+const TOGGLE_STAFF_TASK_MUTATION = gql`
+  mutation ToggleStaffTask($id: ID!) {
+    toggleStaffTask(id: $id) {
+      id
+      completed
+    }
+  }
+`;
+
+const DELETE_STAFF_TASK_MUTATION = gql`
+  mutation DeleteStaffTask($id: ID!) {
+    deleteStaffTask(id: $id)
+  }
+`;
+
+const GET_LIVE_CLASSES_QUERY = gql`
+  query GetLiveClasses {
+    getLiveClassesDetailed {
+      id
+      title
+      instructor
+      startTime
+      durationMins
+    }
+  }
+`;
+
+const GET_CLASS_BOOKINGS_QUERY = gql`
+  query GetClassBookings($classId: ID!) {
+    getLiveClassBookings(classId: $classId) {
+      userId
+      liveClassId
+      attended
+      user {
+        id
+        displayName
+        emailAddress
+        mobileNo
+      }
+    }
+  }
+`;
+
+const RECORD_ATTENDANCE_MUTATION = gql`
+  mutation RecordClassAttendance($classId: ID!, $userId: ID!, $attended: Boolean!) {
+    recordClassAttendance(classId: $classId, userId: $userId, attended: $attended) {
+      userId
+      liveClassId
+      attended
+    }
+  }
+`;
 
 export default function StaffConsole({ isHi }) {
   const [activeTab, setActiveTab] = useState('tickets');
@@ -117,23 +196,45 @@ export default function StaffConsole({ isHi }) {
   const [replyText, setReplyText] = useState('');
   const [selectedInqId, setSelectedInqId] = useState(null);
 
-  // CRM states
+  // CRM & Drawers
   const [selectedUser, setSelectedUser] = useState(null);
   const [crmSearch, setCrmSearch] = useState('');
   const [newCrmNote, setNewCrmNote] = useState('');
 
+  // Staff Reminders/Tasks state
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState(null);
+  const [newTaskMemberId, setNewTaskMemberId] = useState(null);
+
+  // Class Attendance state
+  const [selectedClassId, setSelectedClassId] = useState(null);
+
   // Queries & Mutations
-  const { data, loading, refetch } = useQuery(GET_INQUIRIES, {
+  const { data: ticketData, loading: ticketsLoading, refetch: refetchTickets } = useQuery(GET_INQUIRIES, {
     variables: { status: null, limit: 100, offset: 0 },
     fetchPolicy: 'network-only',
   });
-  const [updateInquiryStatus] = useMutation(UPDATE_INQUIRY_STATUS, { onCompleted: () => refetch() });
-  const [replyToInquiry] = useMutation(REPLY_TO_INQUIRY, { onCompleted: () => { refetch(); setReplyText(''); setSelectedInqId(null); toast.success("Reply recorded and ticket resolved!"); } });
+  const [updateInquiryStatus] = useMutation(UPDATE_INQUIRY_STATUS, { onCompleted: () => refetchTickets() });
+  const [replyToInquiry] = useMutation(REPLY_TO_INQUIRY, { 
+    onCompleted: () => { 
+      refetchTickets(); 
+      setReplyText(''); 
+      setSelectedInqId(null); 
+      toast.success("Reply recorded and ticket resolved!"); 
+    } 
+  });
 
-  // CRM Queries & Mutations
-  const crmUsersQuery = useQuery(GET_CRM_USERS_QUERY, { skip: activeTab !== 'crm' });
+  const crmUsersQuery = useQuery(GET_CRM_USERS_QUERY, { 
+    skip: activeTab !== 'crm' && activeTab !== 'followups' && activeTab !== 'reminders'
+  });
   const manageContentQuery = useQuery(MANAGE_CONTENT_QUERY, { skip: activeTab !== 'review' });
-  const [reviewContent] = useMutation(REVIEW_CONTENT_ITEM_MUTATION, { onCompleted: () => { manageContentQuery.refetch(); toast.success('Content medical review updated'); } });
+  const [reviewContent] = useMutation(REVIEW_CONTENT_ITEM_MUTATION, { 
+    onCompleted: () => { 
+      manageContentQuery.refetch(); 
+      toast.success('Content medical review updated'); 
+    } 
+  });
 
   const crmNotesQuery = useQuery(GET_CRM_NOTES_QUERY, {
     variables: { userId: selectedUser?.id },
@@ -149,10 +250,57 @@ export default function StaffConsole({ isHi }) {
     }
   });
 
-  const inquiries = data?.getInquiries?.items || [];
+  // NEW hooks for Tasks, Classes, and Attendance
+  const staffTasksQuery = useQuery(GET_STAFF_TASKS_QUERY, { 
+    skip: activeTab !== 'reminders' && activeTab !== 'followups'
+  });
+  const liveClassesQuery = useQuery(GET_LIVE_CLASSES_QUERY, { skip: activeTab !== 'attendance' });
+  const classBookingsQuery = useQuery(GET_CLASS_BOOKINGS_QUERY, {
+    variables: { classId: selectedClassId },
+    skip: !selectedClassId || activeTab !== 'attendance'
+  });
+
+  const [createStaffTask, { loading: creatingTask }] = useMutation(CREATE_STAFF_TASK_MUTATION, {
+    onCompleted: () => {
+      staffTasksQuery.refetch();
+      setNewTaskTitle('');
+      setNewTaskDesc('');
+      setNewTaskDueDate(null);
+      setNewTaskMemberId(null);
+      toast.success(isHi ? 'कार्य सफलतापूर्वक जोड़ा गया!' : 'Task added successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [toggleStaffTask] = useMutation(TOGGLE_STAFF_TASK_MUTATION, {
+    onCompleted: () => staffTasksQuery.refetch(),
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [deleteStaffTask] = useMutation(DELETE_STAFF_TASK_MUTATION, {
+    onCompleted: () => {
+      staffTasksQuery.refetch();
+      toast.success(isHi ? 'कार्य हटाया गया!' : 'Task deleted successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [recordClassAttendance] = useMutation(RECORD_ATTENDANCE_MUTATION, {
+    onCompleted: () => {
+      classBookingsQuery.refetch();
+      toast.success(isHi ? 'उपस्थिति दर्ज की गई!' : 'Attendance updated!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  // Data processing
+  const inquiries = ticketData?.getInquiries?.items || [];
   const crmUsers = crmUsersQuery.data?.getCrmUsers || [];
   const crmNotes = crmNotesQuery.data?.getCrmNotes || [];
   const auditLogs = auditLogsQuery.data?.getAuditLogs || [];
+  const staffTasks = staffTasksQuery.data?.getStaffTasks || [];
+  const liveClasses = liveClassesQuery.data?.getLiveClassesDetailed || [];
+  const classBookings = classBookingsQuery.data?.getLiveClassBookings || [];
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
@@ -181,6 +329,21 @@ export default function StaffConsole({ isHi }) {
     }
   };
 
+  const handleCreateTaskSubmit = () => {
+    if (!newTaskTitle.trim()) {
+      toast.error(isHi ? 'कार्य का शीर्षक दर्ज करें!' : 'Please enter a task title');
+      return;
+    }
+    createStaffTask({
+      variables: {
+        userId: newTaskMemberId,
+        title: newTaskTitle.trim(),
+        description: newTaskDesc.trim() || null,
+        dueDate: newTaskDueDate ? newTaskDueDate.toISOString() : null
+      }
+    });
+  };
+
   const filteredInquiries = inquiries.filter(inq => {
     const matchesStatus = filterStatus === 'all' || inq.status === filterStatus;
     const query = searchQuery.toLowerCase();
@@ -196,9 +359,26 @@ export default function StaffConsole({ isHi }) {
     return u.displayName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.phone || '').includes(q);
   });
 
+  // Filter only mothers who are registered
+  const mothers = crmUsers.filter(u => u.role?.roleType === 'MOTHER' || !u.role);
+
+  // Follow-up Queue Logic (e.g. show warning if pregnancy Day is set, but no clinical note or task created recently)
+  const followUpQueueData = mothers.map(mother => {
+    // Check if she has any pending tasks
+    const pendingTasksCount = staffTasks.filter(t => t.user?.id === mother.id && !t.completed).length;
+    // Mock risk assessment: flag if pregnancyDay > 200 (near due date) or if no notes added
+    const needsUrgentFollowup = pendingTasksCount > 0 || mother.pregnancyDay > 220;
+
+    return {
+      ...mother,
+      pendingTasksCount,
+      needsUrgentFollowup
+    };
+  });
+
   const selectedInq = inquiries.find(i => i.id === selectedInqId);
 
-  const columns = [
+  const ticketColumns = [
     {
       title: 'Sender & Message',
       key: 'sender',
@@ -232,7 +412,7 @@ export default function StaffConsole({ isHi }) {
       key: 'actions',
       width: 180,
       render: (_, record) => (
-        <Space orientation="vertical" style={{ width: '100%' }}>
+        <Space direction="vertical" style={{ width: '100%' }}>
           {record.status !== 'resolved' && (
             <Button 
               type="primary" 
@@ -264,7 +444,7 @@ export default function StaffConsole({ isHi }) {
         <div>
           <Title level={4} style={{ margin: 0 }}>🩺 {isHi ? "चिकित्सीय एवं प्रशासनिक कंसोल" : "Clinical & Coaching Console"}</Title>
           <Paragraph type="secondary" style={{ margin: 0, fontSize: '13px' }}>
-            Manage user directories, clinical notes logs, ticket inquiries, and audit events.
+            Manage user directories, clinical notes logs, ticket inquiries, and live class attendance lists.
           </Paragraph>
         </div>
       </div>
@@ -275,12 +455,16 @@ export default function StaffConsole({ isHi }) {
         items={[
           { key: 'tickets', label: '📞 Member Inquiries' },
           { key: 'crm', label: '👥 CRM Member Directory' },
+          { key: 'followups', label: '🚨 Member Follow-up Queue' },
+          { key: 'reminders', label: '📋 Tasks & Reminders' },
+          { key: 'attendance', label: '📅 Class Attendance' },
           { key: 'review', label: '🩺 Medical Article Review' },
           { key: 'audit', label: '🛡️ Security Audit Trail' }
         ]}
         style={{ marginBottom: '24px' }}
       />
 
+      {/* 1. TICKETS TAB */}
       {activeTab === 'tickets' && (
         <div>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -305,15 +489,16 @@ export default function StaffConsole({ isHi }) {
 
           <Table 
             dataSource={filteredInquiries} 
-            columns={columns} 
+            columns={ticketColumns} 
             rowKey="id"
-            loading={loading}
+            loading={ticketsLoading}
             pagination={{ pageSize: 10 }}
             style={{ borderRadius: '12px', overflow: 'hidden' }}
           />
         </div>
       )}
 
+      {/* 2. CRM DIRECTORY */}
       {activeTab === 'crm' && (
         <div>
           <Input 
@@ -368,6 +553,278 @@ export default function StaffConsole({ isHi }) {
         </div>
       )}
 
+      {/* 3. MEMBER FOLLOW-UP QUEUE */}
+      {activeTab === 'followups' && (
+        <div>
+          <Alert 
+            message="Active Clinical Guidance Queue" 
+            description="Mothers near their final trimester or having pending follow-up items are automatically highlighted." 
+            type="info" 
+            showIcon 
+            style={{ marginBottom: 20, borderRadius: 12 }}
+          />
+          <Table
+            dataSource={followUpQueueData}
+            rowKey="id"
+            columns={[
+              {
+                title: 'Mother',
+                dataIndex: 'displayName',
+                key: 'name',
+                render: (val, record) => (
+                  <div>
+                    <Text strong>{val}</Text>
+                    <div style={{ fontSize: 11, color: '#888' }}>{record.email}</div>
+                  </div>
+                )
+              },
+              {
+                title: 'Pregnancy Status',
+                key: 'pregnancy',
+                render: (_, record) => (
+                  <div>
+                    <Tag color={record.pregnancyDay > 200 ? 'orange' : 'blue'}>
+                      Day {record.pregnancyDay || 'Not set'}
+                    </Tag>
+                    {record.pregnancyDay > 200 && <Tag color="red">3rd Trimester</Tag>}
+                  </div>
+                )
+              },
+              {
+                title: 'Urgency Priority',
+                key: 'urgency',
+                render: (_, record) => (
+                  record.needsUrgentFollowup ? (
+                    <Tag icon={<AlertOutlined />} color="error">HIGH PRIORITY</Tag>
+                  ) : (
+                    <Tag color="success">NORMAL</Tag>
+                  )
+                )
+              },
+              {
+                title: 'Action',
+                key: 'action',
+                render: (_, record) => (
+                  <Space>
+                    <Button 
+                      type="primary" 
+                      size="small" 
+                      onClick={() => {
+                        setNewTaskMemberId(record.id);
+                        setNewTaskTitle(`Follow up contact with ${record.displayName}`);
+                        setActiveTab('reminders');
+                      }}
+                      style={{ background: '#be123c', borderColor: '#be123c' }}
+                    >
+                      Schedule Follow-up
+                    </Button>
+                    <Button 
+                      size="small" 
+                      icon={<PlusOutlined />} 
+                      onClick={() => setSelectedUser(record)}
+                    >
+                      Add Note
+                    </Button>
+                  </Space>
+                )
+              }
+            ]}
+          />
+        </div>
+      )}
+
+      {/* 4. TASKS & REMINDERS */}
+      {activeTab === 'reminders' && (
+        <Row gutter={[24, 24]}>
+          <Col xs={24} md={8}>
+            <Card title="Add Administrative Reminder" style={{ borderRadius: 16 }}>
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <div>
+                  <Text strong style={{ fontSize: 12 }}>Task Title</Text>
+                  <Input 
+                    placeholder="e.g. Call sneha for diet consult..." 
+                    value={newTaskTitle} 
+                    onChange={e => setNewTaskTitle(e.target.value)}
+                    style={{ marginTop: 6 }}
+                  />
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 12 }}>Description</Text>
+                  <TextArea 
+                    placeholder="Add details, clinical flags, contact notes..." 
+                    value={newTaskDesc}
+                    onChange={e => setNewTaskDesc(e.target.value)}
+                    rows={3}
+                    style={{ marginTop: 6 }}
+                  />
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 12 }}>Assign to Member (Optional)</Text>
+                  <Select 
+                    placeholder="Select mother..." 
+                    value={newTaskMemberId} 
+                    onChange={setNewTaskMemberId}
+                    style={{ width: '100%', marginTop: 6 }}
+                    allowClear
+                  >
+                    {mothers.map(m => (
+                      <Select.Option key={m.id} value={m.id}>{m.displayName}</Select.Option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 12 }}>Due Date (Optional)</Text>
+                  <DatePicker 
+                    style={{ width: '100%', marginTop: 6 }} 
+                    value={newTaskDueDate} 
+                    onChange={setNewTaskDueDate}
+                  />
+                </div>
+                <Button 
+                  type="primary" 
+                  block 
+                  icon={<PlusOutlined />} 
+                  loading={creatingTask}
+                  onClick={handleCreateTaskSubmit}
+                  style={{ background: '#be123c', borderColor: '#be123c' }}
+                >
+                  Create Task
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} md={16}>
+            <Card title="Active To-Do Checklist" style={{ borderRadius: 16 }}>
+              <List
+                dataSource={staffTasks}
+                locale={{ emptyText: 'No pending reminders for today!' }}
+                renderItem={task => (
+                  <List.Item
+                    actions={[
+                      <Button 
+                        type="text" 
+                        danger 
+                        icon={<DeleteOutlined />} 
+                        onClick={() => deleteStaffTask({ variables: { id: task.id } })} 
+                      />
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Checkbox 
+                          checked={task.completed} 
+                          onChange={() => toggleStaffTask({ variables: { id: task.id } })}
+                        />
+                      }
+                      title={
+                        <Space>
+                          <Text delete={task.completed} strong={!task.completed}>
+                            {task.title}
+                          </Text>
+                          {task.user && (
+                            <Tag color="cyan" icon={<UserOutlined />}>{task.user.displayName}</Tag>
+                          )}
+                        </Space>
+                      }
+                      description={
+                        <div>
+                          {task.description && <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>{task.description}</Text>}
+                          {task.dueDate && (
+                            <Text style={{ fontSize: 11, color: '#f27a54' }}>
+                              <CalendarOutlined /> Due: {new Date(task.dueDate).toLocaleDateString()}
+                            </Text>
+                          )}
+                        </div>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      {/* 5. CLASS ATTENDANCE WIDGET */}
+      {activeTab === 'attendance' && (
+        <Card title="Class Attendance Roster" style={{ borderRadius: 16 }}>
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            <div>
+              <Text strong style={{ fontSize: 13, marginRight: 12 }}>Select Session:</Text>
+              <Select 
+                placeholder="Choose live class..." 
+                style={{ width: '300px' }} 
+                onChange={setSelectedClassId}
+                value={selectedClassId}
+              >
+                {liveClasses.map(c => (
+                  <Select.Option key={c.id} value={c.id}>
+                    {c.title} ({c.instructor}) - {new Date(c.startTime).toLocaleDateString()}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+
+            {selectedClassId ? (
+              <Table
+                dataSource={classBookings}
+                rowKey="userId"
+                locale={{ emptyText: 'No members booked this class yet.' }}
+                columns={[
+                  {
+                    title: 'Attendee Name',
+                    dataIndex: 'user',
+                    key: 'user',
+                    render: (user) => user ? (
+                      <div>
+                        <Text strong>{user.displayName}</Text>
+                        <div style={{ fontSize: 11, color: '#666' }}>{user.emailAddress} · {user.mobileNo}</div>
+                      </div>
+                    ) : 'Unknown User'
+                  },
+                  {
+                    title: 'Status',
+                    key: 'status',
+                    render: (_, record) => (
+                      <Tag color={record.attended ? 'success' : 'default'}>
+                        {record.attended ? 'PRESENT' : 'ABSENT'}
+                      </Tag>
+                    )
+                  },
+                  {
+                    title: 'Mark Attendance',
+                    key: 'action',
+                    render: (_, record) => (
+                      <Checkbox 
+                        checked={record.attended}
+                        onChange={(e) => {
+                          recordClassAttendance({
+                            variables: {
+                              classId: selectedClassId,
+                              userId: record.userId,
+                              attended: e.target.checked
+                            }
+                          });
+                        }}
+                      >
+                        Mark Present
+                      </Checkbox>
+                    )
+                  }
+                ]}
+              />
+            ) : (
+              <Alert 
+                type="warning" 
+                message="Please select an upcoming or completed class to view the attendee roster." 
+                showIcon 
+              />
+            )}
+          </Space>
+        </Card>
+      )}
+
+      {/* 6. SECURITY AUDIT */}
       {activeTab === 'audit' && (
         <Table
           dataSource={auditLogs}
@@ -399,6 +856,7 @@ export default function StaffConsole({ isHi }) {
         />
       )}
 
+      {/* 7. MEDICAL REVIEW */}
       {activeTab === 'review' && (
         <Table
           dataSource={manageContentQuery.data?.manageContent || []}

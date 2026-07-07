@@ -49,7 +49,7 @@ export const routeConfig = [
   {
     path: '/expert-consulting',
     component: lazy(() => import('../views/ExpertConsultation')),
-    roles: ['MOTHER', 'STAFF', 'ADMIN']
+    roles: ['MOTHER', 'GUIDE', 'STAFF', 'ADMIN']
   },
   {
     path: '/admin',

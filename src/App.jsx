@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import { auth } from './config/firebase.js';
@@ -141,92 +141,171 @@ function App() {
     }
   };
 
-  const menuItems = [
-    {
-      key: '/dashboard',
-      icon: <CalendarOutlined />,
-      label: t.tab_today,
-    },
-    {
-      key: '/library',
-      icon: <BookOutlined />,
-      label: t.tab_library,
-    },
-    {
-      key: '/programmes',
-      icon: <SolutionOutlined />,
-      label: 'Programmes',
-    },
-    {
-      key: '/notifications',
-      icon: <BellOutlined />,
-      label: 'Notifications',
-    },
-    {
-      key: '/baby-growth',
-      icon: <HeartOutlined />,
-      label: t.tab_baby,
-    },
-    {
-      key: '/forum',
-      icon: <MessageOutlined />,
-      label: t.tab_forum,
-    },
-    {
-      key: '/classes',
-      icon: <VideoCameraOutlined />,
-      label: t.tab_classes,
-    },
-    {
-      key: '/vitals',
-      icon: <BarChartOutlined />,
-      label: lang === 'hi' ? 'महत्वपूर्ण आँकड़े' : 'Vitals Tracker',
-    },
-    {
-      key: '/diet-planner',
-      icon: <HeartOutlined />,
-      label: lang === 'hi' ? 'भोजन योजना' : 'Diet Planner',
-    },
-    {
-      key: '/expert-consulting',
-      icon: <CustomerServiceOutlined />,
-      label: lang === 'hi' ? 'विशेषज्ञ सलाह' : 'Expert Consulting',
-    },
-    {
-      key: '/weekly-report',
-      icon: <BarChartOutlined />,
-      label: lang === 'hi' ? 'साप्ताहिक रिपोर्ट' : 'Weekly Reports',
-    },
-    {
-      key: '/support',
-      icon: <CustomerServiceOutlined />,
-      label: lang === 'hi' ? 'सहायता केंद्र' : 'Help & Support',
-    },
-    {
-      key: '/store',
-      icon: <ShoppingCartOutlined />,
-      label: lang === 'hi' ? 'मातृ बुटीक' : 'Maternal Store',
-    },
-    {
-      key: '/pricing',
-      icon: <SafetyCertificateOutlined />,
-      label: lang === 'hi' ? 'सदस्यता प्लान' : 'Membership Plans',
-    },
-    ...(activeRole === 'ADMIN' ? [{
-      key: '/admin',
-      icon: <SettingOutlined />,
-      label: t.tab_admin,
-    }] : []),
-    ...((activeRole === 'STAFF' || activeRole === 'ADMIN') ? [{
-      key: '/staff',
-      icon: <SolutionOutlined />,
-      label: 'Staff Console',
-    }, {
-      key: '/content-studio',
-      icon: <BookOutlined />,
-      label: 'Content Studio',
-    }] : [])
-  ];
+  const menuItems = useMemo(() => {
+    if (activeRole === 'STAFF') {
+      return [
+        {
+          key: '/staff',
+          icon: <SolutionOutlined />,
+          label: 'Staff Console',
+        },
+        {
+          key: '/content-studio',
+          icon: <BookOutlined />,
+          label: 'Content Studio',
+        },
+        {
+          key: '/notifications',
+          icon: <BellOutlined />,
+          label: 'Notifications',
+        },
+        {
+          key: '/support',
+          icon: <CustomerServiceOutlined />,
+          label: lang === 'hi' ? 'सहायता केंद्र' : 'Help & Support',
+        },
+        {
+          key: '/forum',
+          icon: <MessageOutlined />,
+          label: t.tab_forum,
+        },
+      ];
+    }
+
+    if (activeRole === 'GUIDE') {
+      return [
+        {
+          key: '/expert-consulting',
+          icon: <CustomerServiceOutlined />,
+          label: lang === 'hi' ? 'विशेषज्ञ सलाह' : 'Expert Consulting',
+        },
+        {
+          key: '/classes',
+          icon: <VideoCameraOutlined />,
+          label: t.tab_classes,
+        },
+        {
+          key: '/notifications',
+          icon: <BellOutlined />,
+          label: 'Notifications',
+        },
+      ];
+    }
+
+    if (activeRole === 'ADMIN') {
+      return [
+        {
+          key: '/admin',
+          icon: <SettingOutlined />,
+          label: t.tab_admin,
+        },
+        {
+          key: '/staff',
+          icon: <SolutionOutlined />,
+          label: 'Staff Console',
+        },
+        {
+          key: '/content-studio',
+          icon: <BookOutlined />,
+          label: 'Content Studio',
+        },
+        {
+          key: '/notifications',
+          icon: <BellOutlined />,
+          label: 'Notifications',
+        },
+        {
+          key: '/support',
+          icon: <CustomerServiceOutlined />,
+          label: lang === 'hi' ? 'सहायता केंद्र' : 'Help & Support',
+        },
+        {
+          key: '/store',
+          icon: <ShoppingCartOutlined />,
+          label: lang === 'hi' ? 'मातृ बुटीक' : 'Maternal Store',
+        },
+        {
+          key: '/pricing',
+          icon: <SafetyCertificateOutlined />,
+          label: lang === 'hi' ? 'सदस्यता प्लान' : 'Membership Plans',
+        },
+      ];
+    }
+
+    // Default: MOTHER
+    return [
+      {
+        key: '/dashboard',
+        icon: <CalendarOutlined />,
+        label: t.tab_today,
+      },
+      {
+        key: '/library',
+        icon: <BookOutlined />,
+        label: t.tab_library,
+      },
+      {
+        key: '/programmes',
+        icon: <SolutionOutlined />,
+        label: 'Programmes',
+      },
+      {
+        key: '/notifications',
+        icon: <BellOutlined />,
+        label: 'Notifications',
+      },
+      {
+        key: '/baby-growth',
+        icon: <HeartOutlined />,
+        label: t.tab_baby,
+      },
+      {
+        key: '/forum',
+        icon: <MessageOutlined />,
+        label: t.tab_forum,
+      },
+      {
+        key: '/classes',
+        icon: <VideoCameraOutlined />,
+        label: t.tab_classes,
+      },
+      {
+        key: '/vitals',
+        icon: <BarChartOutlined />,
+        label: lang === 'hi' ? 'महत्वपूर्ण आँकड़े' : 'Vitals Tracker',
+      },
+      {
+        key: '/diet-planner',
+        icon: <HeartOutlined />,
+        label: lang === 'hi' ? 'भोजन योजना' : 'Diet Planner',
+      },
+      {
+        key: '/expert-consulting',
+        icon: <CustomerServiceOutlined />,
+        label: lang === 'hi' ? 'विशेषज्ञ सलाह' : 'Expert Consulting',
+      },
+      {
+        key: '/weekly-report',
+        icon: <BarChartOutlined />,
+        label: lang === 'hi' ? 'साप्ताहिक रिपोर्ट' : 'Weekly Reports',
+      },
+      {
+        key: '/support',
+        icon: <CustomerServiceOutlined />,
+        label: lang === 'hi' ? 'सहायता केंद्र' : 'Help & Support',
+      },
+      {
+        key: '/store',
+        icon: <ShoppingCartOutlined />,
+        label: lang === 'hi' ? 'मातृ बुटीक' : 'Maternal Store',
+      },
+      {
+        key: '/pricing',
+        icon: <SafetyCertificateOutlined />,
+        label: lang === 'hi' ? 'सदस्यता प्लान' : 'Membership Plans',
+      },
+    ];
+  }, [activeRole, t, lang]);
 
   const isLockScreen = meError && (meError.message.includes('Device unauthorized') || meError.message.includes('DEVICE_UNAUTHORIZED') || meError.message.includes('device unauthorized'));
 

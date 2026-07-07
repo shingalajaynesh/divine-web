@@ -1,6 +1,10 @@
 import React from 'react';
-import ExperienceHome from './ExperienceHome';
+import TodayDashboard from './TodayDashboard';
+import PartnerDashboard from './PartnerDashboard';
 
 export default function DashboardPage({ user, t, lang }) {
-  return <ExperienceHome user={user} />;
+  if (user?.role?.roleType === 'PARTNER') {
+    return <PartnerDashboard user={user} t={t} lang={lang} />;
+  }
+  return <TodayDashboard user={user} t={t} lang={lang} />;
 }

@@ -1,28 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_DAILY_CONTENT_QUERY, GET_BABY_DEVELOPMENT_QUERY, MY_DAILY_PROGRESS_QUERY, MY_TIMELINE_OVERVIEW_QUERY, TOGGLE_DAILY_ACTIVITY_MUTATION, SAVE_DAILY_ACTIVITY_DETAILS_MUTATION, GET_DAILY_QUIZ_QUERY, GET_MY_QUIZ_ATTEMPT_QUERY, SUBMIT_QUIZ_ANSWER_MUTATION, GET_PARTNER_ACTIVITY_QUERY, GET_MY_PARTNER_ACTIVITY_LOG_QUERY, ACKNOWLEDGE_PARTNER_ACTIVITY_MUTATION, GET_SENSORY_ACTIVITY_QUERY, GET_MY_SENSORY_ACTIVITY_LOG_QUERY, TOGGLE_SENSORY_ACTIVITY_MUTATION } from '../graphql/operations';
+import { useNavigate } from 'react-router-dom';
+import { GET_DAILY_CONTENT_QUERY, GET_BABY_DEVELOPMENT_QUERY, MY_DAILY_PROGRESS_QUERY, MY_TIMELINE_OVERVIEW_QUERY, TOGGLE_DAILY_ACTIVITY_MUTATION, SAVE_DAILY_ACTIVITY_DETAILS_MUTATION, GET_DAILY_QUIZ_QUERY, GET_MY_QUIZ_ATTEMPT_QUERY, SUBMIT_QUIZ_ANSWER_MUTATION, GET_PARTNER_ACTIVITY_QUERY, GET_MY_PARTNER_ACTIVITY_LOG_QUERY, ACKNOWLEDGE_PARTNER_ACTIVITY_MUTATION, GET_SENSORY_ACTIVITY_QUERY, GET_MY_SENSORY_ACTIVITY_LOG_QUERY, TOGGLE_SENSORY_ACTIVITY_MUTATION, LINK_PARTNER_MUTATION, UPDATE_PARTNER_SHARING_MUTATION, ME_QUERY } from '../graphql/operations';
 import toast from 'react-hot-toast';
 import VideoPlayerModal from '../components/VideoPlayerModal';
 import AudioPlayerModal from '../components/AudioPlayerModal';
 import ReadingModeModal from '../components/ReadingModeModal';
-import { 
-  Card, 
-  Slider, 
-  Progress, 
-  Typography, 
-  Row, 
-  Col, 
-  Button, 
-  Checkbox, 
-  Input, 
-  Tag, 
-  Space, 
-  Divider 
+import {
+  Card,
+  Slider,
+  Progress,
+  Typography,
+  Row,
+  Col,
+  Button,
+  Checkbox,
+  Input,
+  InputNumber,
+  Tag,
+  Space,
+  Divider,
+  Avatar
 } from 'antd';
-import { 
-  PlayCircleOutlined, 
-  DownloadOutlined, 
-  SoundOutlined, 
+import {
+  PlayCircleOutlined,
+  DownloadOutlined,
+  SoundOutlined,
   CheckCircleOutlined,
   CheckCircleFilled,
   CloseCircleFilled,
@@ -34,14 +37,14 @@ const { Title, Paragraph, Text } = Typography;
 function getQuotientContent(selectedDay, content, userLanguage) {
   const isHi = userLanguage === 'hi';
   const isGu = userLanguage === 'gu';
-  
+
   const defaults = {
     PQ: {
       title: isHi ? "शारीरिक स्वास्थ्य (Physical Quotient)" : (isGu ? "શારીરિક સ્વાસ્થ્ય (Physical Quotient)" : "Physical Wellness (PQ)"),
-      description: isHi 
-        ? "आज 15 मिनट के लिए प्रसव-पूर्व तितली खिंचाव और गहरी श्वास क्रिया करें। प्रचुर मात्रा में पानी पिएं और मौसमी फल खाएं।" 
-        : (isGu 
-          ? "આજે ૧૫ મિનિટ માટે હળવા પતંગિયા આસન (બટરફ્લાય સ્ટ્રેચ) અને ઊંડા શ્વાસોચ્છવાસ (પ્રાણાયામ) કરો. નાળિયેર પાણી અને મોસમી ફળો લો." 
+      description: isHi
+        ? "आज 15 मिनट के लिए प्रसव-पूर्व तितली खिंचाव और गहरी श्वास क्रिया करें। प्रचुर मात्रा में पानी पिएं और मौसमी फल खाएं।"
+        : (isGu
+          ? "આજે ૧૫ મિનિટ માટે હળવા પતંગિયા આસન (બટરફ્લાય સ્ટ્રેચ) અને ઊંડા શ્વાસોચ્છવાસ (પ્રાણાયામ) કરો. નાળિયેર પાણી અને મોસમી ફળો લો."
           : "Practice 15 minutes of gentle butterfly stretches and deep pranayama breathing today. Hydrate with coconut water and seasonal fruits."),
       icon: "🧘‍♀️",
       actionLabel: isHi ? "आहार एवं योग चार्ट" : (isGu ? "આહાર અને યોગ ચાર્ટ" : "View Diet & Yoga"),
@@ -49,10 +52,10 @@ function getQuotientContent(selectedDay, content, userLanguage) {
     },
     IQ: {
       title: isHi ? "बौद्धिक स्वास्थ्य (Intelligence Quotient)" : (isGu ? "બૌદ્ધિક સ્વાસ્થ્ય (Intelligence Quotient)" : "Intelligence Development (IQ)"),
-      description: isHi 
-        ? "एक पहेली या वर्ग पहेली खेलें। गर्भ में पल रहे शिशु के संज्ञानात्मक विकास के लिए आज 10 मिनट कुछ नया पढ़ने में व्यतीत करें।" 
-        : (isGu 
-          ? "આજે એક કોયડો અથવા તાર્કિક રમત રમો. ગર્ભસ્થ શિશુના જ્ઞાનાત્મક વિકાસ માટે આજે ૧૦ મિનિટ કંઈક નવું વાંચવા માટે વિતાવો." 
+      description: isHi
+        ? "एक पहेली या वर्ग पहेली खेलें। गर्भ में पल रहे शिशु के संज्ञानात्मक विकास के लिए आज 10 मिनट कुछ नया पढ़ने में व्यतीत करें।"
+        : (isGu
+          ? "આજે એક કોયડો અથવા તાર્કિક રમત રમો. ગર્ભસ્થ શિશુના જ્ઞાનાત્મક વિકાસ માટે આજે ૧૦ મિનિટ કંઈક નવું વાંચવા માટે વિતાવો."
           : "Solve a puzzle or play a logic game today. Nurture your baby's cognitive development by reading an educational story for 10 minutes."),
       icon: "🧠",
       actionLabel: isHi ? "तार्किक खेल खेलें" : (isGu ? "કોયડો ઉકેલો" : "Solve Puzzle"),
@@ -60,10 +63,10 @@ function getQuotientContent(selectedDay, content, userLanguage) {
     },
     EQ: {
       title: isHi ? "भावनात्मक स्वास्थ्य (Emotional Quotient)" : (isGu ? "ભાવનાત્મક સ્વાસ્થ્ય (Emotional Quotient)" : "Emotional Bonding (EQ)"),
-      description: isHi 
-        ? "गर्भ संवाद: अपने हाथों को अपने पेट पर धीरे से रखें और मुस्कुराते हुए शिशु से बातें करें। कहें कि हम सब आपका स्वागत करने के लिए उत्सुक हैं।" 
-        : (isGu 
-          ? "ગર્ભ સંવાદ: તમારા હાથ તમારા પેટ પર હળવેથી રાખો, હસો અને ગર્ભસ્થ શિશુ સાથે વાત કરો: 'અમે તમને ખૂબ પ્રેમ કરીએ છીએ, તમે અમારા માટે એક આશીર્વાદ છો.'" 
+      description: isHi
+        ? "गर्भ संवाद: अपने हाथों को अपने पेट पर धीरे से रखें और मुस्कुराते हुए शिशु से बातें करें। कहें कि हम सब आपका स्वागत करने के लिए उत्सुक हैं।"
+        : (isGu
+          ? "ગર્ભ સંવાદ: તમારા હાથ તમારા પેટ પર હળવેથી રાખો, હસો અને ગર્ભસ્થ શિશુ સાથે વાત કરો: 'અમે તમને ખૂબ પ્રેમ કરીએ છીએ, તમે અમારા માટે એક આશીર્વાદ છો.'"
           : "Garbh Samvad: Place your hands on your belly, smile, and speak to your unborn child: 'We love you, you are a blessing to us.'"),
       icon: "❤️",
       actionLabel: isHi ? "संवाद अभ्यास" : (isGu ? "ગર્ભ સંવાદ કરો" : "Practice Bonding"),
@@ -71,10 +74,10 @@ function getQuotientContent(selectedDay, content, userLanguage) {
     },
     SQ: {
       title: isHi ? "आध्यात्मिक स्वास्थ्य (Spiritual Quotient)" : (isGu ? "આધ્યાત્મિક સ્વાસ્થ્ય (Spiritual Quotient)" : "Spiritual Aura (SQ)"),
-      description: isHi 
-        ? "आज शांति से गायत्री मंत्र का 11 बार उच्चारण करें। सकारात्मक दिव्य ऊर्जा प्रवाह पर ध्यान केंद्रित करते हुए 10 मिनट ध्यान लगाएं।" 
-        : (isGu 
-          ? "આજે ૧૧ વાર શાંતિથી ગાયત્રી મંત્રનો જાપ કરો. ગર્ભસ્થ શિશુની આસપાસ દૈવી પ્રકાશ અને હકારાત્મક ઊર્જાની કલ્પના કરીને ૧૦ મિનિટ શાંત ધ્યાન કરો." 
+      description: isHi
+        ? "आज शांति से गायत्री मंत्र का 11 बार उच्चारण करें। सकारात्मक दिव्य ऊर्जा प्रवाह पर ध्यान केंद्रित करते हुए 10 मिनट ध्यान लगाएं।"
+        : (isGu
+          ? "આજે ૧૧ વાર શાંતિથી ગાયત્રી મંત્રનો જાપ કરો. ગર્ભસ્થ શિશુની આસપાસ દૈવી પ્રકાશ અને હકારાત્મક ઊર્જાની કલ્પના કરીને ૧૦ મિનિટ શાંત ધ્યાન કરો."
           : "Chant the Gayatri Mantra 11 times. Spend 10 minutes in silent meditation, visualizing divine light and positive energy surrounding your baby."),
       icon: "🕉️",
       actionLabel: isHi ? "मंत्र सुनिए" : (isGu ? "મંત્ર સાંભળો" : "Listen to Mantra"),
@@ -84,7 +87,7 @@ function getQuotientContent(selectedDay, content, userLanguage) {
 
   if (content) {
     const categoryLower = (content.category || '').toLowerCase();
-    
+
     if (categoryLower === 'yoga' || categoryLower === 'recipe') {
       defaults.PQ.title = content.title;
       defaults.PQ.description = content.body;
@@ -124,6 +127,7 @@ const getDaysForWeek = (wk) => {
 };
 
 export default function TodayDashboard({ user, t }) {
+  const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState(user.pregnancyDay || 1);
   const [activeQuotient, setActiveQuotient] = useState('PQ');
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
@@ -135,6 +139,35 @@ export default function TodayDashboard({ user, t }) {
   const selectedTrimester = Math.max(1, Math.min(3, Math.floor((selectedDay - 1) / 84) + 1));
   const selectedMonth = Math.max(1, Math.min(10, Math.floor((selectedDay - 1) / 28) + 1));
   const selectedWeek = Math.max(1, Math.min(40, Math.floor((selectedDay - 1) / 7) + 1));
+
+  const trimesterStory = useMemo(() => {
+    const tri = selectedTrimester;
+    if (tri === 1) {
+      return {
+        title: isHi ? "प्रथम तिमाही: प्राण संचार" : "Trimester 1: Prana Sanchar",
+        desc: isHi 
+          ? "जीवन शक्ति का आगमन। शांतिपूर्ण मंत्रोच्चार और विश्राम पर ध्यान केंद्रित करें।"
+          : "Inflow of Life Force. Establish peace, bond with quiet mantras, and practice deep breathing.",
+        color: "#ca8a04",
+      };
+    } else if (tri === 2) {
+      return {
+        title: isHi ? "द्वितीय तिमाही: इंद्रिय संचार" : "Trimester 2: Indriya Sanchar",
+        desc: isHi
+          ? "इंद्रियों का विकास। संगीत, सकारात्मक पठन और मधुर गर्भ संवाद पर ध्यान दें।"
+          : "Development of Senses. Nourish with soothing sounds, moral stories, and loving Garbh Samvad.",
+        color: "#b45309",
+      };
+    } else {
+      return {
+        title: isHi ? "तृतीय तिमाही: चेतना संचार" : "Trimester 3: Chetana Sanchar",
+        desc: isHi
+          ? "चेतना का जागरण। प्रार्थना, उच्च नैतिक संकल्प और सजग प्रसव-पूर्व योग अभ्यास करें।"
+          : "Awakening of Consciousness. Focus on prayer, character visualization, and supportive breathing.",
+        color: "#be123c",
+      };
+    }
+  }, [selectedTrimester, isHi]);
 
   const { data: contentData } = useQuery(GET_DAILY_CONTENT_QUERY, {
     variables: { dayNumber: selectedDay }
@@ -172,7 +205,7 @@ export default function TodayDashboard({ user, t }) {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
-  
+
   const { data: quizAttemptData } = useQuery(GET_MY_QUIZ_ATTEMPT_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
@@ -188,10 +221,23 @@ export default function TodayDashboard({ user, t }) {
       } else {
         toast.error(isHi ? "गलत उत्तर, कोई बात नहीं!" : "Incorrect answer, no worries!");
       }
-    },
-    onError: (err) => {
-      toast.error(err.message);
     }
+  });
+
+  const [partnerEmail, setPartnerEmail] = useState('');
+  const [linkPartner, { loading: linkingPartner }] = useMutation(LINK_PARTNER_MUTATION, {
+    refetchQueries: [{ query: ME_QUERY }],
+    onCompleted: () => {
+      toast.success(isHi ? "साथी सफलतापूर्वक जुड़ गया!" : "Partner linked successfully!");
+      setPartnerEmail('');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [updatePartnerSharing] = useMutation(UPDATE_PARTNER_SHARING_MUTATION, {
+    refetchQueries: [{ query: ME_QUERY }],
+    onCompleted: () => toast.success(isHi ? "साझाकरण अनुमतियां अपडेट की गईं!" : "Sharing preferences updated!"),
+    onError: (err) => toast.error(err.message)
   });
 
   const dailyQuiz = quizData?.getDailyQuiz;
@@ -201,7 +247,7 @@ export default function TodayDashboard({ user, t }) {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
-  
+
   const { data: partnerLogData } = useQuery(GET_MY_PARTNER_ACTIVITY_LOG_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
@@ -231,7 +277,7 @@ export default function TodayDashboard({ user, t }) {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
-  
+
   const { data: sensoryLogData } = useQuery(GET_MY_SENSORY_ACTIVITY_LOG_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
@@ -272,7 +318,7 @@ export default function TodayDashboard({ user, t }) {
           quotient: qKey
         }
       });
-      
+
       const newCheckedState = !completedActivities[qKey];
       if (newCheckedState) {
         toast.success(`${qKey} Quotient activity checked! Excellent progress.`);
@@ -392,33 +438,111 @@ export default function TodayDashboard({ user, t }) {
       `}</style>
 
       {/* Greeting Banner */}
-      <Card 
-        style={{ 
-          background: 'linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-secondary) 100%)', 
-          border: 0, 
-          borderRadius: 24, 
-          boxShadow: '0 8px 24px rgba(99, 18, 7, 0.15)' 
+      {/* Greeting Banner */}
+      <Card
+        style={{
+          background: 'linear-gradient(135deg, var(--brand-maroon) 0%, var(--brand-maroon-dark) 100%)',
+          border: 0,
+          borderRadius: 24,
+          boxShadow: '0 8px 24px rgba(63, 10, 17, 0.18)'
         }}
-        styles={{ body: { padding: '32px' } }}
+        styles={{ body: { padding: '24px' } }}
       >
-        <div style={{ position: 'relative' }}>
-          <Title level={2} style={{ color: '#fff', margin: 0, fontWeight: 900 }}>{t.hello_mother}</Title>
-          <Paragraph style={{ color: 'rgba(255,255,255,0.9)', marginTop: '8px', fontSize: '15px', lineHeight: 1.6 }}>
-            {t.current_week.replace('{week}', user.currentWeek || 1)}. {t.size_desc.replace('{size}', baby?.size || 'a tiny seed')}
-          </Paragraph>
-          <Space size="middle" wrap style={{ marginTop: '16px' }}>
-            <Tag color="rgba(255,255,255,0.2)" style={{ color: '#fff', border: 0, padding: '4px 12px', fontWeight: 'bold' }}>
-              {t.edd_badge.replace('{edd}', user.dueDate)}
-            </Tag>
-            <Tag color="rgba(255,255,255,0.2)" style={{ color: '#fff', border: 0, padding: '4px 12px', fontWeight: 'bold' }}>
-              {t.trimester_badge.replace('{trimester}', user.currentTrimester)}
-            </Tag>
-            <Tag color="rgba(255,255,255,0.2)" style={{ color: '#fff', border: 0, padding: '4px 12px', fontWeight: 'bold' }}>
-              🌱 Day {user.pregnancyDay} / 280
-            </Tag>
-          </Space>
-        </div>
+        <Row gutter={[16, 16]} align="middle">
+          {/* Left Text / Info column */}
+          <Col xs={16} sm={16} md={12}>
+            <Title level={isHi ? 3 : 2} style={{ color: '#fff', margin: 0, fontWeight: 900, fontSize: 'clamp(20px, 4vw, 28px)' }}>{t.hello_mother}</Title>
+            <Paragraph style={{ color: 'rgba(255,255,255,0.9)', marginTop: '8px', fontSize: 'clamp(12px, 2.5vw, 15px)', lineHeight: 1.4 }}>
+              {t.current_week.replace('{week}', user.currentWeek || 1)}. {t.size_desc.replace('{size}', baby?.size || 'a tiny seed')}
+            </Paragraph>
+            <Space size={[4, 8]} wrap style={{ marginTop: '12px' }}>
+              <Tag color="rgba(255,255,255,0.2)" style={{ color: '#fff', border: 0, padding: '2px 8px', fontWeight: 'bold', fontSize: '11px' }}>
+                {t.edd_badge.replace('{edd}', user.dueDate)}
+              </Tag>
+              <Tag color="rgba(255,255,255,0.2)" style={{ color: '#fff', border: 0, padding: '2px 8px', fontWeight: 'bold', fontSize: '11px' }}>
+                {t.trimester_badge.replace('{trimester}', user.currentTrimester)}
+              </Tag>
+              <Tag color="rgba(255,255,255,0.2)" style={{ color: '#fff', border: 0, padding: '2px 8px', fontWeight: 'bold', fontSize: '11px' }}>
+                🌱 Day {user.pregnancyDay} / 280
+              </Tag>
+            </Space>
+          </Col>
+
+          {/* Middle Baby Avatar column */}
+          <Col xs={8} sm={8} md={4} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.15)',
+              padding: '6px',
+              borderRadius: '50%',
+              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Avatar
+                src="/smiling_baby.png"
+                size={{ xs: 64, sm: 80, md: 100, lg: 110, xl: 120 }}
+                style={{
+                  border: '2px solid rgba(255, 255, 255, 0.4)',
+                  backgroundColor: '#fff'
+                }}
+              />
+            </div>
+          </Col>
+
+          {/* Right Motif column */}
+          <Col xs={24} md={8}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.12)',
+              padding: '16px',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <Text style={{ color: '#ffd600', fontWeight: '800', fontSize: '10px', display: 'block', textTransform: 'uppercase', marginBottom: '2px', letterSpacing: '0.5px' }}>
+                ✨ {isHi ? "गर्भ संस्कार विषय" : "GARBH SANSKAR MOTIF"}
+              </Text>
+              <Text strong style={{ color: '#fff', fontSize: '14px', display: 'block', marginBottom: '4px' }}>
+                {trimesterStory.title}
+              </Text>
+              <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '11px', lineHeight: '1.4' }}>
+                {trimesterStory.desc}
+              </Text>
+            </div>
+          </Col>
+        </Row>
       </Card>
+
+      {/* Quick Actions Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', margin: '8px 0' }}>
+        {[
+          { key: '/diet-planner', icon: '🍎', title: isHi ? 'आहार योजना' : 'Diet Planner', desc: isHi ? 'दैनिक पोषण और भोजन' : 'Daily nutrition & recipes' },
+          { key: '/vitals', icon: '💓', title: isHi ? 'वाइटल्स ट्रैकर' : 'Vitals Tracker', desc: isHi ? 'दैनिक वजन और लक्षण ट्रैक करें' : 'Track symptoms & vitals' },
+          { key: '/weekly-report', icon: '📊', title: isHi ? 'साप्ताहिक रिपोर्ट' : 'Weekly Reports', desc: isHi ? 'प्रगति और संकल्प सारांश' : 'Progress & streaks summary' },
+          { key: '/expert-consulting', icon: '👩‍⚕️', title: isHi ? 'विशेषज्ञ सलाह' : 'Expert Consulting', desc: isHi ? 'डॉक्टर और कोच स्लॉट बुक करें' : 'Book doctor & coach slots' }
+        ].map((act) => (
+          <Card
+            key={act.key}
+            hoverable
+            onClick={() => navigate(act.key)}
+            style={{ borderRadius: 16, border: '1px solid var(--line)', background: '#fff' }}
+            styles={{ body: { padding: '16px' } }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '24px', background: 'var(--brand-cream)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {act.icon}
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <Text strong style={{ display: 'block', fontSize: '14px', color: 'var(--brand-maroon-dark)' }}>{act.title}</Text>
+                <Text type="secondary" style={{ display: 'block', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{act.desc}</Text>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
 
       {/* 280-Day Calendar & Navigation */}
       <Card style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
@@ -427,9 +551,9 @@ export default function TodayDashboard({ user, t }) {
             <Title level={4} style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
               📅 {isHi ? "280-दिवसीय दिव्य गर्भ संस्कार कैलेंडर" : "280-Day Garbh Sanskar Calendar"}
             </Title>
-            
+
             {/* Trimester/Month/Week/Day Navigation */}
-              <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
               {/* Trimester Buttons */}
               <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                 {[1, 2, 3].map((tri) => {
@@ -511,7 +635,7 @@ export default function TodayDashboard({ user, t }) {
                 {getDaysForWeek(selectedWeek).map((d) => {
                   const active = selectedDay === d;
                   const isDayLocked = d > (user.pregnancyDay || 1);
-                  
+
                   // Check if this day is fully completed
                   const dayProgress = timelineOverview?.days?.find((entry) => entry.dayNumber === d);
                   const isDayCompleted = Boolean(dayProgress?.completed);
@@ -608,12 +732,12 @@ export default function TodayDashboard({ user, t }) {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                       <span style={{ fontSize: '24px' }}>{q.icon}</span>
-                      <Checkbox 
-                        checked={isCompleted} 
+                      <Checkbox
+                        checked={isCompleted}
                         onChange={(e) => {
                           e.stopPropagation();
                           toggleActivity(key);
-                        }} 
+                        }}
                       />
                     </div>
                     <div>
@@ -644,11 +768,11 @@ export default function TodayDashboard({ user, t }) {
                   ⚠️ {isHi ? "प्रसव-पूर्व सुरक्षा और सावधानियां" : "Prenatal Safety & Precautions"} (Trimester {selectedDay <= 90 ? '1' : selectedDay <= 180 ? '2' : '3'})
                 </span>
                 <Text style={{ fontSize: '12px', color: '#78350f', display: 'block', marginBottom: '8px', lineHeight: '1.5' }}>
-                  {selectedDay <= 90 
+                  {selectedDay <= 90
                     ? (isHi ? "त्रैमासिक 1 सावधानियां: पेट पर दबाव डालने वाले आसनों से बचें, झटकेदार आंदोलनों से बचें, और यदि ऐंठन या रक्तस्राव हो तो अभ्यास तुरंत रोक दें।" : "Trimester 1 Precautions: Avoid abdominal pressure, sudden twists or high-impact jumps. Stop immediately if experiencing cramping or spotting.")
                     : selectedDay <= 180
-                    ? (isHi ? "त्रैमासिक 2 सावधानियां: पीठ के बल अधिक देर तक लेटने से बचें, संतुलन के लिए दीवार या सहारा लें, और अत्यधिक खिंचाव से बचें।" : "Trimester 2 Precautions: Avoid lying flat on your back for long. Use wall or chair support for balance. Do not over-stretch.")
-                    : (isHi ? "त्रैमासिक 3 सावधानियां: पीठ के बल लेटने वाले आसन न करें, सांस रोकने से बचें, और हमेशा सहारे के साथ अभ्यास करें।" : "Trimester 3 Precautions: Absolutely avoid supine positions (on your back) and breath retention. Always use support (blocks/cushions).")
+                      ? (isHi ? "त्रैमासिक 2 सावधानियां: पीठ के बल अधिक देर तक लेटने से बचें, संतुलन के लिए दीवार या सहारा लें, और अत्यधिक खिंचाव से बचें।" : "Trimester 2 Precautions: Avoid lying flat on your back for long. Use wall or chair support for balance. Do not over-stretch.")
+                      : (isHi ? "त्रैमासिक 3 सावधानियां: पीठ के बल लेटने वाले आसन न करें, सांस रोकने से बचें, और हमेशा सहारे के साथ अभ्यास करें।" : "Trimester 3 Precautions: Absolutely avoid supine positions (on your back) and breath retention. Always use support (blocks/cushions).")
                   }
                 </Text>
                 <Text style={{ fontSize: '11px', color: '#9a3412', fontWeight: 'bold', display: 'block' }}>
@@ -656,9 +780,9 @@ export default function TodayDashboard({ user, t }) {
                 </Text>
               </div>
             )}
-            
+
             <Divider style={{ margin: '16px 0' }} />
-            
+
             <div style={{ marginBottom: '16px' }}>
               <Title level={5} style={{ fontSize: '13px', margin: '0 0 12px 0', color: '#475569' }}>
                 📝 {isHi ? "गतिविधि विवरण और डायरी" : "Activity Logging & Reflection"}
@@ -666,49 +790,49 @@ export default function TodayDashboard({ user, t }) {
               <Row gutter={[16, 12]}>
                 <Col xs={24} sm={8}>
                   <div style={{ marginBottom: '4px' }}><Text type="secondary" style={{ fontSize: '11px', fontWeight: 'bold' }}>{isHi ? "समय (मिनट में)" : "Duration spent (mins)"}</Text></div>
-                  <InputNumber 
-                    min={0} 
-                    value={durationValue} 
-                    onChange={setDurationValue} 
-                    style={{ width: '100%' }} 
+                  <InputNumber
+                    min={0}
+                    value={durationValue}
+                    onChange={setDurationValue}
+                    style={{ width: '100%' }}
                     placeholder="e.g. 15"
                   />
                 </Col>
                 <Col xs={24} sm={16}>
                   <div style={{ marginBottom: '4px' }}><Text type="secondary" style={{ fontSize: '11px', fontWeight: 'bold' }}>{isHi ? "प्रमाण/लिंक (वैकल्पिक)" : "Proof/Evidence Link (optional)"}</Text></div>
-                  <Input 
-                    value={evidenceValue} 
-                    onChange={(e) => setEvidenceValue(e.target.value)} 
+                  <Input
+                    value={evidenceValue}
+                    onChange={(e) => setEvidenceValue(e.target.value)}
                     placeholder="https://..."
                   />
                 </Col>
                 <Col xs={24}>
                   <div style={{ marginBottom: '4px' }}><Text type="secondary" style={{ fontSize: '11px', fontWeight: 'bold' }}>{isHi ? "आज के अनुभव / चिंतन डायरी" : "Daily Reflection Notes / Diary"}</Text></div>
-                  <Input.TextArea 
-                    value={notesValue} 
-                    onChange={(e) => setNotesValue(e.target.value)} 
-                    rows={2} 
+                  <Input.TextArea
+                    value={notesValue}
+                    onChange={(e) => setNotesValue(e.target.value)}
+                    rows={2}
                     placeholder={isHi ? "आज शिशु के साथ कैसा अनुभव रहा..." : "How did you and baby feel during this activity..."}
                   />
                 </Col>
               </Row>
             </div>
-            
+
             <Divider style={{ margin: '16px 0' }} />
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <Space>
-                <Button 
+                <Button
                   type={completedActivities[activeQuotient] ? "default" : "primary"}
                   onClick={() => toggleActivity(activeQuotient)}
                   icon={<CheckCircleOutlined />}
                 >
-                  {completedActivities[activeQuotient] 
+                  {completedActivities[activeQuotient]
                     ? (isHi ? "गतिविधि पूर्ण" : "Activity Completed")
                     : (isHi ? "पूर्ण चिह्नित करें" : "Mark as Completed")
                   }
                 </Button>
-                
+
                 <Button
                   type="primary"
                   onClick={handleSaveDetails}
@@ -719,8 +843,8 @@ export default function TodayDashboard({ user, t }) {
                 </Button>
 
                 {['story', 'article', 'dialogue', 'affirmation'].includes(quotients[activeQuotient].category) && (
-                  <Button 
-                    type="default" 
+                  <Button
+                    type="default"
                     icon={<BookOutlined />}
                     onClick={() => setReadingModalVisible(true)}
                   >
@@ -730,10 +854,10 @@ export default function TodayDashboard({ user, t }) {
               </Space>
 
               {content?.mediaUrl && activeQuotient === 'SQ' && (
-                <Button 
-                  type="link" 
-                  href={content.mediaUrl} 
-                  target="_blank" 
+                <Button
+                  type="link"
+                  href={content.mediaUrl}
+                  target="_blank"
                   icon={<SoundOutlined />}
                 >
                   {isHi ? "लिंक्ड मीडिया खोलें →" : "Open Linked Media →"}
@@ -746,7 +870,7 @@ export default function TodayDashboard({ user, t }) {
 
       {/* Daily Quiz & Puzzle Card */}
       {!isLocked && dailyQuiz && (
-        <Card 
+        <Card
           title={
             <span>
               🧠 {isHi ? "दैनिक मस्तिष्क व्यायाम पहेली" : "Daily Cognitive Quiz & Puzzle"}
@@ -756,13 +880,13 @@ export default function TodayDashboard({ user, t }) {
         >
           <div style={{ padding: '4px' }}>
             <Title level={5} style={{ marginBottom: '16px' }}>{dailyQuiz.questionText}</Title>
-            
+
             <Row gutter={[12, 12]}>
               {dailyQuiz.options.map((option, index) => {
                 const isAttempted = !!quizAttempt;
                 const isSelected = isAttempted && quizAttempt.selectedOptionIndex === index;
                 const isCorrectIndex = index === dailyQuiz.correctOptionIndex;
-                
+
                 let optionStyle = {
                   width: '100%',
                   textAlign: 'left',
@@ -777,7 +901,7 @@ export default function TodayDashboard({ user, t }) {
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 };
-                
+
                 if (isAttempted) {
                   if (isSelected && quizAttempt.isCorrect) {
                     optionStyle.background = '#e6fffa';
@@ -839,7 +963,7 @@ export default function TodayDashboard({ user, t }) {
 
       {/* Daily Partner & Family Activity Card */}
       {!isLocked && partnerActivity && (
-        <Card 
+        <Card
           title={
             <span>
               🤝 {isHi ? "पिता और परिवार दैनिक अनुष्ठान" : "Partner & Family Daily Ritual"}
@@ -852,16 +976,16 @@ export default function TodayDashboard({ user, t }) {
             <Paragraph type="secondary" style={{ fontSize: '13px', lineHeight: 1.6, marginBottom: '20px' }}>
               {partnerActivity.description}
             </Paragraph>
-            
+
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <Tag color={partnerLog?.partnerAcknowledged ? "green" : "orange"} style={{ fontWeight: 'bold', padding: '4px 12px', borderRadius: '8px' }}>
-                {partnerLog?.partnerAcknowledged 
+                {partnerLog?.partnerAcknowledged
                   ? (isHi ? "✓ साथी द्वारा पूर्ण किया गया" : "✓ Completed by Partner")
                   : (isHi ? "⚠️ साथी द्वारा पूर्णता लंबित" : "⚠️ Pending Partner Completion")
                 }
               </Tag>
-              
-              <Button 
+
+              <Button
                 type={partnerLog?.partnerAcknowledged ? "default" : "primary"}
                 onClick={async () => {
                   try {
@@ -875,7 +999,7 @@ export default function TodayDashboard({ user, t }) {
                 loading={togglingPartner}
                 style={{ borderRadius: '10px' }}
               >
-                {partnerLog?.partnerAcknowledged 
+                {partnerLog?.partnerAcknowledged
                   ? (isHi ? "अपूर्ण चिह्नित करें" : "Mark as Incomplete")
                   : (isHi ? "साथी द्वारा पूर्ण चिह्नित करें" : "Mark Completed by Partner")
                 }
@@ -885,9 +1009,105 @@ export default function TodayDashboard({ user, t }) {
         </Card>
       )}
 
+      {/* Partner Link & Consent Card */}
+      {!isLocked && (
+        <Card
+          title={
+            <span>
+              🔒 {isHi ? "साथी जुड़ाव और साझाकरण सेटिंग्स" : "Partner Link & Sharing Consent"}
+            </span>
+          }
+          style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', overflow: 'hidden' }}
+        >
+          <div style={{ padding: '4px' }}>
+            {user?.partner ? (
+              <div>
+                <Row gutter={[16, 16]} align="middle">
+                  <Col xs={24} md={12}>
+                    <Text type="secondary" style={{ fontSize: '11px', display: 'block' }}>
+                      {isHi ? "संबद्ध साथी ईमेल" : "LINKED PARTNER EMAIL"}
+                    </Text>
+                    <Text strong style={{ fontSize: '15px' }}>{user.partner.emailAddress}</Text>
+                  </Col>
+                  <Col xs={24} md={12} style={{ textAlign: 'right' }}>
+                    <Tag color="success" style={{ padding: '4px 12px', borderRadius: 8 }}>
+                      {isHi ? "सक्रिय रूप से संबद्ध" : "Actively Linked"}
+                    </Tag>
+                  </Col>
+                </Row>
+                <Divider style={{ margin: '16px 0' }} />
+                <Text strong style={{ fontSize: '13px', display: 'block', marginBottom: '12px' }}>
+                  {isHi ? "साझाकरण अनुमतियाँ" : "Sharing Permissions"}
+                </Text>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Checkbox 
+                    checked={user.shareVitalsWithPartner}
+                    onChange={(e) => {
+                      updatePartnerSharing({
+                        variables: {
+                          shareVitals: e.target.checked,
+                          shareReports: user.shareReportsWithPartner
+                        }
+                      });
+                    }}
+                  >
+                    {isHi ? "साथी के साथ स्वास्थ्य महत्वपूर्ण विवरण (Vitals) साझा करें" : "Share health vitals logs with partner"}
+                  </Checkbox>
+                  <Checkbox 
+                    checked={user.shareReportsWithPartner}
+                    onChange={(e) => {
+                      updatePartnerSharing({
+                        variables: {
+                          shareVitals: user.shareVitalsWithPartner,
+                          shareReports: e.target.checked
+                        }
+                      });
+                    }}
+                  >
+                    {isHi ? "साथी के साथ साप्ताहिक यात्रा रिपोर्ट साझा करें" : "Share weekly journey reports with partner"}
+                  </Checkbox>
+                </Space>
+              </div>
+            ) : (
+              <div>
+                <Paragraph type="secondary" style={{ fontSize: '13px', lineHeight: 1.6 }}>
+                  {isHi 
+                    ? "अपने जीवनसाथी के साथ अपनी मातृत्व यात्रा साझा करें। वे दैनिक साथी कार्यों को देख सकते हैं, प्रोत्साहन भेज सकते हैं और आपकी सहमति के अनुसार प्रगति देख सकते हैं।" 
+                    : "Invite and link your partner to join your Garbh Sanskar journey. They will receive their own dashboard, assigned tasks, and can send you encouraging messages."}
+                </Paragraph>
+                <Row gutter={12} style={{ marginTop: '16px' }}>
+                  <Col xs={16} md={18}>
+                    <Input 
+                      placeholder={isHi ? "साथी का ईमेल दर्ज करें..." : "Enter partner's email address..."}
+                      value={partnerEmail}
+                      onChange={(e) => setPartnerEmail(e.target.value)}
+                      style={{ borderRadius: '10px', height: '40px' }}
+                    />
+                  </Col>
+                  <Col xs={8} md={6}>
+                    <Button 
+                      type="primary" 
+                      block
+                      loading={linkingPartner}
+                      onClick={() => {
+                        if (!partnerEmail.trim()) return;
+                        linkPartner({ variables: { partnerEmail: partnerEmail.trim() } });
+                      }}
+                      style={{ borderRadius: '10px', height: '40px' }}
+                    >
+                      {isHi ? "लिंक करें" : "Link Partner"}
+                    </Button>
+                  </Col>
+                </Row>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* Daily Sensory (Panchendriya) Activity Card */}
       {!isLocked && sensoryActivity && (
-        <Card 
+        <Card
           title={
             <span>
               👁️ {isHi ? "पंचेंद्रिय विकास दैनिक अनुष्ठान" : "Five-Sense Daily Sensory Ritual"}
@@ -905,16 +1125,16 @@ export default function TodayDashboard({ user, t }) {
             <Paragraph type="secondary" style={{ fontSize: '13px', lineHeight: 1.6, marginBottom: '20px' }}>
               {sensoryActivity.description}
             </Paragraph>
-            
+
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <Tag color={sensoryLog?.completed ? "green" : "blue"} style={{ fontWeight: 'bold', padding: '4px 12px', borderRadius: '8px' }}>
-                {sensoryLog?.completed 
+                {sensoryLog?.completed
                   ? (isHi ? "✓ अभ्यास पूर्ण" : "✓ Exercise Completed")
                   : (isHi ? "⚠️ लंबित" : "⚠️ Pending Practice")
                 }
               </Tag>
-              
-              <Button 
+
+              <Button
                 type={sensoryLog?.completed ? "default" : "primary"}
                 onClick={async () => {
                   try {
@@ -928,7 +1148,7 @@ export default function TodayDashboard({ user, t }) {
                 loading={togglingSensory}
                 style={{ borderRadius: '10px' }}
               >
-                {sensoryLog?.completed 
+                {sensoryLog?.completed
                   ? (isHi ? "अपूर्ण चिह्नित करें" : "Mark as Incomplete")
                   : (isHi ? "पूर्ण चिह्नित करें" : "Mark Completed")
                 }
@@ -948,9 +1168,9 @@ export default function TodayDashboard({ user, t }) {
             : (isHi ? "आज का ऑडियो अभी प्रकाशित नहीं हुआ है।" : "Today’s audio has not been published yet.")}</Text>
         </div>
         {content?.mediaUrl ? (
-          <Button 
-            type="primary" 
-            icon={<PlayCircleOutlined />} 
+          <Button
+            type="primary"
+            icon={<PlayCircleOutlined />}
             onClick={() => {
               if (content.category === 'video') setVideoPlayerVisible(true);
               else setAudioPlayerVisible(true);
@@ -979,9 +1199,9 @@ export default function TodayDashboard({ user, t }) {
                 <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {isHi ? "शिशु का नाम या लाडला नाम (Nickname)" : "Baby Name or Nickname"}
                 </Text>
-                <Input 
-                  size="large" 
-                  placeholder={isHi ? "जैसे: अंश, आरवी, कान्हा..." : "e.g., Little Angel, Kanha..."} 
+                <Input
+                  size="large"
+                  placeholder={isHi ? "जैसे: अंश, आरवी, कान्हा..." : "e.g., Little Angel, Kanha..."}
                   value={babyName}
                   onChange={(e) => handleNameChange(e.target.value)}
                   style={{ marginTop: '8px' }}
@@ -1025,9 +1245,9 @@ export default function TodayDashboard({ user, t }) {
           </Col>
 
           <Col xs={24} md={12}>
-            <div style={{ 
-              padding: '24px', 
-              borderRadius: '20px', 
+            <div style={{
+              padding: '24px',
+              borderRadius: '20px',
               background: 'linear-gradient(135deg, #fffcf6 0%, #fff6f6 100%)',
               border: '1px solid #fef3c7',
               textAlign: 'center',
@@ -1064,16 +1284,16 @@ export default function TodayDashboard({ user, t }) {
 
                 <Divider style={{ margin: '12px 0 0 0' }} />
                 <Text type="secondary" style={{ fontSize: '10px' }}>
-                  {isHi 
-                    ? "स्वस्थ, तेजस्वी, संस्कारवान और महान चरित्र" 
+                  {isHi
+                    ? "स्वस्थ, तेजस्वी, संस्कारवान और महान चरित्र"
                     : "May you be happy, healthy, bright, and values-driven."}
                 </Text>
               </div>
 
-              <Button 
-                type="primary" 
-                block 
-                size="large" 
+              <Button
+                type="primary"
+                block
+                size="large"
                 icon={<DownloadOutlined />}
                 disabled={selectedVirtues.length === 0}
                 onClick={() => window.print()}
