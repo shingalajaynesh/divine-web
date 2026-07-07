@@ -1,48 +1,78 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { Modal, Button, Slider, Space, Popover, Input, List, Typography, Divider, Badge } from 'antd';
+import { Modal, Button, Slider, Space, Popover, Input, List, Typography, Divider, Badge, Card, Tooltip } from 'antd';
 import { 
   PlayCircleOutlined, PauseCircleOutlined, CustomerServiceOutlined, 
   CloudDownloadOutlined, CheckCircleOutlined, ClockCircleOutlined, 
-  PlusOutlined, MenuOutlined, CloseCircleOutlined 
+  PlusOutlined, MenuOutlined, CloseCircleOutlined, SwapOutlined, 
+  RetweetOutlined, StepForwardOutlined, StepBackwardOutlined,
+  CompassOutlined, LaptopOutlined
 } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import { 
   GET_MY_PLAYLISTS_QUERY, CREATE_PLAYLIST_MUTATION, 
-  ADD_PLAYLIST_ITEM_MUTATION, REMOVE_PLAYLIST_ITEM_MUTATION 
+  ADD_PLAYLIST_ITEM_MUTATION 
 } from '../graphql/operations';
 
 const { Text, Title, Paragraph } = Typography;
 
-export default function AudioPlayerModal({ visible, onClose, mediaUrl, title, contentItemId, isHi }) {
+export default function AudioPlayerModal({ visible, onClose, mediaUrl, title, contentItemId, tracks = [], initialTrackIndex = 0, isHi }) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  
+  // Sleep Timer
   const [sleepTimer, setSleepTimer] = useState(null); // in minutes
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
+  
+  // Queue & Loop Settings
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(initialTrackIndex);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [repeatMode, setRepeatMode] = useState('off'); // off, one, all
+
+  // Download Simulation
   const [downloading, setDownloading] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
 
-  // Playlists data
+  // Playlists
   const { data: playlistData, refetch: refetchPlaylists } = useQuery(GET_MY_PLAYLISTS_QUERY, {
     skip: !visible
   });
-
   const [createPlaylist] = useMutation(CREATE_PLAYLIST_MUTATION);
   const [addPlaylistItem] = useMutation(ADD_PLAYLIST_ITEM_MUTATION);
-
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
 
-  // Set audio parameters on mount
+  // Normalise tracks to handle either a list of tracks or a single track prop fallback
+  const playlistTracks = React.useMemo(() => {
+    if (tracks && tracks.length > 0) return tracks;
+    if (mediaUrl) {
+      return [{
+        id: contentItemId || 'temp-id',
+        url: mediaUrl,
+        title: title || (isHi ? "निर्देशित अभ्यास" : "Guided Practice"),
+        description: isHi ? "शांत मन से सुनें" : "Listen with a calm mind"
+      }];
+    }
+    return [];
+  }, [tracks, mediaUrl, title, contentItemId, isHi]);
+
+  const currentTrack = playlistTracks[currentTrackIndex] || null;
+
+  // Set audio parameters when index or visible state changes
   useEffect(() => {
-    if (visible && audioRef.current) {
+    if (visible && audioRef.current && currentTrack) {
       audioRef.current.load();
-      setIsPlaying(false);
+      // If we were already playing, keep playing the new track
+      if (isPlaying) {
+        audioRef.current.play().catch(err => console.log('Autoplay blocked:', err));
+      } else {
+        setIsPlaying(false);
+      }
       setCurrentTime(0);
     }
-  }, [visible, mediaUrl]);
+  }, [currentTrackIndex, visible, currentTrack]);
 
   // Sleep timer ticker
   useEffect(() => {
@@ -61,7 +91,7 @@ export default function AudioPlayerModal({ visible, onClose, mediaUrl, title, co
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeLeft, isPlaying]);
+  }, [timeLeft, isPlaying, sleepTimer]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -94,6 +124,83 @@ export default function AudioPlayerModal({ visible, onClose, mediaUrl, title, co
       audioRef.current.currentTime = value;
       setCurrentTime(value);
     }
+  };
+
+  const handleTrackEnded = () => {
+    if (repeatMode === 'one') {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(e => console.log(e));
+      }
+    } else {
+      playNext();
+    }
+  };
+
+  const playNext = () => {
+    if (playlistTracks.length <= 1) {
+      if (repeatMode === 'all') {
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(e => console.log(e));
+        }
+      } else {
+        setIsPlaying(false);
+      }
+      return;
+    }
+
+    if (isShuffle) {
+      const randIndex = Math.floor(Math.random() * playlistTracks.length);
+      setCurrentTrackIndex(randIndex);
+    } else {
+      const nextIndex = currentTrackIndex + 1;
+      if (nextIndex < playlistTracks.length) {
+        setCurrentTrackIndex(nextIndex);
+      } else if (repeatMode === 'all') {
+        setCurrentTrackIndex(0);
+      } else {
+        setIsPlaying(false);
+      }
+    }
+  };
+
+  const playPrev = () => {
+    if (currentTime > 3) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        setCurrentTime(0);
+      }
+    } else {
+      if (currentTrackIndex > 0) {
+        setCurrentTrackIndex(currentTrackIndex - 1);
+      } else {
+        // Wrap around to end
+        setCurrentTrackIndex(playlistTracks.length - 1);
+      }
+    }
+  };
+
+  const toggleRepeatMode = () => {
+    const modes = ['off', 'one', 'all'];
+    const nextMode = modes[(modes.indexOf(repeatMode) + 1) % modes.length];
+    setRepeatMode(nextMode);
+    toast(
+      isHi 
+        ? `रिपीट मोड: ${nextMode === 'one' ? 'एक ट्रैक' : nextMode === 'all' ? 'सभी' : 'बंद'}`
+        : `Repeat mode: ${nextMode.toUpperCase()}`,
+      { icon: '🔁' }
+    );
+  };
+
+  const toggleShuffle = () => {
+    setIsShuffle(!isShuffle);
+    toast(
+      isHi 
+        ? `शफल: ${!isShuffle ? 'शुरू' : 'बंद'}`
+        : `Shuffle: ${!isShuffle ? 'ON' : 'OFF'}`,
+      { icon: '🔀' }
+    );
   };
 
   const startSleepTimer = (mins) => {
@@ -133,13 +240,14 @@ export default function AudioPlayerModal({ visible, onClose, mediaUrl, title, co
   };
 
   const handleAddToPlaylist = async (playlistId) => {
-    if (!contentItemId) {
+    const targetItemId = currentTrack?.id;
+    if (!targetItemId || targetItemId.startsWith('temp')) {
       toast.error(isHi ? "इस आइटम को जोड़ा नहीं जा सकता" : "This item cannot be added to a playlist");
       return;
     }
     try {
       await addPlaylistItem({
-        variables: { playlistId, contentItemId }
+        variables: { playlistId, contentItemId: targetItemId }
       });
       toast.success(isHi ? "प्लेलिस्ट में जोड़ा गया" : "Track added to playlist");
       setPopoverOpen(false);
@@ -185,141 +293,250 @@ export default function AudioPlayerModal({ visible, onClose, mediaUrl, title, co
   );
 
   return (
-    <Modal
-      open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={460}
-      title={isHi ? "संगीत और ध्यान प्लेयर" : "Music & Meditation Player"}
-      destroyOnClose
-      style={{ borderRadius: '24px', overflow: 'hidden' }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 24px 0' }}>
-        {/* Vinyl/Cd Animation wrapper */}
-        <div 
-          style={{
-            width: '160px',
-            height: '160px',
-            borderRadius: '50%',
-            backgroundColor: '#1e293b',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
-            marginBottom: '24px',
-            animation: isPlaying ? 'spin 10s linear infinite' : 'none',
-            border: '8px solid #cbd5e1'
-          }}
-        >
-          <CustomerServiceOutlined style={{ fontSize: '64px', color: '#f59e0b' }} />
-        </div>
+    <>
+      <Modal
+        open={visible}
+        onCancel={onClose}
+        footer={null}
+        width={460}
+        title={isHi ? "संगीत और ध्यान प्लेयर" : "Music & Meditation Player"}
+        destroyOnClose
+        style={{ borderRadius: '24px', overflow: 'hidden' }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 12px 0' }}>
+          {/* Vinyl/Cd Animation wrapper */}
+          <div 
+            style={{
+              width: '150px',
+              height: '150px',
+              borderRadius: '50%',
+              backgroundColor: '#0f172a',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+              marginBottom: '20px',
+              animation: isPlaying ? 'spin 12s linear infinite' : 'none',
+              border: '6px solid #e2e8f0',
+              position: 'relative'
+            }}
+          >
+            <CustomerServiceOutlined style={{ fontSize: '56px', color: '#be123c' }} />
+            <div style={{
+              position: 'absolute',
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: '#f8fafc',
+              border: '4px solid #475569'
+            }} />
+          </div>
 
-        <audio
-          ref={audioRef}
-          src={mediaUrl}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={() => setIsPlaying(false)}
-        />
-
-        <Title level={4} style={{ textAlign: 'center', marginBottom: '4px', padding: '0 20px' }}>
-          {title || (isHi ? "निर्देशित अभ्यास" : "Guided Practice")}
-        </Title>
-        <Text type="secondary" style={{ marginBottom: '24px' }}>
-          {isHi ? "शांत मन से सुनें" : "Listen with a calm mind"}
-        </Text>
-
-        {/* Scrub Bar */}
-        <div style={{ width: '90%', marginBottom: '16px' }}>
-          <Slider
-            min={0}
-            max={duration || 100}
-            value={currentTime}
-            onChange={handleSliderChange}
-            tooltip={{ formatter: formatTime }}
+          <audio
+            ref={audioRef}
+            src={currentTrack?.url}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onEnded={handleTrackEnded}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '-4px' }}>
-            <Text type="secondary" style={{ fontSize: '12px' }}>{formatTime(currentTime)}</Text>
-            <Text type="secondary" style={{ fontSize: '12px' }}>{formatTime(duration)}</Text>
+
+          <Title level={4} style={{ textAlign: 'center', marginBottom: '4px', padding: '0 20px' }}>
+            {currentTrack?.title || (isHi ? "निर्देशित अभ्यास" : "Guided Practice")}
+          </Title>
+          <Text type="secondary" style={{ marginBottom: '16px', fontSize: 13 }}>
+            {currentTrack?.description || (isHi ? "शांत मन से सुनें" : "Listen with a calm mind")}
+          </Text>
+
+          {/* Queue Index Indicator */}
+          {playlistTracks.length > 1 && (
+            <Tag color="volcano" style={{ marginBottom: '16px' }}>
+              Track {currentTrackIndex + 1} of {playlistTracks.length}
+            </Tag>
+          )}
+
+          {/* Scrub Bar */}
+          <div style={{ width: '90%', marginBottom: '12px' }}>
+            <Slider
+              min={0}
+              max={duration || 100}
+              value={currentTime}
+              onChange={handleSliderChange}
+              tooltip={{ formatter: formatTime }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '-8px' }}>
+              <Text type="secondary" style={{ fontSize: '11px' }}>{formatTime(currentTime)}</Text>
+              <Text type="secondary" style={{ fontSize: '11px' }}>{formatTime(duration)}</Text>
+            </div>
+          </div>
+
+          {/* Player Navigation & Play Controls */}
+          <Space size="middle" style={{ marginBottom: '20px' }}>
+            <Button 
+              shape="circle" 
+              icon={<StepBackwardOutlined />} 
+              onClick={playPrev}
+              disabled={playlistTracks.length <= 1}
+            />
+            <Button 
+              shape="circle" 
+              icon={isShuffle ? <SwapOutlined style={{ color: '#be123c' }} /> : <SwapOutlined />} 
+              onClick={toggleShuffle}
+              disabled={playlistTracks.length <= 1}
+            />
+            <Button 
+              shape="circle" 
+              size="large" 
+              icon={isPlaying ? <PauseCircleOutlined style={{ fontSize: '28px' }} /> : <PlayCircleOutlined style={{ fontSize: '28px' }} />} 
+              type="primary" 
+              onClick={togglePlay}
+              style={{ width: '56px', height: '56px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#be123c', borderColor: '#be123c' }}
+            />
+            <Button 
+              shape="circle" 
+              icon={
+                repeatMode === 'one' ? <Badge dot><RetweetOutlined style={{ color: '#be123c' }} /></Badge> :
+                repeatMode === 'all' ? <RetweetOutlined style={{ color: '#be123c' }} /> : <RetweetOutlined />
+              } 
+              onClick={toggleRepeatMode}
+            />
+            <Button 
+              shape="circle" 
+              icon={<StepForwardOutlined />} 
+              onClick={playNext}
+              disabled={playlistTracks.length <= 1}
+            />
+          </Space>
+
+          {/* Action Controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-around', width: '90%', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+            <Button 
+              type="text" 
+              icon={isDownloaded ? <CheckCircleOutlined style={{ color: '#10b981' }} /> : <CloudDownloadOutlined />} 
+              onClick={handleDownload}
+              disabled={downloading || isDownloaded}
+              style={{ fontSize: '12px' }}
+            >
+              {isDownloaded ? (isHi ? "सहेजा गया" : "Saved") : (isHi ? "डाउनलोड" : "Download")}
+            </Button>
+
+            <Popover 
+              trigger="click" 
+              content={
+                <div style={{ padding: '8px' }}>
+                  <Text strong style={{ display: 'block', marginBottom: '12px' }}>{isHi ? "ऑटो-पॉज स्लीप टाइमर" : "Auto-Pause Sleep Timer"}</Text>
+                  {sleepTimer ? (
+                    <div style={{ marginBottom: '12px' }}>
+                      <Badge status="processing" text={isHi ? `शेष समय: ${formatTime(timeLeft)}` : `Remaining: ${formatTime(timeLeft)}`} />
+                      <Button type="primary" danger size="small" block onClick={cancelSleepTimer} style={{ marginTop: '8px' }}>
+                        {isHi ? "टाइमर रद्द करें" : "Cancel Timer"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Space direction="vertical" style={{ width: '150px' }}>
+                      <Button size="small" block onClick={() => startSleepTimer(5)}>5 {isHi ? "मिनट" : "Minutes"}</Button>
+                      <Button size="small" block onClick={() => startSleepTimer(15)}>15 {isHi ? "मिनट" : "Minutes"}</Button>
+                      <Button size="small" block onClick={() => startSleepTimer(30)}>30 {isHi ? "मिनट" : "Minutes"}</Button>
+                      <Button size="small" block onClick={() => startSleepTimer(60)}>60 {isHi ? "मिनट" : "Minutes"}</Button>
+                    </Space>
+                  )}
+                </div>
+              }
+            >
+              <Button type="text" icon={<ClockCircleOutlined />} style={{ fontSize: '12px' }}>
+                {sleepTimer ? formatTime(timeLeft) : (isHi ? "टाइमर" : "Timer")}
+              </Button>
+            </Popover>
+
+            {currentTrack?.id && !currentTrack.id.startsWith('temp') && (
+              <Popover
+                open={popoverOpen}
+                onOpenChange={setPopoverOpen}
+                content={playlistContent}
+                trigger="click"
+              >
+                <Button type="text" icon={<MenuOutlined />} style={{ fontSize: '12px' }}>
+                  {isHi ? "प्लेलिस्ट" : "Playlist"}
+                </Button>
+              </Popover>
+            )}
           </div>
         </div>
 
-        {/* Player Controls */}
-        <Space size="large" style={{ marginBottom: '24px' }}>
-          <Button 
-            shape="circle" 
-            size="large" 
-            icon={isPlaying ? <PauseCircleOutlined style={{ fontSize: '28px' }} /> : <PlayCircleOutlined style={{ fontSize: '28px' }} />} 
-            type="primary" 
-            onClick={togglePlay}
-            style={{ width: '60px', height: '60px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f766e', borderColor: '#0f766e' }}
-          />
-        </Space>
+        {/* Embedded CSS for Vinyl spin animation */}
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Modal>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', width: '90%', borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
-          {/* Download Control */}
-          <Button 
-            type="text" 
-            icon={isDownloaded ? <CheckCircleOutlined style={{ color: '#10b981' }} /> : <CloudDownloadOutlined />} 
-            onClick={handleDownload}
-            disabled={downloading || isDownloaded}
-          >
-            {isDownloaded ? (isHi ? "सहेजा गया" : "Saved") : (isHi ? "डाउनलोड" : "Download")}
-          </Button>
+      {/* Simulated Smartphone Lock Screen Background Notification Card */}
+      {visible && isPlaying && (
+        <div 
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            width: '320px',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            borderRadius: '16px',
+            padding: '16px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+            color: '#f8fafc',
+            zIndex: 9999,
+            border: '1px solid #334155',
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <Space size={6}>
+              <LaptopOutlined style={{ color: '#be123c' }} />
+              <Text style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 'bold' }}>
+                {isHi ? "लॉक स्क्रीन प्लेबैक" : "BACKGROUND AUDIO ACTIVATED"}
+              </Text>
+            </Space>
+            <CompassOutlined style={{ color: '#10b981', animation: 'spin 4s linear infinite' }} />
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#be123c', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CustomerServiceOutlined style={{ fontSize: '20px', color: '#f8fafc' }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Text strong style={{ color: '#f8fafc', display: 'block', fontSize: '13px' }} ellipsis>
+                {currentTrack?.title}
+              </Text>
+              <Text style={{ color: '#94a3b8', display: 'block', fontSize: '11px' }} ellipsis>
+                {isHi ? "गर्भ संस्कारbackground.mp3" : "Playing background audio loop..."}
+              </Text>
+            </div>
+          </div>
 
-          {/* Sleep Timer Popover */}
-          <Popover 
-            trigger="click" 
-            content={
-              <div style={{ padding: '8px' }}>
-                <Text strong style={{ display: 'block', marginBottom: '12px' }}>{isHi ? "ऑटो-पॉज स्लीप टाइमर" : "Auto-Pause Sleep Timer"}</Text>
-                {sleepTimer ? (
-                  <div style={{ marginBottom: '12px' }}>
-                    <Badge status="processing" text={isHi ? `शेष समय: ${formatTime(timeLeft)}` : `Remaining: ${formatTime(timeLeft)}`} />
-                    <Button type="primary" danger size="small" block onClick={cancelSleepTimer} style={{ marginTop: '8px' }}>
-                      {isHi ? "टाइमर रद्द करें" : "Cancel Timer"}
-                    </Button>
-                  </div>
-                ) : (
-                  <Space orientation="vertical" style={{ width: '100%' }}>
-                    <Button size="small" block onClick={() => startSleepTimer(15)}>15 {isHi ? "मिनट" : "Minutes"}</Button>
-                    <Button size="small" block onClick={() => startSleepTimer(30)}>30 {isHi ? "मिनट" : "Minutes"}</Button>
-                    <Button size="small" block onClick={() => startSleepTimer(45)}>45 {isHi ? "मिनट" : "Minutes"}</Button>
-                    <Button size="small" block onClick={() => startSleepTimer(60)}>60 {isHi ? "मिनट" : "Minutes"}</Button>
-                  </Space>
-                )}
-              </div>
-            }
-          >
-            <Button type="text" icon={<ClockCircleOutlined />}>
-              {sleepTimer ? formatTime(timeLeft) : (isHi ? "टाइमर" : "Timer")}
-            </Button>
-          </Popover>
+          {/* Lock Screen Progress Bar */}
+          <div style={{ width: '100%', height: '3px', background: '#334155', borderRadius: '2px', overflow: 'hidden', marginBottom: '12px' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                background: '#be123c', 
+                width: `${(currentTime / (duration || 100)) * 100}%`,
+                transition: 'width 0.2s linear' 
+              }} 
+            />
+          </div>
 
-          {/* Playlist Popover */}
-          {contentItemId && (
-            <Popover
-              open={popoverOpen}
-              onOpenChange={setPopoverOpen}
-              content={playlistContent}
-              trigger="click"
-            >
-              <Button type="text" icon={<MenuOutlined />}>
-                {isHi ? "प्लेलिस्ट" : "Playlist"}
-              </Button>
-            </Popover>
-          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '10px', color: '#64748b' }}>{formatTime(currentTime)}</span>
+            <Space size="middle">
+              <Button size="small" type="text" shape="circle" icon={<StepBackwardOutlined style={{ color: '#94a3b8' }} />} onClick={playPrev} disabled={playlistTracks.length <= 1} />
+              <Button size="small" shape="circle" icon={isPlaying ? <PauseCircleOutlined style={{ color: '#f8fafc' }} /> : <PlayCircleOutlined style={{ color: '#f8fafc' }} />} onClick={togglePlay} style={{ background: '#be123c', border: 'none' }} />
+              <Button size="small" type="text" shape="circle" icon={<StepForwardOutlined style={{ color: '#94a3b8' }} />} onClick={playNext} disabled={playlistTracks.length <= 1} />
+            </Space>
+            <span style={{ fontSize: '10px', color: '#64748b' }}>{formatTime(duration)}</span>
+          </div>
         </div>
-      </div>
-
-      {/* Embedded CSS for Vinyl spin animation */}
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </Modal>
+      )}
+    </>
   );
 }

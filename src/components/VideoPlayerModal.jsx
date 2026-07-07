@@ -1,16 +1,27 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { Modal, Button, Space, Progress, Typography } from 'antd';
-import { PlayCircleOutlined, ReloadOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Modal, Button, Space, Progress, Typography, Divider, Select, List } from 'antd';
+import { PlayCircleOutlined, ReloadOutlined, InfoCircleOutlined, FileTextOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { GET_CONTENT_VIEW_HISTORY_QUERY, RECORD_CONTENT_VIEW_MUTATION } from '../graphql/operations';
 
 const { Text, Title } = Typography;
 
-export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentItemId, dailyContentId, title, isHi }) {
+export default function VideoPlayerModal({ 
+  visible, 
+  onClose, 
+  mediaUrl, 
+  contentItemId, 
+  dailyContentId, 
+  title, 
+  isHi,
+  subtitles = [],
+  attachments = [] 
+}) {
   const videoRef = useRef(null);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedPosition, setSavedPosition] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [selectedSubtitle, setSelectedSubtitle] = useState('off');
 
   // Fetch watch history if we have content/daily IDs
   const { data, refetch } = useQuery(GET_CONTENT_VIEW_HISTORY_QUERY, {
@@ -20,6 +31,23 @@ export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentIt
   });
 
   const [recordContentView] = useMutation(RECORD_CONTENT_VIEW_MUTATION);
+
+  // Default mock attachments & subtitles if none provided
+  const sessionAttachments = React.useMemo(() => {
+    if (attachments && attachments.length > 0) return attachments;
+    return [
+      { name: isHi ? 'दैनिक योग अभ्यास चेकलिस्ट.pdf' : 'Daily Yoga Practice Checklist.pdf', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+      { name: isHi ? 'गर्भावस्था स्वस्थ आहार योजना.pdf' : 'Pregnancy Healthy Diet Plan.pdf', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' }
+    ];
+  }, [attachments, isHi]);
+
+  const subtitleTracks = React.useMemo(() => {
+    if (subtitles && subtitles.length > 0) return subtitles;
+    return [
+      { label: 'English CC', srclang: 'en', src: 'https://vtt-creator.com/examples/sample.vtt' },
+      { label: 'Hindi (हिंदी)', srclang: 'hi', src: 'https://vtt-creator.com/examples/sample.vtt' }
+    ];
+  }, [subtitles]);
 
   // Handle watch history values once loaded
   useEffect(() => {
@@ -99,6 +127,20 @@ export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentIt
     onClose();
   };
 
+  // Handle manual subtitle toggle
+  const handleSubtitleChange = (val) => {
+    setSelectedSubtitle(val);
+    if (!videoRef.current) return;
+    const tracks = videoRef.current.textTracks;
+    for (let i = 0; i < tracks.length; i++) {
+      if (tracks[i].language === val) {
+        tracks[i].mode = 'showing';
+      } else {
+        tracks[i].mode = 'disabled';
+      }
+    }
+  };
+
   // Format position timestamp helper
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
@@ -111,14 +153,18 @@ export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentIt
       open={visible}
       onCancel={handleClose}
       footer={null}
-      width={720}
-      title={title || (isHi ? "वीडियो प्लेयर" : "Video Player")}
+      width={760}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SafetyCertificateOutlined style={{ color: '#be123c' }} />
+          <span>{title || (isHi ? "सुरक्षित वीडियो सत्र" : "Secure Video Session")}</span>
+        </div>
+      }
       destroyOnClose
-      style={{ borderRadius: '16px', overflow: 'hidden' }}
-      bodyStyle={{ padding: '0px' }}
+      style={{ borderRadius: '24px', overflow: 'hidden' }}
     >
       <div 
-        style={{ position: 'relative', width: '100%', background: '#000', borderRadius: '8px', overflow: 'hidden' }}
+        style={{ position: 'relative', width: '100%', background: '#000', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}
         onContextMenu={(e) => e.preventDefault()} // Secure lock preventing right-clicks/saving
       >
         <video
@@ -129,7 +175,19 @@ export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentIt
           controlsList="nodownload noremoteplayback"
           onTimeUpdate={handleTimeUpdate}
           onEnded={handleEnded}
-        />
+          crossOrigin="anonymous"
+        >
+          {subtitleTracks.map((track, idx) => (
+            <track
+              key={idx}
+              kind="subtitles"
+              label={track.label}
+              srcLang={track.srclang}
+              src={track.src}
+              default={track.srclang === selectedSubtitle}
+            />
+          ))}
+        </video>
 
         {showResumePrompt && (
           <div 
@@ -139,7 +197,7 @@ export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentIt
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              backgroundColor: 'rgba(15, 23, 42, 0.96)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -150,7 +208,7 @@ export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentIt
               textAlign: 'center'
             }}
           >
-            <InfoCircleOutlined style={{ fontSize: '36px', color: '#f59e0b', marginBottom: '16px' }} />
+            <InfoCircleOutlined style={{ fontSize: '40px', color: '#be123c', marginBottom: '16px' }} />
             <Title level={4} style={{ color: '#fff', marginBottom: '8px' }}>
               {isHi ? "वीडियो फिर से शुरू करें?" : "Resume Video?"}
             </Title>
@@ -161,7 +219,7 @@ export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentIt
               }
             </Text>
             <Space size="middle">
-              <Button type="primary" size="large" icon={<PlayCircleOutlined />} onClick={handleResume}>
+              <Button type="primary" size="large" icon={<PlayCircleOutlined />} onClick={handleResume} style={{ background: '#be123c', borderColor: '#be123c' }}>
                 {isHi ? `यहाँ से शुरू करें (${formatTime(savedPosition)})` : `Resume from ${formatTime(savedPosition)}`}
               </Button>
               <Button ghost size="large" icon={<ReloadOutlined />} onClick={handleStartFresh}>
@@ -172,16 +230,62 @@ export default function VideoPlayerModal({ visible, onClose, mediaUrl, contentIt
         )}
       </div>
 
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: '20px 0 0 0' }}>
+        {/* Watch Analytics Info */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            {isHi ? "प्रगति सहेजने के लिए ऑटो-सिंक सक्रिय है" : "Auto-sync view progress enabled"}
+            {isHi ? "सुरक्षित स्ट्रीमिंग · प्रगति सहेजने के लिए ऑटो-सिंक सक्रिय है" : "Secure Streaming · Auto-sync view progress enabled"}
           </Text>
-          <Text strong style={{ fontSize: '13px', color: '#0f766e' }}>
+          <Text strong style={{ fontSize: '13px', color: '#be123c' }}>
             {Math.round(progress)}% {isHi ? "देखा गया" : "Watched"}
           </Text>
         </div>
-        <Progress percent={Math.round(progress)} strokeColor="#0f766e" showInfo={false} size="small" style={{ marginTop: '8px' }} />
+        <Progress percent={Math.round(progress)} strokeColor="#be123c" showInfo={false} size="small" style={{ marginTop: '8px', marginBottom: '16px' }} />
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '16px', alignItems: 'center' }}>
+          {/* Subtitles Track Selection Dropdown */}
+          <div>
+            <span style={{ fontSize: '12px', marginRight: '8px', fontWeight: 'bold', color: '#475569' }}>
+              {isHi ? "उपशीर्षक (Subtitles):" : "Subtitles (CC):"}
+            </span>
+            <Select 
+              value={selectedSubtitle} 
+              onChange={handleSubtitleChange} 
+              style={{ width: '130px' }}
+              options={[
+                { value: 'off', label: isHi ? 'बंद' : 'OFF' },
+                ...subtitleTracks.map(t => ({ value: t.srclang, label: t.label }))
+              ]}
+            />
+          </div>
+        </div>
+
+        {/* Attachments Section */}
+        {sessionAttachments.length > 0 && (
+          <div style={{ marginTop: '20px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+            <Text strong style={{ fontSize: '13px', display: 'block', marginBottom: '8px', color: '#be123c' }}>
+              {isHi ? "संलग्न पाठ्य सामग्री (Attachments)" : "Session Attachments"}
+            </Text>
+            <List
+              size="small"
+              dataSource={sessionAttachments}
+              renderItem={file => (
+                <List.Item style={{ padding: '6px 0', borderBottom: 'none' }}>
+                  <Button 
+                    type="link" 
+                    icon={<FileTextOutlined style={{ color: '#be123c' }} />} 
+                    href={file.url} 
+                    target="_blank" 
+                    download 
+                    style={{ padding: 0, height: 'auto', color: '#334155' }}
+                  >
+                    {file.name}
+                  </Button>
+                </List.Item>
+              )}
+            />
+          </div>
+        )}
       </div>
     </Modal>
   );

@@ -17,6 +17,16 @@ export const ENROLL_IN_PROGRAM_MUTATION = gql`
   mutation EnrollInProgram($programId: ID!) { enrollInProgram(programId: $programId) { id status program { id name } } }
 `;
 
+export const UPDATE_ACTIVITY_PROGRESS_MUTATION = gql`
+  mutation UpdateActivityProgress($activityId: ID!, $input: ActivityProgressInput!) {
+    updateActivityProgress(activityId: $activityId, input: $input) {
+      id
+      activityId
+      status
+    }
+  }
+`;
+
 export const MANAGE_CONTENT_QUERY = gql`
   query ManageContent($status: String, $search: String) {
     manageContent(status: $status, search: $search) { id slug contentType status visibility translations { id language title summary body } }
@@ -92,6 +102,7 @@ export const ME_QUERY = gql`
       subscriptionStatus
       shareVitalsWithPartner
       shareReportsWithPartner
+      postpartumPlan
       partner {
         id
         emailAddress
@@ -289,6 +300,10 @@ export const MY_DAILY_PROGRESS_QUERY = gql`
       iqNotes
       eqNotes
       sqNotes
+      pqFeedback
+      iqFeedback
+      eqFeedback
+      sqFeedback
       notes
       completedAt
     }
@@ -527,6 +542,10 @@ export const GET_MY_PARTNER_ACTIVITY_LOG_QUERY = gql`
       userId
       dayNumber
       partnerAcknowledged
+      assignedTaskTitle
+      assignedTaskDesc
+      partnerResponse
+      familyNotes
       completedAt
     }
   }
@@ -552,6 +571,8 @@ export const GET_SENSORY_ACTIVITY_QUERY = gql`
       senseType
       title
       description
+      guidance
+      mediaLinks
     }
   }
 `;
@@ -656,6 +677,12 @@ export const ADD_PLAYLIST_ITEM_MUTATION = gql`
 export const REMOVE_PLAYLIST_ITEM_MUTATION = gql`
   mutation RemovePlaylistItem($playlistId: ID!, $contentItemId: ID!) {
     removePlaylistItem(playlistId: $playlistId, contentItemId: $contentItemId)
+  }
+`;
+
+export const DELETE_PLAYLIST_MUTATION = gql`
+  mutation DeletePlaylist($id: ID!) {
+    deletePlaylist(id: $id)
   }
 `;
 
@@ -822,6 +849,11 @@ export const GET_WELLNESS_DATA_QUERY = gql`
       kickCount
       bloodSugar
       symptoms
+      mood
+      sleepHours
+      hydrationWater
+      nutritionCalories
+      nutritionMealNotes
       loggedAt
     }
     getAppointments {
@@ -852,6 +884,11 @@ export const LOG_VITALS_MUTATION = gql`
     logVitalsAndSymptoms(input: $input) {
       id
       weight
+      mood
+      sleepHours
+      hydrationWater
+      nutritionCalories
+      nutritionMealNotes
       loggedAt
     }
   }
@@ -920,6 +957,58 @@ export const TOGGLE_BAG_ITEM_MUTATION = gql`
 export const CLEAR_BAG_ITEMS_MUTATION = gql`
   mutation ClearPackedHospitalBagItems {
     clearPackedHospitalBagItems
+  }
+`;
+
+export const DISPATCH_DAILY_REMINDERS_MUTATION = gql`
+  mutation DispatchDailyReminders {
+    dispatchDailyReminders {
+      success
+      remindersSent
+      details
+    }
+  }
+`;
+
+export const UPDATE_CONTENT_ITEM_MUTATION = gql`
+  mutation UpdateContentItem($id: ID!, $input: UpdateContentItemInput!) {
+    updateContentItem(id: $id, input: $input) {
+      id
+      slug
+      contentType
+      visibility
+      trimester1Safe
+      trimester2Safe
+      trimester3Safe
+      contraindications
+      medicalReviewed
+      status
+      translations {
+        language
+        title
+        summary
+        body
+      }
+    }
+  }
+`;
+
+export const DELETE_CONTENT_ITEM_MUTATION = gql`
+  mutation DeleteContentItem($id: ID!) {
+    deleteContentItem(id: $id)
+  }
+`;
+
+export const REGISTER_MEDIA_ASSET_MUTATION = gql`
+  mutation RegisterMediaAsset($input: RegisterMediaAssetInput!) {
+    registerMediaAsset(input: $input) {
+      id
+      url
+      mimeType
+      kind
+      status
+      altText
+    }
   }
 `;
 
@@ -1154,3 +1243,157 @@ export const UPDATE_PARTNER_SHARING_MUTATION = gql`
     }
   }
 `;
+
+export const SUBMIT_COACHING_FEEDBACK_MUTATION = gql`
+  mutation SubmitCoachingFeedback($progressId: ID!, $quotient: String!, $feedback: String!) {
+    submitCoachingFeedback(progressId: $progressId, quotient: $quotient, feedback: $feedback) {
+      id
+      pqFeedback
+      iqFeedback
+      eqFeedback
+      sqFeedback
+    }
+  }
+`;
+export const ASSIGN_PARTNER_TASK_MUTATION = gql`
+  mutation AssignPartnerTask($dayNumber: Int!, $title: String!, $description: String) {
+    assignPartnerTask(dayNumber: $dayNumber, title: $title, description: $description) {
+      id
+      dayNumber
+      assignedTaskTitle
+      assignedTaskDesc
+      partnerAcknowledged
+    }
+  }
+`;
+
+export const SUBMIT_PARTNER_RESPONSE_MUTATION = gql`
+  mutation SubmitPartnerResponse($dayNumber: Int!, $response: String!, $familyNotes: String) {
+    submitPartnerResponse(dayNumber: $dayNumber, response: $response, familyNotes: $familyNotes) {
+      id
+      dayNumber
+      partnerResponse
+      familyNotes
+      partnerAcknowledged
+    }
+  }
+`;
+
+export const GET_PARTNER_STREAK_QUERY = gql`
+  query GetPartnerStreak {
+    myPartnerStreak {
+      currentStreak
+      longestStreak
+      lastCompletedDate
+    }
+  }
+`;
+
+export const GET_MONTHLY_REPORT_QUERY = gql`
+  query GetMonthlyReport($monthNumber: Int!) {
+    myMonthlyReport(monthNumber: $monthNumber) {
+      monthNumber
+      completedDaysCount
+      totalMonthDurationMins
+      weeks {
+        weekNumber
+        completedDaysCount
+        totalWeekDurationMins
+        days {
+          dayNumber
+          completed
+          pqCompleted
+          iqCompleted
+          eqCompleted
+          sqCompleted
+          totalDurationMins
+          reflections
+        }
+      }
+    }
+  }
+`;
+
+export const GET_RECOMMENDATIONS_QUERY = gql`
+  query GetMyRecommendations {
+    myRecommendations {
+      id
+      title
+      description
+      category
+      icon
+      actionLink
+      isPremium
+      unlocked
+    }
+  }
+`;
+
+export const GET_JOURNEY_ARCHIVE_QUERY = gql`
+  query GetJourneyArchive {
+    myJourneyArchive {
+      pregnancyDay
+      weekNumber
+      trimesterSummary {
+        trimesterNumber
+        totalActivitiesCompleted
+        vitalsLoggedCount
+        averageSleepHours
+        averageHydrationWater
+        moodFrequencyDistribution {
+          mood
+          count
+        }
+      }
+    }
+  }
+`;
+
+export const SAVE_POSTPARTUM_PLAN_MUTATION = gql`
+  mutation SavePostpartumPlan($planJson: String!) {
+    savePostpartumPlan(planJson: $planJson) {
+      id
+      postpartumPlan
+    }
+  }
+`;
+
+export const GET_CLOUDINARY_SIGNATURE_QUERY = gql`
+  query GetCloudinarySignature($folder: String!) {
+    getCloudinarySignature(folder: $folder) {
+      signature
+      timestamp
+      apiKey
+      cloudName
+    }
+  }
+`;
+
+export const GET_WORKSHEET_SUBMISSIONS_QUERY = gql`
+  query GetWorksheetSubmissions {
+    getWorksheetSubmissions {
+      id
+      userId
+      userDisplayName
+      title
+      submittedAt
+      fileUrl
+      score
+      feedback
+      status
+    }
+  }
+`;
+
+export const GRADE_WORKSHEET_SUBMISSION_MUTATION = gql`
+  mutation GradeWorksheetSubmission($id: ID!, $score: Int!, $feedback: String!) {
+    gradeWorksheetSubmission(id: $id, score: $score, feedback: $feedback) {
+      id
+      score
+      feedback
+      status
+    }
+  }
+`;
+
+

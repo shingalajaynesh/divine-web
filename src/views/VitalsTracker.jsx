@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import toast from 'react-hot-toast';
 import { Card, Form, InputNumber, Button, Table, Tag, Typography, Row, Col, Space, Input, DatePicker, Select, Checkbox, Progress, List, Tabs, Divider } from 'antd';
@@ -56,6 +56,12 @@ export default function VitalsTracker({ user, lang }) {
   const [newBagItemName, setNewBagItemName] = useState('');
   const [newBagCategory, setNewBagCategory] = useState('mother');
 
+  const [mood, setMood] = useState(null);
+  const [sleepHours, setSleepHours] = useState(8);
+  const [hydrationWater, setHydrationWater] = useState(2.0);
+  const [nutritionCalories, setNutritionCalories] = useState(2000);
+  const [nutritionMealNotes, setNutritionMealNotes] = useState('');
+
   // Appointments Form state
   const [appTitle, setAppTitle] = useState('');
   const [appDoctor, setAppDoctor] = useState('');
@@ -75,9 +81,38 @@ export default function VitalsTracker({ user, lang }) {
   const totalBagItems = bagItems.length;
   const packedPercentage = totalBagItems > 0 ? Math.round((packedCount / totalBagItems) * 100) : 0;
 
+  const trendFeedback = useMemo(() => {
+    if (logs.length === 0) return null;
+    const recentLogs = logs.slice(0, 7);
+    const sleepLogs = recentLogs.filter(l => l.sleepHours !== null && l.sleepHours !== undefined);
+    const waterLogs = recentLogs.filter(l => l.hydrationWater !== null && l.hydrationWater !== undefined);
+    
+    const avgSleep = sleepLogs.length > 0 ? (sleepLogs.reduce((sum, l) => sum + l.sleepHours, 0) / sleepLogs.length) : 8;
+    const totalWater = waterLogs.length > 0 ? (waterLogs.reduce((sum, l) => sum + l.hydrationWater, 0) / waterLogs.length) : 2.0;
+
+    let advice = [];
+    if (avgSleep < 7) {
+      advice.push(isHi ? "💤 आपकी औसत नींद 7 घंटे से कम है। प्रसव पूर्व विकास और ऊर्जा के लिए अधिक विश्राम अत्यंत महत्वपूर्ण है।" : "💤 Your average sleep is under 7 hours. Prioritize rest for prenatal development and maternal energy.");
+    } else {
+      advice.push(isHi ? "🌸 आपकी नींद का चक्र बहुत बढ़िया है। आराम बनाए रखें!" : "🌸 Your average sleep duration looks healthy. Maintain good rest!");
+    }
+
+    if (totalWater < 2.5) {
+      advice.push(isHi ? "💧 हाइड्रेशन बढ़ायें! एमनियोटिक द्रव स्तर को स्थिर रखने के लिए प्रतिदिन कम से कम 2.5 - 3.0 लीटर पानी पियें।" : "💧 Step up your water intake! Aiming for 2.5L - 3.0L daily helps maintain amniotic fluid levels.");
+    } else {
+      advice.push(isHi ? "🥤 अद्भुत! आप पानी पीने का लक्ष्य नियमित रूप से पूरा कर रहे हैं।" : "🥤 Great job staying hydrated! Keep drinking ample water.");
+    }
+
+    return {
+      avgSleep: avgSleep.toFixed(1),
+      avgWater: totalWater.toFixed(1),
+      advice
+    };
+  }, [logs, isHi]);
+
   const handleVitalsSubmit = async (values) => {
     const { weight, systolic, diastolic, kicks, sugar } = values;
-    if (!weight && !systolic && !diastolic && !kicks && !sugar && selectedSymptoms.length === 0) {
+    if (!weight && !systolic && !diastolic && !kicks && !sugar && selectedSymptoms.length === 0 && !mood && !sleepHours && !hydrationWater && !nutritionCalories && !nutritionMealNotes) {
       toast.error(isHi ? 'कृपया कम से कम एक मेट्रिक दर्ज करें!' : 'Please enter at least one metric or symptom to log!');
       return;
     }
@@ -91,13 +126,23 @@ export default function VitalsTracker({ user, lang }) {
             diastolicBp: diastolic ? parseInt(diastolic, 10) : null,
             kickCount: kicks ? parseInt(kicks, 10) : null,
             bloodSugar: sugar ? parseFloat(sugar) : null,
-            symptoms: selectedSymptoms
+            symptoms: selectedSymptoms,
+            mood,
+            sleepHours: sleepHours ? parseFloat(sleepHours) : null,
+            hydrationWater: hydrationWater ? parseFloat(hydrationWater) : null,
+            nutritionCalories: nutritionCalories ? parseFloat(nutritionCalories) : null,
+            nutritionMealNotes: nutritionMealNotes || null
           }
         }
       });
       toast.success(isHi ? 'स्वास्थ्य वाइटल्स दर्ज किए गए!' : 'Pregnancy wellness metrics logged!');
       vitalsForm.resetFields();
       setSelectedSymptoms([]);
+      setMood(null);
+      setSleepHours(8);
+      setHydrationWater(2.0);
+      setNutritionCalories(2000);
+      setNutritionMealNotes('');
     } catch (err) {
       toast.error(err.message);
     }
@@ -201,6 +246,46 @@ export default function VitalsTracker({ user, lang }) {
         }
         return list.length > 0 ? list.map(s => <Tag color="blue" key={s}>{s}</Tag>) : '-';
       }
+    },
+    {
+      title: isHi ? 'मनोदशा' : 'Mood',
+      dataIndex: 'mood',
+      key: 'mood',
+      render: (val) => {
+        if (!val) return '-';
+        const moods = {
+          HAPPY: '😊 Happy',
+          CALM: '😌 Calm',
+          ANXIOUS: '😰 Anxious',
+          TIRED: '😴 Tired',
+          SAD: '😢 Sad'
+        };
+        return moods[val] || val;
+      }
+    },
+    {
+      title: isHi ? 'नींद' : 'Sleep',
+      dataIndex: 'sleepHours',
+      key: 'sleepHours',
+      render: (val) => val ? `${val} hrs` : '-'
+    },
+    {
+      title: isHi ? 'जल सेवन' : 'Water',
+      dataIndex: 'hydrationWater',
+      key: 'hydrationWater',
+      render: (val) => val ? `${val} L` : '-'
+    },
+    {
+      title: isHi ? 'पोषण' : 'Nutrition',
+      key: 'nutrition',
+      render: (_, record) => (
+        record.nutritionCalories || record.nutritionMealNotes ? (
+          <div>
+            {record.nutritionCalories && <Tag color="green">{record.nutritionCalories} kcal</Tag>}
+            {record.nutritionMealNotes && <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{record.nutritionMealNotes}</div>}
+          </div>
+        ) : '-'
+      )
     }
   ];
 
@@ -285,6 +370,42 @@ export default function VitalsTracker({ user, lang }) {
             </Col>
           </Row>
 
+          {trendFeedback && (
+            <Card 
+              style={{ 
+                borderRadius: 20, 
+                background: '#f8fafc', 
+                border: '1px solid #e2e8f0', 
+                marginBottom: '8px' 
+              }}
+            >
+              <Text strong style={{ fontSize: '11px', color: 'var(--brand-maroon-dark)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                💡 {isHi ? "स्वास्थ्य रुझान और प्रतिक्रिया" : "Wellness Trends & Feedback"}
+              </Text>
+              <Row gutter={[16, 16]}>
+                <Col xs={24} sm={8}>
+                  <Space direction="vertical" size={2}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      {isHi ? "औसत नींद (अंतिम 7 प्रविष्टियाँ):" : "Average Sleep (Last 7 logs):"}{' '}
+                      <Text strong>{trendFeedback.avgSleep} hrs</Text>
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      {isHi ? "औसत जल सेवन:" : "Average Hydration:"}{' '}
+                      <Text strong>{trendFeedback.avgWater} L</Text>
+                    </Text>
+                  </Space>
+                </Col>
+                <Col xs={24} sm={16}>
+                  {trendFeedback.advice.map((adv, idx) => (
+                    <Paragraph key={idx} style={{ margin: '2px 0', fontSize: '12px', color: '#475569' }}>
+                      • {adv}
+                    </Paragraph>
+                  ))}
+                </Col>
+              </Row>
+            </Card>
+          )}
+
           <Row gutter={[24, 24]}>
             <Col xs={24} lg={8}>
               <Card style={{ borderRadius: 20, border: '1px solid #e2e8f0' }} styles={{ body: { padding: '20px' } }}>
@@ -336,6 +457,95 @@ export default function VitalsTracker({ user, lang }) {
                       })}
                     </Space>
                   </div>
+
+                  <div style={{ marginBottom: '16px' }}>
+                    <Text strong style={{ fontSize: '11px', display: 'block', marginBottom: '8px' }}>
+                      {isHi ? "मनोदशा / भावनात्मक स्थिति" : "Select Mood / Emotional State"}
+                    </Text>
+                    <Space wrap style={{ gap: '6px' }}>
+                      {[
+                        { val: 'HAPPY', emoji: '😊', label: isHi ? 'खुश' : 'Happy' },
+                        { val: 'CALM', emoji: '😌', label: isHi ? 'शांत' : 'Calm' },
+                        { val: 'ANXIOUS', emoji: '😰', label: isHi ? 'चिंतित' : 'Anxious' },
+                        { val: 'TIRED', emoji: '😴', label: isHi ? 'थका' : 'Tired' },
+                        { val: 'SAD', emoji: '😢', label: isHi ? 'उदास' : 'Sad' }
+                      ].map(item => (
+                        <Button
+                          key={item.val}
+                          type={mood === item.val ? 'primary' : 'default'}
+                          onClick={() => setMood(item.val)}
+                          style={{ 
+                            height: 'auto', 
+                            padding: '4px 8px', 
+                            borderRadius: '8px', 
+                            fontSize: '13px',
+                            background: mood === item.val ? 'var(--brand-maroon-dark)' : undefined,
+                            borderColor: mood === item.val ? 'var(--brand-maroon-dark)' : undefined
+                          }}
+                        >
+                          {item.emoji} <span style={{ fontSize: '11px', marginLeft: '2px' }}>{item.label}</span>
+                        </Button>
+                      ))}
+                    </Space>
+                  </div>
+
+                  <Form.Item label={<Text strong style={{ fontSize: '11px' }}>{isHi ? "नींद की अवधि (घंटे)" : "Restful Sleep (Hours)"}</Text>}>
+                    <InputNumber 
+                      min={0} 
+                      max={24} 
+                      step={0.5} 
+                      value={sleepHours} 
+                      onChange={val => setSleepHours(val)} 
+                      style={{ width: '100%' }} 
+                    />
+                  </Form.Item>
+
+                  <div style={{ marginBottom: '16px' }}>
+                    <Text strong style={{ fontSize: '11px', display: 'block', marginBottom: '8px' }}>
+                      {isHi ? "पानी का सेवन (लीटर)" : "Daily Water Intake (Liters)"}
+                    </Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <InputNumber 
+                        min={0} 
+                        max={10} 
+                        step={0.25} 
+                        value={hydrationWater} 
+                        onChange={val => setHydrationWater(val)} 
+                        style={{ flex: 1 }} 
+                      />
+                      <Button 
+                        onClick={() => setHydrationWater(prev => parseFloat((prev + 0.25).toFixed(2)))}
+                        style={{ borderRadius: '8px' }}
+                      >
+                        🥛 +250ml
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Row gutter={8} style={{ marginBottom: '16px' }}>
+                    <Col span={12}>
+                      <Form.Item label={<Text strong style={{ fontSize: '11px' }}>{isHi ? "कैलोरी (kcal)" : "Calories (kcal)"}</Text>}>
+                        <InputNumber 
+                          min={0} 
+                          step={50} 
+                          value={nutritionCalories} 
+                          onChange={val => setNutritionCalories(val)} 
+                          style={{ width: '100%' }} 
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label={<Text strong style={{ fontSize: '11px' }}>{isHi ? "भोजन नोट्स" : "Meal Notes"}</Text>}>
+                        <Input.TextArea 
+                          rows={1}
+                          placeholder={isHi ? "नाश्ता, दोपहर का भोजन..." : "What did you eat?"} 
+                          value={nutritionMealNotes} 
+                          onChange={e => setNutritionMealNotes(e.target.value)} 
+                          style={{ borderRadius: '8px' }} 
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
                   <Button type="primary" htmlType="submit" block style={{ background: '#be123c', borderColor: '#be123c', fontWeight: 'bold' }}>
                     Save Daily Entry

@@ -257,6 +257,10 @@ export default function AppRoutes({ user, menuItems, activeRole, t, lang, handle
         return '/expert-consulting';
       case 'ADMIN':
         return '/admin';
+      case 'FRANCHISE_ADMIN':
+        return '/franchise';
+      case 'SUPER_ADMIN':
+        return '/super-admin';
       default:
         return '/dashboard';
     }

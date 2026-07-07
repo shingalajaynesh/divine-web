@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
-import { GET_DAILY_CONTENT_QUERY, GET_BABY_DEVELOPMENT_QUERY, MY_DAILY_PROGRESS_QUERY, MY_TIMELINE_OVERVIEW_QUERY, TOGGLE_DAILY_ACTIVITY_MUTATION, SAVE_DAILY_ACTIVITY_DETAILS_MUTATION, GET_DAILY_QUIZ_QUERY, GET_MY_QUIZ_ATTEMPT_QUERY, SUBMIT_QUIZ_ANSWER_MUTATION, GET_PARTNER_ACTIVITY_QUERY, GET_MY_PARTNER_ACTIVITY_LOG_QUERY, ACKNOWLEDGE_PARTNER_ACTIVITY_MUTATION, GET_SENSORY_ACTIVITY_QUERY, GET_MY_SENSORY_ACTIVITY_LOG_QUERY, TOGGLE_SENSORY_ACTIVITY_MUTATION, LINK_PARTNER_MUTATION, UPDATE_PARTNER_SHARING_MUTATION, ME_QUERY } from '../graphql/operations';
+import { GET_DAILY_CONTENT_QUERY, GET_BABY_DEVELOPMENT_QUERY, MY_DAILY_PROGRESS_QUERY, MY_TIMELINE_OVERVIEW_QUERY, TOGGLE_DAILY_ACTIVITY_MUTATION, SAVE_DAILY_ACTIVITY_DETAILS_MUTATION, GET_DAILY_QUIZ_QUERY, GET_MY_QUIZ_ATTEMPT_QUERY, SUBMIT_QUIZ_ANSWER_MUTATION, GET_PARTNER_ACTIVITY_QUERY, GET_MY_PARTNER_ACTIVITY_LOG_QUERY, ACKNOWLEDGE_PARTNER_ACTIVITY_MUTATION, GET_SENSORY_ACTIVITY_QUERY, GET_MY_SENSORY_ACTIVITY_LOG_QUERY, TOGGLE_SENSORY_ACTIVITY_MUTATION, LINK_PARTNER_MUTATION, UPDATE_PARTNER_SHARING_MUTATION, ME_QUERY, ASSIGN_PARTNER_TASK_MUTATION, SUBMIT_PARTNER_RESPONSE_MUTATION, GET_PARTNER_STREAK_QUERY, GET_RECOMMENDATIONS_QUERY } from '../graphql/operations';
 import toast from 'react-hot-toast';
 import VideoPlayerModal from '../components/VideoPlayerModal';
 import AudioPlayerModal from '../components/AudioPlayerModal';
@@ -130,6 +130,10 @@ export default function TodayDashboard({ user, t }) {
   const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState(user.pregnancyDay || 1);
   const [activeQuotient, setActiveQuotient] = useState('PQ');
+  const [assignTaskTitle, setAssignTaskTitle] = useState('');
+  const [assignTaskDesc, setAssignTaskDesc] = useState('');
+  const [partnerResponseText, setPartnerResponseText] = useState('');
+  const [partnerFamilyNotes, setPartnerFamilyNotes] = useState('');
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
   const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
   const [readingModalVisible, setReadingModalVisible] = useState(false);
@@ -145,7 +149,7 @@ export default function TodayDashboard({ user, t }) {
     if (tri === 1) {
       return {
         title: isHi ? "प्रथम तिमाही: प्राण संचार" : "Trimester 1: Prana Sanchar",
-        desc: isHi 
+        desc: isHi
           ? "जीवन शक्ति का आगमन। शांतिपूर्ण मंत्रोच्चार और विश्राम पर ध्यान केंद्रित करें।"
           : "Inflow of Life Force. Establish peace, bond with quiet mantras, and practice deep breathing.",
         color: "#ca8a04",
@@ -174,6 +178,8 @@ export default function TodayDashboard({ user, t }) {
   });
 
   const content = contentData?.getDailyContent;
+  const { data: recData } = useQuery(GET_RECOMMENDATIONS_QUERY);
+  const recommendations = recData?.myRecommendations || [];
   const { data: babyData } = useQuery(GET_BABY_DEVELOPMENT_QUERY, {
     variables: { weekNumber: selectedWeek }
   });
@@ -298,6 +304,34 @@ export default function TodayDashboard({ user, t }) {
     onError: (err) => {
       toast.error(err.message);
     }
+  });
+
+  const { data: partnerStreakData } = useQuery(GET_PARTNER_STREAK_QUERY, { skip: !user });
+  const partnerStreak = partnerStreakData?.myPartnerStreak;
+
+  const [assignPartnerTask, { loading: assigningTask }] = useMutation(ASSIGN_PARTNER_TASK_MUTATION, {
+    refetchQueries: [
+      { query: GET_MY_PARTNER_ACTIVITY_LOG_QUERY, variables: { dayNumber: selectedDay } }
+    ],
+    onCompleted: () => {
+      setAssignTaskTitle('');
+      setAssignTaskDesc('');
+      toast.success(isHi ? "कार्य सफलतापूर्वक असाइन किया गया!" : "Task assigned successfully!");
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [submitPartnerResponse, { loading: submittingResponse }] = useMutation(SUBMIT_PARTNER_RESPONSE_MUTATION, {
+    refetchQueries: [
+      { query: GET_MY_PARTNER_ACTIVITY_LOG_QUERY, variables: { dayNumber: selectedDay } },
+      { query: GET_PARTNER_STREAK_QUERY }
+    ],
+    onCompleted: () => {
+      setPartnerResponseText('');
+      setPartnerFamilyNotes('');
+      toast.success(isHi ? "प्रतिक्रिया दर्ज की गई!" : "Response saved successfully!");
+    },
+    onError: (err) => toast.error(err.message)
   });
 
   const sensoryActivity = sensoryData?.getSensoryActivity;
@@ -522,7 +556,8 @@ export default function TodayDashboard({ user, t }) {
           { key: '/diet-planner', icon: '🍎', title: isHi ? 'आहार योजना' : 'Diet Planner', desc: isHi ? 'दैनिक पोषण और भोजन' : 'Daily nutrition & recipes' },
           { key: '/vitals', icon: '💓', title: isHi ? 'वाइटल्स ट्रैकर' : 'Vitals Tracker', desc: isHi ? 'दैनिक वजन और लक्षण ट्रैक करें' : 'Track symptoms & vitals' },
           { key: '/weekly-report', icon: '📊', title: isHi ? 'साप्ताहिक रिपोर्ट' : 'Weekly Reports', desc: isHi ? 'प्रगति और संकल्प सारांश' : 'Progress & streaks summary' },
-          { key: '/expert-consulting', icon: '👩‍⚕️', title: isHi ? 'विशेषज्ञ सलाह' : 'Expert Consulting', desc: isHi ? 'डॉक्टर और कोच स्लॉट बुक करें' : 'Book doctor & coach slots' }
+          { key: '/expert-consulting', icon: '👩‍⚕️', title: isHi ? 'विशेषज्ञ सलाह' : 'Expert Consulting', desc: isHi ? 'डॉक्टर और कोच स्लॉट बुक करें' : 'Book doctor & coach slots' },
+          { key: '/pregnancy-tools', icon: '🛠️', title: isHi ? 'गर्भावस्था उपकरण' : 'Pregnancy Tools', desc: isHi ? 'किक काउंटर, संकुचन टाइमर, EDD' : 'Kick counter, contraction timer, EDD & bag' }
         ].map((act) => (
           <Card
             key={act.key}
@@ -544,144 +579,313 @@ export default function TodayDashboard({ user, t }) {
         ))}
       </div>
 
+      {recommendations.length > 0 && (
+        <div style={{ margin: '24px 0' }}>
+          <Title level={4} style={{ color: 'var(--brand-maroon-dark)', margin: '0 0 16px 0', fontSize: '18px', fontWeight: 'bold' }}>
+            ✨ {isHi ? "आपके लिए दैनिक सिफारिशें" : "Personalized Recommendations"}
+          </Title>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {recommendations.map((rec) => (
+              <Card 
+                key={rec.id}
+                style={{ 
+                  borderRadius: '20px', 
+                  border: '1px solid #f1f5f9', 
+                  background: rec.isPremium && !rec.unlocked ? '#fafafa' : '#fff',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.015)' 
+                }}
+                styles={{ body: { padding: '16px', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' } }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <Tag color={
+                      rec.category === 'DIET' ? 'green' : 
+                      rec.category === 'MINDFULNESS' ? 'purple' : 
+                      rec.category === 'EXERCISE' ? 'blue' : 
+                      rec.category === 'AUDIO' ? 'magenta' : 'orange'
+                    }>
+                      {rec.category}
+                    </Tag>
+                    {rec.isPremium && (
+                      <Tag color={rec.unlocked ? 'gold' : 'error'}>
+                        {rec.unlocked ? '🔓 Unlocked' : '🔒 Premium'}
+                      </Tag>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '28px' }}>{rec.icon}</span>
+                    <div>
+                      <Text strong style={{ display: 'block', fontSize: '13px', color: '#1e293b' }}>
+                        {rec.title}
+                      </Text>
+                      <Paragraph type="secondary" style={{ fontSize: '11px', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                        {rec.description}
+                      </Paragraph>
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  type={rec.unlocked ? 'primary' : 'default'} 
+                  block
+                  onClick={() => navigate(rec.unlocked ? rec.actionLink : '/pricing')}
+                  style={{ 
+                    borderRadius: '8px', 
+                    fontWeight: 'bold',
+                    background: rec.unlocked ? '#be123c' : undefined,
+                    borderColor: rec.unlocked ? '#be123c' : undefined,
+                    color: rec.unlocked ? '#fff' : undefined,
+                    fontSize: '12px',
+                    height: '32px'
+                  }}
+                >
+                  {rec.unlocked ? (isHi ? "अभ्यास पर जाएं" : "Go to Practice") : (isHi ? "प्रीमियम अनलॉक करें" : "Unlock Premium")}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 280-Day Calendar & Navigation */}
-      <Card style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-        <Row align="middle" gutter={[24, 24]}>
-          <Col xs={24} md={18}>
-            <Title level={4} style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              📅 {isHi ? "280-दिवसीय दिव्य गर्भ संस्कार कैलेंडर" : "280-Day Garbh Sanskar Calendar"}
-            </Title>
+      <Card style={{ 
+        borderRadius: 28, 
+        boxShadow: '0 10px 30px rgba(0,0,0,0.02)', 
+        border: '1px solid #f1f5f9',
+        background: '#fff',
+        overflow: 'hidden',
+        marginBottom: '20px'
+      }}>
+        <div style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fffcf6 100%)', padding: '24px', borderBottom: '1px solid #fed7aa' }}>
+          <Title level={4} style={{ margin: 0, color: 'var(--brand-maroon-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            ✨ {isHi ? "280-दिवसीय दिव्य गर्भ संस्कार यात्रा" : "280-Day Divine Garbh Sanskar Journey Map"}
+          </Title>
+          <Paragraph type="secondary" style={{ margin: '4px 0 0 0', fontSize: '13px' }}>
+            {isHi 
+              ? "अपनी गर्भावस्था के प्रत्येक दिन का अनुसरण करें और बच्चे के स्वस्थ विकास को सुनिश्चित करें।" 
+              : "Track your progress across trimesters, months, and weeks with curated daily activities."}
+          </Paragraph>
+        </div>
 
-            {/* Trimester/Month/Week/Day Navigation */}
-            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-              {/* Trimester Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                {[1, 2, 3].map((tri) => {
-                  const active = selectedTrimester === tri;
-                  return (
-                    <Button
-                      key={tri}
-                      type={active ? 'primary' : 'default'}
-                      shape="round"
-                      onClick={() => {
-                        const firstDay = (tri - 1) * 84 + 1;
-                        setSelectedDay(firstDay);
-                      }}
-                      style={{
-                        fontWeight: 'bold',
-                        boxShadow: active ? '0 4px 12px rgba(249, 115, 22, 0.2)' : 'none',
-                      }}
-                    >
-                      {isHi ? `तिमाही ${tri}` : `Trimester ${tri}`}
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Month Tabs */}
-              <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap', gap: '6px' }}>
-                {getMonthsForTrimester(selectedTrimester).map((m) => {
-                  const active = selectedMonth === m;
-                  return (
-                    <Button
-                      key={m}
-                      type={active ? 'primary' : 'dashed'}
-                      size="small"
-                      onClick={() => {
-                        const firstDay = (m - 1) * 28 + 1;
-                        setSelectedDay(firstDay);
-                      }}
-                      style={{
-                        borderRadius: '8px',
-                        borderColor: active ? 'transparent' : '#ff8a65',
-                        color: active ? '#fff' : '#f97316',
-                        background: active ? '#f97316' : '#fffcf6',
-                      }}
-                    >
-                      {isHi ? `महीना ${m}` : `Month ${m}`}
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Week Tabs */}
-              <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap', gap: '6px' }}>
-                {getWeeksForMonth(selectedMonth).map((w) => {
-                  const active = selectedWeek === w;
-                  return (
-                    <Button
-                      key={w}
-                      type={active ? 'primary' : 'text'}
-                      size="small"
-                      onClick={() => {
-                        const firstDay = (w - 1) * 7 + 1;
-                        setSelectedDay(firstDay);
-                      }}
-                      style={{
-                        borderRadius: '6px',
-                        background: active ? 'var(--color-brand-secondary)' : 'transparent',
-                        color: active ? '#fff' : '#475569',
-                        fontWeight: active ? 'bold' : 'normal',
-                      }}
-                    >
-                      {isHi ? `सप्ताह ${w}` : `Week ${w}`}
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Day Bubbles */}
-              <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '10px', overflowX: 'auto', padding: '8px 0' }}>
-                {getDaysForWeek(selectedWeek).map((d) => {
-                  const active = selectedDay === d;
-                  const isDayLocked = d > (user.pregnancyDay || 1);
-
-                  // Check if this day is fully completed
-                  const dayProgress = timelineOverview?.days?.find((entry) => entry.dayNumber === d);
-                  const isDayCompleted = Boolean(dayProgress?.completed);
-
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => setSelectedDay(d)}
-                      style={{
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '50%',
-                        border: active ? '2px solid #f97316' : '1px solid #cbd5e1',
-                        background: active ? '#fffaf8' : (isDayLocked ? '#f1f5f9' : '#fff'),
-                        color: isDayLocked ? '#94a3b8' : '#1e293b',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        position: 'relative',
-                        transition: 'all 0.2s',
-                        transform: active ? 'scale(1.1)' : 'scale(1)',
-                      }}
-                    >
-                      <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{d}</span>
-                      {isDayLocked && (
-                        <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', fontSize: '10px', background: '#fff', borderRadius: '50%', padding: '1px' }}>🔒</span>
-                      )}
-                      {!isDayLocked && isDayCompleted && (
-                        <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', fontSize: '10px', background: '#fff', borderRadius: '50%', padding: '1px' }}>✅</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </Space>
-          </Col>
-
-          <Col xs={24} md={6} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <Progress type="circle" percent={isLocked ? 0 : progressPercent} size={70} strokeColor="#f97316" />
-            <Text strong style={{ fontSize: '10px', textTransform: 'uppercase', color: '#94a3b8', marginTop: '12px', letterSpacing: '1px' }}>
-              {isHi ? "दैनिक प्रगति" : "Daily Progress"}
+        <div style={{ padding: '24px' }}>
+          {/* Trimester Timeline Track */}
+          <div style={{ marginBottom: '24px' }}>
+            <Text strong style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '12px' }}>
+              {isHi ? "गर्भावस्था की तिमाहियां" : "Pregnancy Trimesters"}
             </Text>
-          </Col>
-        </Row>
+            <Row gutter={[16, 16]}>
+              {[
+                { number: 1, range: "Weeks 1-12", title: isHi ? "प्राण संचार" : "Prana Sanchar", desc: isHi ? "प्रथम तिमाही" : "Trimester 1", bg: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', border: '#fde68a', color: '#b45309' },
+                { number: 2, range: "Weeks 13-26", title: isHi ? "इंद्रिय संचार" : "Indriya Sanchar", desc: isHi ? "द्वितीय तिमाही" : "Trimester 2", bg: 'linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%)', border: '#fdba74', color: '#c2410c' },
+                { number: 3, range: "Weeks 27-40", title: isHi ? "चेतना संचार" : "Chetana Sanchar", desc: isHi ? "तृतीय तिमाही" : "Trimester 3", bg: 'linear-gradient(135deg, #fff1f2 0%, #fecdd3 100%)', border: '#fecdd3', color: '#be123c' }
+              ].map(tri => {
+                const active = selectedTrimester === tri.number;
+                const isCurrent = Math.max(1, Math.min(3, Math.floor(((user.pregnancyDay || 1) - 1) / 84) + 1)) === tri.number;
+                return (
+                  <Col xs={24} md={8} key={tri.number}>
+                    <Card
+                      hoverable
+                      onClick={() => {
+                        const firstDay = (tri.number - 1) * 84 + 1;
+                        setSelectedDay(firstDay);
+                      }}
+                      style={{
+                        borderRadius: 20,
+                        background: tri.bg,
+                        border: active ? `2px solid ${tri.color}` : `1px solid ${tri.border}`,
+                        boxShadow: active ? '0 8px 20px rgba(0,0,0,0.06)' : 'none',
+                        transition: 'all 0.3s'
+                      }}
+                      styles={{ body: { padding: '16px' } }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <Text style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>{tri.desc} · {tri.range}</Text>
+                          <Title level={5} style={{ margin: '4px 0 0 0', color: tri.color, fontWeight: '800' }}>{tri.title}</Title>
+                        </div>
+                        {isCurrent && <Tag color="orange" style={{ borderRadius: 10, fontSize: '10px' }}>CURRENT</Tag>}
+                      </div>
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
+          </div>
+
+          {/* Month Cards Scrollable Row */}
+          <div style={{ marginBottom: '24px' }}>
+            <Text strong style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '12px' }}>
+              {isHi ? "मासिक विकासात्मक पड़ाव" : "Monthly Developmental Progress"}
+            </Text>
+            <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '12px' }}>
+              {getMonthsForTrimester(selectedTrimester).map((m) => {
+                const active = selectedMonth === m;
+                const monthStartDay = (m - 1) * 28 + 1;
+                const isMonthLocked = monthStartDay > (user.pregnancyDay || 1);
+                
+                const monthHighlights = [
+                  isHi ? "भ्रूण विकास शुरू" : "Embryo formation",
+                  isHi ? "नन्हा दिल धड़कता है" : "Heartbeat begins",
+                  isHi ? "उंगलियां और चेहरा विकास" : "Facial features",
+                  isHi ? "गर्भ में हलचल शुरू" : "Movements begin",
+                  isHi ? "आवाजें सुनना शुरू" : "Hearing opens",
+                  isHi ? "मस्तिष्क तरंगें सक्रिय" : "Brain active",
+                  isHi ? "आंखें खुलती हैं" : "Eyes opening",
+                  isHi ? "तेजी से विकास" : "Rapid growth",
+                  isHi ? "जन्म की तैयारी" : "Preparing for birth",
+                  isHi ? "पूर्ण विकास" : "Fully developed"
+                ];
+
+                return (
+                  <Card
+                    key={m}
+                    hoverable
+                    onClick={() => setSelectedDay(monthStartDay)}
+                    style={{
+                      minWidth: 160,
+                      maxWidth: 160,
+                      borderRadius: 16,
+                      border: active ? '2px solid #f97316' : '1px solid #e2e8f0',
+                      background: active ? '#fffaf8' : (isMonthLocked ? '#f8fafc' : '#fff'),
+                      transition: 'all 0.2s'
+                    }}
+                    styles={{ body: { padding: '12px' } }}
+                  >
+                    <Text strong style={{ display: 'block', fontSize: '13px', color: active ? '#c2410c' : '#1e293b' }}>
+                      {isHi ? `महीना ${m}` : `Month ${m}`}
+                    </Text>
+                    <Text type="secondary" style={{ display: 'block', fontSize: '11px', marginTop: '2px' }}>
+                      Weeks {(m-1)*4 + 1}-{m*4}
+                    </Text>
+                    <div style={{ height: '36px', overflow: 'hidden', marginTop: '6px' }}>
+                      <Text style={{ fontSize: '10px', color: '#64748b', fontStyle: 'italic' }}>
+                        {monthHighlights[m - 1] || 'Growth phase'}
+                      </Text>
+                    </div>
+                    {isMonthLocked ? (
+                      <Tag color="default" style={{ marginTop: '8px', fontSize: '9px', borderRadius: 8 }}>LOCKED 🔒</Tag>
+                    ) : (
+                      <Tag color={active ? 'orange' : 'success'} style={{ marginTop: '8px', fontSize: '9px', borderRadius: 8 }}>
+                        {active ? 'ACTIVE' : 'UNLOCKED'}
+                      </Tag>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          <Row gutter={[24, 24]} align="middle">
+            <Col xs={24} md={18}>
+              {/* Weeks List */}
+              <div style={{ marginBottom: '20px' }}>
+                <Text strong style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>
+                  {isHi ? "सप्ताह चुनें" : "Select Gestational Week"}
+                </Text>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {getWeeksForMonth(selectedMonth).map((w) => {
+                    const active = selectedWeek === w;
+                    
+                    // Simple completion tracker for the week
+                    const firstDay = (w - 1) * 7 + 1;
+                    const lastDay = w * 7;
+                    const daysCompleted = timelineOverview?.days?.filter(d => d.dayNumber >= firstDay && d.dayNumber <= lastDay && d.completed).length || 0;
+
+                    return (
+                      <Button
+                        key={w}
+                        type={active ? 'primary' : 'default'}
+                        onClick={() => setSelectedDay(firstDay)}
+                        style={{
+                          borderRadius: '12px',
+                          background: active ? '#be123c' : '#fff',
+                          borderColor: active ? '#be123c' : '#d1d5db',
+                          color: active ? '#fff' : '#475569',
+                          fontWeight: 'bold',
+                          height: '38px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <span>{isHi ? `सप्ताह ${w}` : `Week ${w}`}</span>
+                        {daysCompleted > 0 && (
+                          <Badge count={`${daysCompleted}/7`} style={{ backgroundColor: active ? '#fff' : '#10b981', color: active ? '#be123c' : '#fff', fontSize: '10px', boxShadow: 'none' }} />
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Day Progression Timeline Stepper */}
+              <div>
+                <Text strong style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '12px' }}>
+                  {isHi ? "दैनिक यात्रा पथ" : "Daily Journey Path"}
+                </Text>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', padding: '8px 0' }}>
+                  {getDaysForWeek(selectedWeek).map((d, index) => {
+                    const active = selectedDay === d;
+                    const isDayLocked = d > (user.pregnancyDay || 1);
+                    const dayProgress = timelineOverview?.days?.find((entry) => entry.dayNumber === d);
+                    const isDayCompleted = Boolean(dayProgress?.completed);
+
+                    return (
+                      <React.Fragment key={d}>
+                        {index > 0 && <div style={{ height: '2px', width: '20px', backgroundColor: isDayLocked ? '#cbd5e1' : '#f97316', flexShrink: 0 }} />}
+                        <button
+                          onClick={() => setSelectedDay(d)}
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            border: active ? '3px solid #f97316' : '1px solid #cbd5e1',
+                            background: active ? '#fffaf8' : (isDayLocked ? '#e2e8f0' : '#fff'),
+                            color: isDayLocked ? '#64748b' : '#1e293b',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            transition: 'all 0.3s',
+                            transform: active ? 'scale(1.15)' : 'scale(1)',
+                            boxShadow: active ? '0 0 12px rgba(249, 115, 22, 0.4)' : 'none',
+                            flexShrink: 0
+                          }}
+                        >
+                          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>D{d}</span>
+                          {isDayLocked && (
+                            <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', fontSize: '9px', background: '#fff', borderRadius: '50%', padding: '2px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>🔒</span>
+                          )}
+                          {!isDayLocked && isDayCompleted && (
+                            <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', fontSize: '9px', background: '#fff', borderRadius: '50%', padding: '2px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>✅</span>
+                          )}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={24} md={6} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #f1f5f9', paddingLeft: '24px' }}>
+              <Progress 
+                type="circle" 
+                percent={isLocked ? 0 : progressPercent} 
+                size={90} 
+                strokeColor={{
+                  '0%': '#f97316',
+                  '100%': '#be123c',
+                }} 
+              />
+              <Text strong style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', marginTop: '12px', letterSpacing: '1px' }}>
+                {isHi ? "दैनिक पूर्णता दर" : "Daily Progress"}
+              </Text>
+              <Text type="secondary" style={{ fontSize: '10px', marginTop: '2px' }}>
+                {isHi ? `${completedCount} / 4 आयाम पूर्ण` : `${completedCount} of 4 activities done`}
+              </Text>
+            </Col>
+          </Row>
+        </div>
       </Card>
 
       {/* Conditionally Render Locked Cover or Daily Activities */}
@@ -817,6 +1021,28 @@ export default function TodayDashboard({ user, t }) {
                 </Col>
               </Row>
             </div>
+
+            {/* Coaching Feedback Display */}
+            {progressData?.myDailyProgress?.[`${activeQuotient.toLowerCase()}Feedback`] && (
+              <div style={{
+                marginTop: '16px',
+                padding: '16px',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: '1px solid #bbf7d0',
+                position: 'relative'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>👩‍⚕️</span>
+                  <Text strong style={{ fontSize: '12px', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {isHi ? "प्रशिक्षक प्रतिक्रिया" : "Guide / Coaching Feedback"}
+                  </Text>
+                </div>
+                <Paragraph style={{ margin: 0, color: '#14532d', fontSize: '13px', fontStyle: 'italic', lineHeight: '1.5' }}>
+                  "{progressData.myDailyProgress[`${activeQuotient.toLowerCase()}Feedback`]}"
+                </Paragraph>
+              </div>
+            )}
 
             <Divider style={{ margin: '16px 0' }} />
 
@@ -965,45 +1191,193 @@ export default function TodayDashboard({ user, t }) {
       {!isLocked && partnerActivity && (
         <Card
           title={
-            <span>
-              🤝 {isHi ? "पिता और परिवार दैनिक अनुष्ठान" : "Partner & Family Daily Ritual"}
-            </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <span>🤝 {isHi ? "पिता और परिवार दैनिक अनुष्ठान" : "Partner & Family Daily Ritual"}</span>
+              {partnerStreak?.currentStreak > 0 && (
+                <Tag color="volcano" style={{ fontWeight: 'bold', borderRadius: '12px' }}>
+                  🔥 {isHi ? `साथी की लगातार सक्रियता: ${partnerStreak.currentStreak} दिन` : `Streak: ${partnerStreak.currentStreak} Days`}
+                </Tag>
+              )}
+            </div>
           }
-          style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', overflow: 'hidden' }}
+          style={{ 
+            borderRadius: 24, 
+            boxShadow: '0 8px 24px rgba(0,0,0,0.02)', 
+            border: '1px solid #f1f5f9',
+            overflow: 'hidden',
+            marginBottom: '20px'
+          }}
         >
           <div style={{ padding: '4px' }}>
-            <Title level={5} style={{ margin: '0 0 8px 0' }}>{partnerActivity.title}</Title>
+            <Title level={5} style={{ margin: '0 0 8px 0', color: '#1e293b' }}>{partnerActivity.title}</Title>
             <Paragraph type="secondary" style={{ fontSize: '13px', lineHeight: 1.6, marginBottom: '20px' }}>
               {partnerActivity.description}
             </Paragraph>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            {/* Custom Assigned Task Section */}
+            <div style={{ 
+              background: '#f8fafc', 
+              border: '1px solid #e2e8f0', 
+              borderRadius: '16px', 
+              padding: '16px', 
+              marginBottom: '20px' 
+            }}>
+              {partnerLog?.assignedTaskTitle ? (
+                <div>
+                  <Text strong style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                    📋 {isHi ? "संबद्ध विशिष्ट कार्य (Custom Task)" : "Custom Assigned Task"}
+                  </Text>
+                  <Text strong style={{ fontSize: '14px', color: '#be123c', display: 'block' }}>
+                    {partnerLog.assignedTaskTitle}
+                  </Text>
+                  {partnerLog.assignedTaskDesc && (
+                    <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '2px' }}>
+                      {partnerLog.assignedTaskDesc}
+                    </Text>
+                  )}
+                </div>
+              ) : user.role?.roleType === 'MOTHER' ? (
+                <div>
+                  <Text strong style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '8px' }}>
+                    ➕ {isHi ? "साथी के लिए नया कार्य असाइन करें" : "Assign a Custom Task to Partner"}
+                  </Text>
+                  <Space direction="vertical" style={{ width: '100%' }} size="small">
+                    <Input
+                      placeholder={isHi ? "कार्य का नाम (जैसे: पैरों की मालिश)" : "Task Title (e.g. Back massage)"}
+                      value={assignTaskTitle}
+                      onChange={e => setAssignTaskTitle(e.target.value)}
+                      style={{ borderRadius: '8px' }}
+                    />
+                    <Input.TextArea
+                      rows={2}
+                      placeholder={isHi ? "निर्देश (वैकल्पिक)" : "Instructions / details (optional)"}
+                      value={assignTaskDesc}
+                      onChange={e => setAssignTaskDesc(e.target.value)}
+                      style={{ borderRadius: '8px' }}
+                    />
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        if (!assignTaskTitle.trim()) {
+                          toast.error('Task title is required');
+                          return;
+                        }
+                        assignPartnerTask({
+                          variables: {
+                            dayNumber: selectedDay,
+                            title: assignTaskTitle.trim(),
+                            description: assignTaskDesc.trim() || null
+                          }
+                        });
+                      }}
+                      loading={assigningTask}
+                      style={{ background: '#be123c', borderColor: '#be123c', borderRadius: '8px', fontWeight: 'bold' }}
+                    >
+                      {isHi ? "कार्य असाइन करें" : "Assign Task"}
+                    </Button>
+                  </Space>
+                </div>
+              ) : (
+                <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
+                  {isHi ? "माँ द्वारा अभी तक कोई विशिष्ट कार्य असाइन नहीं किया गया है।" : "No custom task assigned yet by Mother."}
+                </Text>
+              )}
+            </div>
+
+            {/* Response Capture Section */}
+            {user.role?.roleType === 'PARTNER' && !partnerLog?.partnerResponse && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
+                <Text strong style={{ fontSize: '12px', color: '#b45309', display: 'block', marginBottom: '8px' }}>
+                  ✏️ {isHi ? "अपनी प्रतिक्रिया दर्ज करें" : "Write Your Action Response"}
+                </Text>
+                <Space direction="vertical" style={{ width: '100%' }} size="small">
+                  <Input.TextArea
+                    rows={2}
+                    placeholder={isHi ? "आपने यह कार्य कैसे पूरा किया..." : "How did you perform this activity..."}
+                    value={partnerResponseText}
+                    onChange={e => setPartnerResponseText(e.target.value)}
+                    style={{ borderRadius: '8px' }}
+                  />
+                  <Input.TextArea
+                    rows={1}
+                    placeholder={isHi ? "परिवार के अन्य सदस्यों के विचार (वैकल्पिक)" : "Notes from other family members (optional)"}
+                    value={partnerFamilyNotes}
+                    onChange={e => setPartnerFamilyNotes(e.target.value)}
+                    style={{ borderRadius: '8px' }}
+                  />
+                  <Button
+                    type="primary"
+                    onClick={() => {
+                      if (!partnerResponseText.trim()) {
+                        toast.error('Response text is required');
+                        return;
+                      }
+                      submitPartnerResponse({
+                        variables: {
+                          dayNumber: selectedDay,
+                          response: partnerResponseText.trim(),
+                          familyNotes: partnerFamilyNotes.trim() || null
+                        }
+                      });
+                    }}
+                    loading={submittingResponse}
+                    style={{ background: '#d97706', borderColor: '#d97706', borderRadius: '8px', fontWeight: 'bold' }}
+                  >
+                    {isHi ? "प्रतिक्रिया जमा करें" : "Submit Response"}
+                  </Button>
+                </Space>
+              </div>
+            )}
+
+            {/* Display Submitted Responses */}
+            {partnerLog?.partnerResponse && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
+                <Text strong style={{ fontSize: '11px', color: '#166534', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                  💬 {isHi ? "साथी की प्रतिक्रिया" : "Partner Response / Action captured"}
+                </Text>
+                <Paragraph style={{ margin: 0, fontSize: '13px', color: '#14532d', fontStyle: 'italic' }}>
+                  "{partnerLog.partnerResponse}"
+                </Paragraph>
+                {partnerLog.familyNotes && (
+                  <div style={{ marginTop: '8px', borderTop: '1px dashed #bbf7d0', paddingTop: '8px' }}>
+                    <Text strong style={{ fontSize: '10px', color: '#166534', display: 'block' }}>
+                      {isHi ? "परिवार के विचार:" : "Family Notes:"}
+                    </Text>
+                    <Text style={{ fontSize: '12px', color: '#14532d' }}>{partnerLog.familyNotes}</Text>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
               <Tag color={partnerLog?.partnerAcknowledged ? "green" : "orange"} style={{ fontWeight: 'bold', padding: '4px 12px', borderRadius: '8px' }}>
                 {partnerLog?.partnerAcknowledged
-                  ? (isHi ? "✓ साथी द्वारा पूर्ण किया गया" : "✓ Completed by Partner")
-                  : (isHi ? "⚠️ साथी द्वारा पूर्णता लंबित" : "⚠️ Pending Partner Completion")
+                  ? (isHi ? "✓ साथी द्वारा पूर्ण" : "✓ Completed by Partner")
+                  : (isHi ? "⚠️ लंबित" : "⚠️ Pending Partner Completion")
                 }
               </Tag>
 
-              <Button
-                type={partnerLog?.partnerAcknowledged ? "default" : "primary"}
-                onClick={async () => {
-                  try {
-                    await acknowledgePartnerActivityMutation({
-                      variables: { dayNumber: selectedDay }
-                    });
-                  } catch (e) {
-                    console.error(e);
+              {user.role?.roleType !== 'PARTNER' && (
+                <Button
+                  type={partnerLog?.partnerAcknowledged ? "default" : "primary"}
+                  onClick={async () => {
+                    try {
+                      await acknowledgePartnerActivityMutation({
+                        variables: { dayNumber: selectedDay }
+                      });
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }}
+                  loading={togglingPartner}
+                  style={{ borderRadius: '12px', fontWeight: 'bold' }}
+                >
+                  {partnerLog?.partnerAcknowledged
+                    ? (isHi ? "अपूर्ण चिह्नित करें" : "Mark as Incomplete")
+                    : (isHi ? "पूर्ण चिह्नित करें" : "Mark Completed")
                   }
-                }}
-                loading={togglingPartner}
-                style={{ borderRadius: '10px' }}
-              >
-                {partnerLog?.partnerAcknowledged
-                  ? (isHi ? "अपूर्ण चिह्नित करें" : "Mark as Incomplete")
-                  : (isHi ? "साथी द्वारा पूर्ण चिह्नित करें" : "Mark Completed by Partner")
-                }
-              </Button>
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -1040,7 +1414,7 @@ export default function TodayDashboard({ user, t }) {
                   {isHi ? "साझाकरण अनुमतियाँ" : "Sharing Permissions"}
                 </Text>
                 <Space direction="vertical" style={{ width: '100%' }}>
-                  <Checkbox 
+                  <Checkbox
                     checked={user.shareVitalsWithPartner}
                     onChange={(e) => {
                       updatePartnerSharing({
@@ -1053,7 +1427,7 @@ export default function TodayDashboard({ user, t }) {
                   >
                     {isHi ? "साथी के साथ स्वास्थ्य महत्वपूर्ण विवरण (Vitals) साझा करें" : "Share health vitals logs with partner"}
                   </Checkbox>
-                  <Checkbox 
+                  <Checkbox
                     checked={user.shareReportsWithPartner}
                     onChange={(e) => {
                       updatePartnerSharing({
@@ -1071,13 +1445,13 @@ export default function TodayDashboard({ user, t }) {
             ) : (
               <div>
                 <Paragraph type="secondary" style={{ fontSize: '13px', lineHeight: 1.6 }}>
-                  {isHi 
-                    ? "अपने जीवनसाथी के साथ अपनी मातृत्व यात्रा साझा करें। वे दैनिक साथी कार्यों को देख सकते हैं, प्रोत्साहन भेज सकते हैं और आपकी सहमति के अनुसार प्रगति देख सकते हैं।" 
+                  {isHi
+                    ? "अपने जीवनसाथी के साथ अपनी मातृत्व यात्रा साझा करें। वे दैनिक साथी कार्यों को देख सकते हैं, प्रोत्साहन भेज सकते हैं और आपकी सहमति के अनुसार प्रगति देख सकते हैं।"
                     : "Invite and link your partner to join your Garbh Sanskar journey. They will receive their own dashboard, assigned tasks, and can send you encouraging messages."}
                 </Paragraph>
                 <Row gutter={12} style={{ marginTop: '16px' }}>
                   <Col xs={16} md={18}>
-                    <Input 
+                    <Input
                       placeholder={isHi ? "साथी का ईमेल दर्ज करें..." : "Enter partner's email address..."}
                       value={partnerEmail}
                       onChange={(e) => setPartnerEmail(e.target.value)}
@@ -1085,8 +1459,8 @@ export default function TodayDashboard({ user, t }) {
                     />
                   </Col>
                   <Col xs={8} md={6}>
-                    <Button 
-                      type="primary" 
+                    <Button
+                      type="primary"
                       block
                       loading={linkingPartner}
                       onClick={() => {
@@ -1109,27 +1483,107 @@ export default function TodayDashboard({ user, t }) {
       {!isLocked && sensoryActivity && (
         <Card
           title={
-            <span>
-              👁️ {isHi ? "पंचेंद्रिय विकास दैनिक अनुष्ठान" : "Five-Sense Daily Sensory Ritual"}
+            <span style={{ color: 'var(--brand-maroon-dark)', fontWeight: 'bold' }}>
+              🎨 {isHi ? "पंचेंद्रिय और रचनात्मक गतिविधि" : "Five-Sense & Creative Activity"}
             </span>
           }
-          style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', overflow: 'hidden' }}
+          style={{ 
+            borderRadius: 24, 
+            boxShadow: '0 8px 24px rgba(0,0,0,0.02)', 
+            border: '1px solid #f1f5f9',
+            overflow: 'hidden',
+            marginBottom: '20px'
+          }}
         >
           <div style={{ padding: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <Tag color="purple" style={{ fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px' }}>
-                {sensoryActivity.senseType}
+              <Tag 
+                color={
+                  sensoryActivity.senseType === 'HEARING' ? 'orange' :
+                  sensoryActivity.senseType === 'SIGHT' ? 'cyan' :
+                  sensoryActivity.senseType === 'SMELL' ? 'purple' :
+                  sensoryActivity.senseType === 'TASTE' ? 'gold' : 'rose'
+                } 
+                style={{ fontWeight: 'bold', padding: '4px 12px', borderRadius: '8px' }}
+              >
+                {sensoryActivity.senseType === 'HEARING' ? (isHi ? "👂 श्रवण (Sound)" : "👂 HEARING (Shravana)") :
+                 sensoryActivity.senseType === 'SIGHT' ? (isHi ? "👁️ दर्शन (Sight)" : "👁️ SIGHT (Darshana)") :
+                 sensoryActivity.senseType === 'SMELL' ? (isHi ? "👃 घ्राण (Smell)" : "👃 SMELL (Ghrana)") :
+                 sensoryActivity.senseType === 'TASTE' ? (isHi ? "👅 रसना (Taste)" : "👅 TASTE (Rasana)") :
+                 (isHi ? "✋ स्पर्श (Touch)" : "✋ TOUCH (Sparsha)")
+                }
               </Tag>
             </div>
-            <Title level={5} style={{ margin: '0 0 8px 0' }}>{sensoryActivity.title}</Title>
-            <Paragraph type="secondary" style={{ fontSize: '13px', lineHeight: 1.6, marginBottom: '20px' }}>
+            
+            <Title level={4} style={{ margin: '0 0 10px 0', color: '#1e293b', fontWeight: 'bold' }}>
+              {sensoryActivity.title}
+            </Title>
+            
+            <Paragraph type="secondary" style={{ fontSize: '13.5px', lineHeight: 1.6, marginBottom: '20px' }}>
               {sensoryActivity.description}
             </Paragraph>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-              <Tag color={sensoryLog?.completed ? "green" : "blue"} style={{ fontWeight: 'bold', padding: '4px 12px', borderRadius: '8px' }}>
+            {/* Guidance Pack Section */}
+            {sensoryActivity.guidance && (
+              <div style={{ 
+                background: '#f8fafc', 
+                border: '1px solid #e2e8f0', 
+                borderRadius: '16px', 
+                padding: '16px', 
+                marginBottom: '20px' 
+              }}>
+                <Text strong style={{ fontSize: '12px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                  💡 {isHi ? "मार्गदर्शन और निर्देश" : "Instructions & Guidance Pack"}
+                </Text>
+                <Paragraph style={{ margin: 0, fontSize: '13px', color: '#334155', lineHeight: '1.5' }}>
+                  {sensoryActivity.guidance}
+                </Paragraph>
+              </div>
+            )}
+
+            {/* Media Packs */}
+            {sensoryActivity.mediaLinks && (
+              <div style={{ marginBottom: '20px' }}>
+                <Text strong style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
+                  🎵 {isHi ? "गतिविधि मीडिया संसाधन" : "Associated Guidance Media"}
+                </Text>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {(() => {
+                    let links = [];
+                    try {
+                      links = JSON.parse(sensoryActivity.mediaLinks);
+                    } catch (e) {
+                      links = sensoryActivity.mediaLinks.split(',').map(l => l.trim()).filter(Boolean);
+                    }
+                    if (!Array.isArray(links)) links = [links];
+                    return links.map((link, idx) => {
+                      const isAudio = link.endsWith('.mp3') || link.endsWith('.wav') || link.includes('audio');
+                      const isVideo = link.endsWith('.mp4') || link.includes('youtube') || link.includes('vimeo');
+                      return (
+                        <Button
+                          key={idx}
+                          type="default"
+                          icon={isAudio ? <SoundOutlined /> : isVideo ? <PlayCircleOutlined /> : <BookOutlined />}
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ borderRadius: '10px', fontSize: '12px' }}
+                        >
+                          {isAudio ? (isHi ? "ऑडियो चलाएं" : "Play Guidance Audio") : 
+                           isVideo ? (isHi ? "वीडियो देखें" : "Watch Guidance Video") :
+                           (isHi ? "संसाधन लिंक खोलें" : "Open Resource Link")}
+                        </Button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+              <Tag color={sensoryLog?.completed ? "success" : "processing"} style={{ fontWeight: 'bold', padding: '4px 12px', borderRadius: '8px' }}>
                 {sensoryLog?.completed
-                  ? (isHi ? "✓ अभ्यास पूर्ण" : "✓ Exercise Completed")
+                  ? (isHi ? "✓ गतिविधि पूर्ण" : "✓ Activity Completed")
                   : (isHi ? "⚠️ लंबित" : "⚠️ Pending Practice")
                 }
               </Tag>
@@ -1146,11 +1600,11 @@ export default function TodayDashboard({ user, t }) {
                   }
                 }}
                 loading={togglingSensory}
-                style={{ borderRadius: '10px' }}
+                style={{ borderRadius: '12px', fontWeight: 'bold' }}
               >
                 {sensoryLog?.completed
                   ? (isHi ? "अपूर्ण चिह्नित करें" : "Mark as Incomplete")
-                  : (isHi ? "पूर्ण चिह्नित करें" : "Mark Completed")
+                  : (isHi ? "पूर्ण चिह्नित करें" : "Mark as Completed")
                 }
               </Button>
             </div>

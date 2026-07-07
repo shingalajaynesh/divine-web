@@ -22,7 +22,8 @@ import {
   SolutionOutlined,
   BellOutlined,
   ShoppingCartOutlined,
-  SafetyCertificateOutlined
+  SafetyCertificateOutlined,
+  ToolOutlined
 } from '@ant-design/icons';
 
 // Operations & Translations Imports
@@ -288,6 +289,16 @@ function App() {
         key: '/weekly-report',
         icon: <BarChartOutlined />,
         label: lang === 'hi' ? 'साप्ताहिक रिपोर्ट' : 'Weekly Reports',
+      },
+      {
+        key: '/journey-archive',
+        icon: <CalendarOutlined />,
+        label: lang === 'hi' ? 'यात्रा संग्रह एवं योजना' : 'Journey Archive',
+      },
+      {
+        key: '/pregnancy-tools',
+        icon: <ToolOutlined />,
+        label: lang === 'hi' ? 'गर्भावस्था उपकरण' : 'Pregnancy Tools',
       },
       {
         key: '/support',

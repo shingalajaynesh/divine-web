@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import toast from 'react-hot-toast';
 import { 
@@ -107,6 +107,47 @@ const REVIEW_CONTENT_ITEM_MUTATION = gql`
   }
 `;
 
+const GET_MEMBER_PROGRESS_QUERY = gql`
+  query GetMemberProgress($dayNumber: Int!, $userId: ID!) {
+    myDailyProgress(dayNumber: $dayNumber, userId: $userId) {
+      id
+      dayNumber
+      pqCompleted
+      iqCompleted
+      eqCompleted
+      sqCompleted
+      pqDurationMins
+      iqDurationMins
+      eqDurationMins
+      sqDurationMins
+      pqEvidence
+      iqEvidence
+      eqEvidence
+      sqEvidence
+      pqNotes
+      iqNotes
+      eqNotes
+      sqNotes
+      pqFeedback
+      iqFeedback
+      eqFeedback
+      sqFeedback
+    }
+  }
+`;
+
+const SUBMIT_COACHING_FEEDBACK_MUTATION = gql`
+  mutation SubmitCoachingFeedback($progressId: ID!, $quotient: String!, $feedback: String!) {
+    submitCoachingFeedback(progressId: $progressId, quotient: $quotient, feedback: $feedback) {
+      id
+      pqFeedback
+      iqFeedback
+      eqFeedback
+      sqFeedback
+    }
+  }
+`;
+
 // NEW operations for Staff Tasks, Classes, and Attendance
 const GET_STAFF_TASKS_QUERY = gql`
   query GetStaffTasks {
@@ -189,6 +230,33 @@ const RECORD_ATTENDANCE_MUTATION = gql`
   }
 `;
 
+const GET_WORKSHEET_SUBMISSIONS_QUERY = gql`
+  query GetWorksheetSubmissions {
+    getWorksheetSubmissions {
+      id
+      userId
+      userDisplayName
+      title
+      submittedAt
+      fileUrl
+      score
+      feedback
+      status
+    }
+  }
+`;
+
+const GRADE_WORKSHEET_SUBMISSION_MUTATION = gql`
+  mutation GradeWorksheetSubmission($id: ID!, $score: Int!, $feedback: String!) {
+    gradeWorksheetSubmission(id: $id, score: $score, feedback: $feedback) {
+      id
+      score
+      feedback
+      status
+    }
+  }
+`;
+
 export default function StaffConsole({ isHi }) {
   const [activeTab, setActiveTab] = useState('tickets');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -198,6 +266,15 @@ export default function StaffConsole({ isHi }) {
 
   // CRM & Drawers
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(1);
+  const [feedbackQuotient, setFeedbackQuotient] = useState('PQ');
+  const [coachingFeedbackText, setCoachingFeedbackText] = useState('');
+
+  useEffect(() => {
+    if (selectedUser) {
+      setSelectedDay(selectedUser.pregnancyDay || 1);
+    }
+  }, [selectedUser]);
   const [crmSearch, setCrmSearch] = useState('');
   const [newCrmNote, setNewCrmNote] = useState('');
 
@@ -240,6 +317,20 @@ export default function StaffConsole({ isHi }) {
     variables: { userId: selectedUser?.id },
     skip: !selectedUser
   });
+
+  const memberProgressQuery = useQuery(GET_MEMBER_PROGRESS_QUERY, {
+    variables: { dayNumber: selectedDay || 1, userId: selectedUser?.id },
+    skip: !selectedUser
+  });
+
+  const [submitCoachingFeedback, { loading: submittingFeedback }] = useMutation(SUBMIT_COACHING_FEEDBACK_MUTATION, {
+    onCompleted: () => {
+      memberProgressQuery.refetch();
+      setCoachingFeedbackText('');
+      toast.success('Coaching feedback submitted successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
   const auditLogsQuery = useQuery(GET_AUDIT_LOGS_QUERY, { skip: activeTab !== 'audit' });
 
   const [addCrmNote] = useMutation(ADD_CRM_NOTE_MUTATION, {
@@ -271,6 +362,25 @@ export default function StaffConsole({ isHi }) {
     },
     onError: (err) => toast.error(err.message)
   });
+
+  const worksheetSubmissionsQuery = useQuery(GET_WORKSHEET_SUBMISSIONS_QUERY, {
+    skip: activeTab !== 'quizzes'
+  });
+
+  const [gradeWorksheetSubmission, { loading: gradingWorksheet }] = useMutation(GRADE_WORKSHEET_SUBMISSION_MUTATION, {
+    onCompleted: () => {
+      worksheetSubmissionsQuery.refetch();
+      setSelectedWorksheet(null);
+      setWorksheetScore(null);
+      setWorksheetFeedback('');
+      toast.success("Worksheet graded successfully!");
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [selectedWorksheet, setSelectedWorksheet] = useState(null);
+  const [worksheetScore, setWorksheetScore] = useState(null);
+  const [worksheetFeedback, setWorksheetFeedback] = useState('');
 
   const [toggleStaffTask] = useMutation(TOGGLE_STAFF_TASK_MUTATION, {
     onCompleted: () => staffTasksQuery.refetch(),
@@ -324,6 +434,24 @@ export default function StaffConsole({ isHi }) {
     if (!newCrmNote.trim() || !selectedUser) return;
     try {
       await addCrmNote({ variables: { userId: selectedUser.id, note: newCrmNote.trim() } });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleAddCoachingFeedback = async () => {
+    if (!coachingFeedbackText.trim() || !memberProgressQuery.data?.myDailyProgress?.id) {
+      toast.error('Progress record not found or feedback is empty');
+      return;
+    }
+    try {
+      await submitCoachingFeedback({
+        variables: {
+          progressId: memberProgressQuery.data.myDailyProgress.id,
+          quotient: feedbackQuotient,
+          feedback: coachingFeedbackText.trim()
+        }
+      });
     } catch (err) {
       toast.error(err.message);
     }
@@ -458,6 +586,7 @@ export default function StaffConsole({ isHi }) {
           { key: 'followups', label: '🚨 Member Follow-up Queue' },
           { key: 'reminders', label: '📋 Tasks & Reminders' },
           { key: 'attendance', label: '📅 Class Attendance' },
+          { key: 'quizzes', label: '🧠 Quiz & Worksheets' },
           { key: 'review', label: '🩺 Medical Article Review' },
           { key: 'audit', label: '🛡️ Security Audit Trail' }
         ]}
@@ -914,6 +1043,171 @@ export default function StaffConsole({ isHi }) {
         />
       )}
 
+      {/* 8. QUIZ & WORKSHEETS TAB */}
+      {activeTab === 'quizzes' && (
+        <Row gutter={[20, 20]}>
+          <Col xs={24} lg={14}>
+            <Card title={isHi ? "वर्कशीट सबमिशन और ग्रेडिंग" : "Worksheet Submissions & Grading"} style={{ borderRadius: '16px' }}>
+              <Table 
+                dataSource={worksheetSubmissionsQuery.data?.getWorksheetSubmissions || []}
+                loading={worksheetSubmissionsQuery.loading}
+                rowKey="id"
+                columns={[
+                  {
+                    title: 'Mother',
+                    dataIndex: 'userDisplayName',
+                    key: 'userDisplayName',
+                    render: (text) => <Text strong>{text}</Text>
+                  },
+                  {
+                    title: 'Worksheet Title',
+                    dataIndex: 'title',
+                    key: 'title'
+                  },
+                  {
+                    title: 'Status',
+                    dataIndex: 'status',
+                    key: 'status',
+                    render: (status) => (
+                      <Tag color={status === 'reviewed' ? 'success' : 'processing'}>
+                        {status.toUpperCase()}
+                      </Tag>
+                    )
+                  },
+                  {
+                    title: 'Score',
+                    dataIndex: 'score',
+                    key: 'score',
+                    render: (score) => score !== null ? <Badge count={score} style={{ backgroundColor: '#0f766e' }} /> : '-'
+                  },
+                  {
+                    title: 'Action',
+                    key: 'action',
+                    render: (_, record) => (
+                      <Button 
+                        size="small" 
+                        type="primary" 
+                        onClick={() => {
+                          setSelectedWorksheet(record);
+                          setWorksheetScore(record.score);
+                          setWorksheetFeedback(record.feedback || '');
+                        }}
+                        style={{ background: '#be123c', borderColor: '#be123c' }}
+                      >
+                        {record.status === 'reviewed' ? 'Re-grade' : 'Review & Grade'}
+                      </Button>
+                    )
+                  }
+                ]}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} lg={10}>
+            <Card title={isHi ? "दैनिक प्रश्नोत्तरी उत्तर कुंजी" : "Daily Quiz Answer Keys"} style={{ borderRadius: '16px' }}>
+              <Paragraph type="secondary">
+                Verify daily quiz questions, correct answer keys, and pass metrics for cognitive progress tracking.
+              </Paragraph>
+              <List
+                itemLayout="horizontal"
+                dataSource={[
+                  { dayNumber: 1, questionText: 'What is the primary goal of Garbh Sanskar?', answer: 'Nourishing the child spiritually, mentally, and physically before birth.', passRate: '94%' },
+                  { dayNumber: 15, questionText: 'Which vitamin is crucial for preventing neural tube defects?', answer: 'Folic Acid (Vitamin B9)', passRate: '98%' },
+                  { dayNumber: 30, questionText: 'What music is recommended for baby brain growth?', answer: 'Soft classical ragas or instrumental flute music', passRate: '91%' },
+                  { dayNumber: 60, questionText: 'How much water should a pregnant mother drink daily on average?', answer: '3 Liters', passRate: '88%' },
+                  { dayNumber: 90, questionText: 'What is the safe range for kick counts in late trimesters?', answer: 'At least 10 kicks in 2 hours', passRate: '95%' }
+                ]}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<Tag color="volcano">Day {item.dayNumber}</Tag>}
+                      title={<Text strong>{item.questionText}</Text>}
+                      description={
+                        <div>
+                          <div style={{ color: '#0f766e', fontWeight: 'bold' }}>Correct: {item.answer}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>Pass Rate: {item.passRate}</div>
+                        </div>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      {/* Worksheet Grading Modal */}
+      <Modal
+        title={isHi ? "वर्कशीट समीक्षा और ग्रेडिंग" : "Worksheet Review & Grading"}
+        open={selectedWorksheet !== null}
+        onCancel={() => setSelectedWorksheet(null)}
+        footer={[
+          <Button key="cancel" onClick={() => setSelectedWorksheet(null)}>Cancel</Button>,
+          <Button 
+            key="submit" 
+            type="primary" 
+            loading={gradingWorksheet}
+            onClick={() => {
+              if (worksheetScore === null || worksheetScore === undefined) {
+                toast.error("Please assign a score.");
+                return;
+              }
+              gradeWorksheetSubmission({
+                variables: {
+                  id: selectedWorksheet.id,
+                  score: parseInt(worksheetScore),
+                  feedback: worksheetFeedback
+                }
+              });
+            }}
+            style={{ background: '#be123c', borderColor: '#be123c' }}
+          >
+            Submit Grade
+          </Button>
+        ]}
+      >
+        {selectedWorksheet && (
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Alert 
+              message={`${selectedWorksheet.userDisplayName} submitted:`}
+              description={<Text strong>{selectedWorksheet.title}</Text>}
+              type="info"
+              showIcon
+            />
+            
+            <div>
+              <Text strong style={{ display: 'block', marginBottom: '8px' }}>Submitted File:</Text>
+              <Button type="dashed" href={selectedWorksheet.fileUrl} target="_blank" download block>
+                Download Worksheet PDF
+              </Button>
+            </div>
+
+            <Row gutter={12}>
+              <Col span={12}>
+                <Text strong style={{ display: 'block', marginBottom: '8px' }}>Assign Score (0-100):</Text>
+                <Input 
+                  type="number" 
+                  min={0} 
+                  max={100} 
+                  value={worksheetScore !== null ? worksheetScore : ''} 
+                  onChange={e => setWorksheetScore(e.target.value)} 
+                />
+              </Col>
+            </Row>
+
+            <div>
+              <Text strong style={{ display: 'block', marginBottom: '8px' }}>Coaching Feedback:</Text>
+              <TextArea 
+                rows={4} 
+                value={worksheetFeedback} 
+                onChange={e => setWorksheetFeedback(e.target.value)} 
+                placeholder="Provide professional feedback to support the mother's journey..." 
+              />
+            </div>
+          </Space>
+        )}
+      </Modal>
+
       {/* Ticket response dialog */}
       <Modal
         title="Reply & Close Ticket Inquiry"
@@ -984,6 +1278,108 @@ export default function StaffConsole({ isHi }) {
                   </List.Item>
                 )}
               />
+            </div>
+
+            <Divider />
+
+            <div>
+              <Title level={5}>📋 Daily Activities & Coaching Feedback</Title>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <Text style={{ fontSize: '13px' }}>View Gestational Day:</Text>
+                <InputNumber
+                  min={1}
+                  max={280}
+                  value={selectedDay}
+                  onChange={val => setSelectedDay(val || 1)}
+                  style={{ width: '80px' }}
+                />
+              </div>
+
+              {memberProgressQuery.loading ? (
+                <Text type="secondary">Loading progress details...</Text>
+              ) : !memberProgressQuery.data?.myDailyProgress ? (
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px dashed #cbd5e1' }}>
+                  <Text type="secondary" style={{ fontSize: '13px' }}>No activities logged yet for Day {selectedDay}</Text>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                    {['PQ', 'IQ', 'EQ', 'SQ'].map(q => {
+                      const qLower = q.toLowerCase();
+                      const progress = memberProgressQuery.data.myDailyProgress;
+                      const isCompleted = progress[`${qLower}Completed`];
+                      const duration = progress[`${qLower}DurationMins`] || 0;
+                      const notes = progress[`${qLower}Notes`] || '';
+                      const evidence = progress[`${qLower}Evidence`] || '';
+                      const feedback = progress[`${qLower}Feedback`] || '';
+                      const active = feedbackQuotient === q;
+
+                      return (
+                        <Card
+                          key={q}
+                          hoverable
+                          size="small"
+                          onClick={() => setFeedbackQuotient(q)}
+                          style={{
+                            borderRadius: '12px',
+                            border: active ? '2px solid #be123c' : '1px solid #e2e8f0',
+                            background: active ? '#fffafb' : '#fff',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text strong style={{ color: active ? '#be123c' : '#1e293b' }}>{q} Activity</Text>
+                            <Tag color={isCompleted ? 'green' : 'orange'}>
+                              {isCompleted ? 'COMPLETED' : 'PENDING'}
+                            </Tag>
+                          </div>
+                          {isCompleted && (
+                            <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                              <div><Text type="secondary">Duration:</Text> <Text strong>{duration} mins</Text></div>
+                              {notes && <div><Text type="secondary">Notes:</Text> <Text style={{ fontStyle: 'italic' }}>"{notes}"</Text></div>}
+                              {evidence && (
+                                <div>
+                                  <Text type="secondary">Evidence:</Text>{' '}
+                                  <a href={evidence} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                                    View link ↗
+                                  </a>
+                                </div>
+                              )}
+                              {feedback && (
+                                <div style={{ marginTop: '6px', padding: '6px 10px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                                  <Text strong style={{ fontSize: '10px', color: '#166534', display: 'block' }}>YOUR FEEDBACK:</Text>
+                                  <Text style={{ fontSize: '11px', color: '#14532d' }}>"{feedback}"</Text>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <Text strong style={{ fontSize: '12px' }}>Write Coaching Feedback for {feedbackQuotient}</Text>
+                    </div>
+                    <TextArea
+                      rows={3}
+                      placeholder={`Provide clinical guidance or encouragement for ${feedbackQuotient} activity...`}
+                      value={coachingFeedbackText}
+                      onChange={e => setCoachingFeedbackText(e.target.value)}
+                      style={{ marginBottom: '10px' }}
+                    />
+                    <Button
+                      type="primary"
+                      onClick={handleAddCoachingFeedback}
+                      loading={submittingFeedback}
+                      style={{ background: '#be123c', borderColor: '#be123c', width: '100%', fontWeight: 'bold' }}
+                    >
+                      Submit Feedback
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </Space>
         )}

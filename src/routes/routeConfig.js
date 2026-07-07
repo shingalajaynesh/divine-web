@@ -57,6 +57,16 @@ export const routeConfig = [
     roles: ['ADMIN']
   },
   {
+    path: '/franchise',
+    component: lazy(() => import('../views/FranchiseConsole')),
+    roles: ['FRANCHISE_ADMIN', 'ADMIN']
+  },
+  {
+    path: '/super-admin',
+    component: lazy(() => import('../views/SuperAdminConsole')),
+    roles: ['SUPER_ADMIN', 'ADMIN']
+  },
+  {
     path: '/staff',
     component: lazy(() => import('../views/StaffConsole')),
     roles: ['STAFF', 'ADMIN']
@@ -72,6 +82,11 @@ export const routeConfig = [
     roles: ['MOTHER', 'STAFF', 'ADMIN']
   },
   {
+    path: '/pregnancy-tools',
+    component: lazy(() => import('../views/PregnancyTools')),
+    roles: ['MOTHER', 'STAFF', 'ADMIN']
+  },
+  {
     path: '/support',
     component: lazy(() => import('../views/SupportHub')),
     roles: ['MOTHER', 'STAFF', 'ADMIN']
@@ -84,6 +99,11 @@ export const routeConfig = [
   {
     path: '/pricing',
     component: lazy(() => import('../views/UpgradePlans')),
+    roles: ['MOTHER', 'STAFF', 'ADMIN']
+  },
+  {
+    path: '/journey-archive',
+    component: lazy(() => import('../views/JourneyArchive')),
     roles: ['MOTHER', 'STAFF', 'ADMIN']
   }
 ];
