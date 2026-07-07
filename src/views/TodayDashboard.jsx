@@ -429,7 +429,7 @@ export default function TodayDashboard({ user, t }) {
             </Title>
             
             {/* Trimester/Month/Week/Day Navigation */}
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
               {/* Trimester Buttons */}
               <div style={{ display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                 {[1, 2, 3].map((tri) => {

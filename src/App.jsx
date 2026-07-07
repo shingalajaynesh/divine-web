@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import { auth } from './config/firebase.js';
@@ -33,8 +33,8 @@ import {
 import { TRANSLATIONS } from './translations/translations';
 
 // Components Imports
-import OnboardingCalculator from './views/OnboardingCalculator';
-import DeviceLockScreen from './views/DeviceLockScreen';
+const OnboardingCalculator = React.lazy(() => import('./views/OnboardingCalculator'));
+const DeviceLockScreen = React.lazy(() => import('./views/DeviceLockScreen'));
 import { divineTheme } from './theme/themeConfig';
 
 // Routing Imports
@@ -46,6 +46,15 @@ function App() {
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [authLoaded, setAuthLoaded] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
+
+  const [cachedUser, setCachedUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('divine_cached_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   
   const { data: meData, loading: meLoading, error: meError, refetch: refetchMe } = useQuery(ME_QUERY);
 
@@ -66,6 +75,10 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       setAuthLoaded(true);
+      if (!user) {
+        setCachedUser(null);
+        localStorage.removeItem('divine_cached_user');
+      }
     });
     return unsubscribe;
   }, []);
@@ -85,7 +98,14 @@ function App() {
     }
   }, [authLoaded, firebaseUser, meData, meLoading, syncing]);
 
-  const user = meData?.me;
+  useEffect(() => {
+    if (meData?.me) {
+      setCachedUser(meData.me);
+      localStorage.setItem('divine_cached_user', JSON.stringify(meData.me));
+    }
+  }, [meData]);
+
+  const user = meData?.me || cachedUser;
   const lang = user?.language || 'en';
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
@@ -217,7 +237,7 @@ function App() {
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Toaster position="top-center" reverseOrder={false} />
 
-        {!authLoaded || (firebaseUser && meLoading) ? (
+        {!authLoaded || (firebaseUser && meLoading && !cachedUser) ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
             <Spin size="large" description="Loading session..." />
           </div>
@@ -228,6 +248,11 @@ function App() {
           </>
         ) : (
           <>
+          <Suspense fallback={
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+              <Spin size="large" description="Loading..." />
+            </div>
+          }>
             {isLockScreen ? (
               <DeviceLockScreen refetchMe={refetchMe} />
             ) : user && !user.lmpDate ? (
@@ -244,6 +269,7 @@ function App() {
                 handleLanguageToggle={handleLanguageToggle}
               />
             ) : null}
+          </Suspense>
           </>
         )}
       </div>

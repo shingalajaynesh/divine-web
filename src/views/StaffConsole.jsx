@@ -232,7 +232,7 @@ export default function StaffConsole({ isHi }) {
       key: 'actions',
       width: 180,
       render: (_, record) => (
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           {record.status !== 'resolved' && (
             <Button 
               type="primary" 
@@ -490,7 +490,7 @@ export default function StaffConsole({ isHi }) {
         open={selectedUser !== null}
       >
         {selectedUser && (
-          <Space direction="vertical" style={{ width: '100%' }} size="large">
+          <Space orientation="vertical" style={{ width: '100%' }} size="large">
             <div>
               <Title level={5}>Patient Info</Title>
               <Paragraph style={{ margin: 0 }}>Email: {selectedUser.email}</Paragraph>

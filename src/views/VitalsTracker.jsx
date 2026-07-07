@@ -359,7 +359,7 @@ export default function VitalsTracker({ user, lang }) {
           <Col xs={24} md={10}>
             <Card style={{ borderRadius: 20, border: '1px solid #e2e8f0' }}>
               <Title level={5} style={{ margin: '0 0 16px 0' }}>💊 Add Medicine Schedule</Title>
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <div>
                   <Text strong style={{ fontSize: '11px', display: 'block', marginBottom: '6px' }}>Medicine Name</Text>
                   <Input placeholder="e.g. Iron Supplement, Folic Acid" value={newMedName} onChange={e => setNewMedName(e.target.value)} />
@@ -423,7 +423,7 @@ export default function VitalsTracker({ user, lang }) {
           <Col xs={24} md={10}>
             <Card style={{ borderRadius: 20, border: '1px solid #e2e8f0' }}>
               <Title level={5} style={{ margin: '0 0 16px 0' }}>🏥 Log Doctor Visit</Title>
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <div>
                   <Text strong style={{ fontSize: '11px', display: 'block', marginBottom: '6px' }}>Appointment Purpose</Text>
                   <Input placeholder="e.g. Trimester 1 Ultrasound Scan" value={appTitle} onChange={e => setAppTitle(e.target.value)} />
@@ -507,7 +507,7 @@ export default function VitalsTracker({ user, lang }) {
             <Col xs={24} md={8}>
               <Card style={{ borderRadius: 16, background: '#fcfcfc' }}>
                 <Title level={5} style={{ fontSize: '13px', margin: '0 0 12px 0' }}>➕ Add Packing Item</Title>
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                   <Input placeholder="e.g. Diapers, Swaddle Cloth" value={newBagItemName} onChange={e => setNewBagItemName(e.target.value)} />
                   <Select value={newBagCategory} onChange={setNewBagCategory} style={{ width: '100%' }}>
                     <Select.Option value="mother">🤰 For Mother</Select.Option>

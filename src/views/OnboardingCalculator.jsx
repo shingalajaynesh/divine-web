@@ -81,7 +81,8 @@ export default function OnboardingCalculator({ saveOnboarding, t }) {
             onChange={(val) => setLang(val)}
             options={[
               { value: 'en', label: 'English' },
-              { value: 'hi', label: 'हिंदी (Hindi)' }
+              { value: 'hi', label: 'हिंदी (Hindi)' },
+              { value: 'gu', label: 'ગુજરાતી (Gujarati)' }
             ]}
           />
         </Form.Item>

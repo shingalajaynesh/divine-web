@@ -327,7 +327,7 @@ export default function SupportHub({ user, lang }) {
                     {/* Resolution Form */}
                     <div style={{ background: '#fcfcfc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                       <Text strong style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>Rate & Close Support Ticket</Text>
-                      <Space direction="vertical" style={{ width: '100%' }}>
+                      <Space orientation="vertical" style={{ width: '100%' }}>
                         <Rate value={ratingValue} onChange={setRatingValue} />
                         <Input 
                           placeholder="Leave feedback comments (optional)" 

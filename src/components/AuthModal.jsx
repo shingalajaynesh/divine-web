@@ -25,6 +25,8 @@ const AUTH_ERROR_MESSAGES = {
   'auth/weak-password': 'Choose a password with at least 6 characters.',
   'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
   'auth/operation-not-allowed': 'This sign-in method is not enabled in Firebase Console yet.',
+  'auth/invalid-app-credential': 'Phone sign-in is not fully configured in Firebase yet. Check Authentication providers, authorized domains, and reCAPTCHA/App Check settings.',
+  'auth/app-not-authorized': 'This Firebase app is not authorized for the selected sign-in method. Check your Firebase project settings.',
   'auth/invalid-phone-number': 'Enter a valid phone number including the country code.',
   'auth/too-many-requests': 'Too many attempts. Please wait before trying again.',
   'auth/invalid-verification-code': 'The OTP is incorrect or has expired.',
@@ -38,6 +40,9 @@ const getAuthErrorMessage = (error) => {
   const diagnosticText = `${error?.message || ''} ${JSON.stringify(error?.customData || {})}`;
   if (diagnosticText.includes('App Check')) {
     return 'Firebase App Check blocked this request. Configure the App Check site key or disable Authentication enforcement during development.';
+  }
+  if (diagnosticText.includes('sendVerificationCode') || diagnosticText.includes('401') || diagnosticText.includes('Unauthorized')) {
+    return 'Phone OTP is not fully configured in Firebase yet. Enable Phone Authentication, add the current domain to authorized domains, and complete reCAPTCHA/App Check setup.';
   }
   return AUTH_ERROR_MESSAGES[error?.code] || 'Authentication could not be completed. Please try again.';
 };

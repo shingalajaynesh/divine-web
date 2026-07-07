@@ -282,7 +282,7 @@ export default function AudioPlayerModal({ visible, onClose, mediaUrl, title, co
                     </Button>
                   </div>
                 ) : (
-                  <Space direction="vertical" style={{ width: '100%' }}>
+                  <Space orientation="vertical" style={{ width: '100%' }}>
                     <Button size="small" block onClick={() => startSleepTimer(15)}>15 {isHi ? "मिनट" : "Minutes"}</Button>
                     <Button size="small" block onClick={() => startSleepTimer(30)}>30 {isHi ? "मिनट" : "Minutes"}</Button>
                     <Button size="small" block onClick={() => startSleepTimer(45)}>45 {isHi ? "मिनट" : "Minutes"}</Button>
