@@ -18,7 +18,9 @@ import {
   GET_MY_PLAYLISTS_QUERY,
   CREATE_PLAYLIST_MUTATION,
   DELETE_PLAYLIST_MUTATION,
-  REMOVE_PLAYLIST_ITEM_MUTATION
+  REMOVE_PLAYLIST_ITEM_MUTATION,
+  GET_RECOMMENDED_CONTENT_FEED_QUERY,
+  GET_MY_LEARNING_PATHS_QUERY
 } from '../graphql/operations';
 import VideoPlayerModal from '../components/VideoPlayerModal';
 import AudioPlayerModal from '../components/AudioPlayerModal';
@@ -28,6 +30,7 @@ const { Title, Paragraph, Text } = Typography;
 const filters = [{ label: 'All', value: '' }, { label: 'Stories', value: 'story' }, { label: 'Audio', value: 'audio' }, { label: 'Video', value: 'video' }, { label: 'Meditation', value: 'meditation' }, { label: 'Yoga', value: 'yoga' }, { label: 'Affirmations', value: 'affirmation' }];
 const views = [
   { label: 'Explore', value: 'explore' }, 
+  { label: '🎓 Learning Paths', value: 'paths' }, 
   { label: 'Bookmarks', value: 'bookmark' }, 
   { label: 'Watch Later', value: 'watch_later' },
   { label: 'My Playlists', value: 'playlists' },
@@ -111,7 +114,18 @@ export default function ContentLibrary({ lang = 'en' }) {
   const feed = useQuery(CONTENT_FEED_QUERY, { variables: { language: lang, contentType: type || null }, skip: view !== 'explore' || Boolean(activeQuery) });
   const [search, searchState] = useLazyQuery(SEARCH_CONTENT_QUERY, { fetchPolicy: 'network-only' });
   const recent = useQuery(RECENT_CONTENT_SEARCHES_QUERY, { fetchPolicy: 'cache-and-network' });
-  const saved = useQuery(SAVED_CONTENT_QUERY, { variables: { language: lang, kind: view }, skip: ['explore', 'playlists', 'downloads'].includes(view), fetchPolicy: 'cache-and-network' });
+  const saved = useQuery(SAVED_CONTENT_QUERY, { variables: { language: lang, kind: view }, skip: ['explore', 'playlists', 'downloads', 'paths'].includes(view), fetchPolicy: 'cache-and-network' });
+  
+  const recommendedFeed = useQuery(GET_RECOMMENDED_CONTENT_FEED_QUERY, {
+    variables: { language: lang, limit: 10 },
+    skip: view !== 'explore',
+    fetchPolicy: 'cache-and-network'
+  });
+  const learningPaths = useQuery(GET_MY_LEARNING_PATHS_QUERY, {
+    variables: { language: lang },
+    skip: view !== 'paths',
+    fetchPolicy: 'cache-and-network'
+  });
   
   // Playlists operations
   const { data: playlistData, loading: playlistLoading, refetch: refetchPlaylists } = useQuery(GET_MY_PLAYLISTS_QUERY, {
@@ -135,12 +149,12 @@ export default function ContentLibrary({ lang = 'en' }) {
   };
 
   const items = useMemo(() => {
-    if (['playlists', 'downloads'].includes(view)) return [];
+    if (['playlists', 'downloads', 'paths'].includes(view)) return [];
     return view !== 'explore' ? saved.data?.savedContent : activeQuery ? searchState.data?.searchContent : feed.data?.contentFeed;
   }, [view, saved.data, activeQuery, searchState.data, feed.data]);
 
-  const loading = ['playlists', 'downloads'].includes(view) ? false : (view !== 'explore' ? saved.loading : activeQuery ? searchState.loading : feed.loading);
-  const error = ['playlists', 'downloads'].includes(view) ? null : (view !== 'explore' ? saved.error : activeQuery ? searchState.error : feed.error);
+  const loading = ['playlists', 'downloads', 'paths'].includes(view) ? false : (view !== 'explore' ? saved.loading : activeQuery ? searchState.loading : feed.loading);
+  const error = ['playlists', 'downloads', 'paths'].includes(view) ? null : (view !== 'explore' ? saved.error : activeQuery ? searchState.error : feed.error);
 
   const save = async (contentItemId, kind, savedValue = true) => {
     await setBookmark({ variables: { input: { contentItemId, kind, saved: savedValue } } });
@@ -483,63 +497,198 @@ export default function ContentLibrary({ lang = 'en' }) {
               ))}
           </Row>
         </div>
-      ) : items?.length ? (
-        <Row gutter={[20, 20]}>
-          {items.map((item) => (
-            <Col xs={24} sm={12} lg={8} key={item.id}>
-              <Card 
-                className="library-content-card"
-                style={{ 
-                  borderRadius: '16px', 
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.01)', 
-                  border: '1px solid #f1f5f9',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff1f2', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#be123c' }}>
-                    {iconFor(item.contentType)}
-                  </div>
-                  <Tag color="rose">{item.category?.name || item.contentType.toUpperCase()}</Tag>
-                </div>
-                
-                <Title level={4} style={{ margin: '0 0 8px 0', fontSize: '16px', minHeight: '44px' }}>
-                  {item.translation?.title}
-                </Title>
-                <Paragraph ellipsis={{ rows: 3 }} type="secondary" style={{ fontSize: '13px', marginBottom: '16px' }}>
-                  {item.translation?.summary || item.translation?.body}
-                </Paragraph>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                  <Text type="secondary" style={{ fontSize: '11px' }}>
-                    {item.visibility === 'free' ? 'Free access' : `${item.visibility} access`}
-                  </Text>
-                  
-                  <Space size={4}>
-                    {view === 'explore' ? (
-                      <>
-                        <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')} />
-                        {['video', 'audio'].includes(item.contentType) && (
-                          <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<ClockCircleOutlined />} onClick={() => save(item.id, 'watch_later')} />
-                        )}
-                      </>
-                    ) : (
-                      <Button size="small" danger onClick={() => save(item.id, view, false)}>Remove</Button>
-                    )}
-                    
-                    {['video', 'audio'].includes(item.contentType) ? (
-                      <Button size="small" type="primary" style={{ background: '#be123c', borderColor: '#be123c' }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
-                    ) : (
-                      <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e' }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
-                    )}
-                  </Space>
-                </div>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+      ) : view === 'paths' ? (
+        // Learning Paths UI
+        <div>
+          {learningPaths.loading ? (
+            <Card style={{ borderRadius: '16px' }}><Skeleton active /></Card>
+          ) : learningPaths.data?.myLearningPaths?.length ? (
+            <Row gutter={[24, 24]}>
+              {learningPaths.data.myLearningPaths.map((path) => (
+                <Col xs={24} lg={12} key={path.id}>
+                  <Card
+                    style={{
+                      borderRadius: '24px',
+                      border: '1px solid #f1f5f9',
+                      boxShadow: '0 6px 18px rgba(0,0,0,0.02)',
+                      background: '#fff'
+                    }}
+                    styles={{ body: { padding: '24px' } }}
+                  >
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '32px', background: '#fdf2f8', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {path.icon}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <Title level={4} style={{ margin: 0, color: 'var(--brand-maroon-dark)', fontSize: '18px' }}>
+                          {path.title}
+                        </Title>
+                        <Text type="secondary" style={{ fontSize: '13px' }}>
+                          {path.items.length} structured milestones
+                        </Text>
+                      </div>
+                    </div>
+
+                    <Paragraph type="secondary" style={{ fontSize: '14px', marginBottom: '20px' }}>
+                      {path.description}
+                    </Paragraph>
+
+                    <div style={{ marginBottom: '24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <Text strong style={{ fontSize: '12px' }}>Curriculum Progress</Text>
+                        <Text strong style={{ color: '#be123c', fontSize: '12px' }}>{path.progressPercent}%</Text>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ width: `${path.progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #be123c, #fda4af)', borderRadius: '4px', transition: 'width 0.4s ease' }} />
+                      </div>
+                    </div>
+
+                    <Divider style={{ margin: '16px 0' }} />
+
+                    <Title level={5} style={{ fontSize: '14px', marginBottom: '12px', color: '#475569' }}>
+                      Learning Path Steps:
+                    </Title>
+
+                    <List
+                      dataSource={path.items}
+                      renderItem={(item, index) => (
+                        <List.Item
+                          actions={[
+                            ['video', 'audio'].includes(item.contentType) ? (
+                              <Button size="small" type="primary" style={{ background: '#be123c', borderColor: '#be123c' }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
+                            ) : (
+                              <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e' }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
+                            )
+                          ]}
+                        >
+                          <List.Item.Meta
+                            avatar={<Tag color={item.completed ? 'success' : 'default'}>{item.completed ? '✓' : index + 1}</Tag>}
+                            title={<Text strong style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#94a3b8' : '#1e293b' }}>{item.translation?.title}</Text>}
+                            description={
+                              <Space size={6}>
+                                <Tag color="rose" style={{ fontSize: '10px' }}>{item.category?.name || item.contentType.toUpperCase()}</Tag>
+                                {item.trimester1Safe && <Tag color="blue" style={{ fontSize: '10px' }}>T1 Safe</Tag>}
+                              </Space>
+                            }
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          ) : (
+            <Empty description="No learning paths currently configured." />
+          )}
+        </div>
       ) : (
-        <Empty description={activeQuery ? `No results for “${activeQuery}”.` : 'No items yet.'} />
+        // Explore/Saved lists view
+        <div>
+          {view === 'explore' && !activeQuery && recommendedFeed.data?.recommendedContentFeed?.length > 0 && (
+            <div style={{ marginBottom: '32px' }}>
+              <Title level={4} style={{ color: 'var(--brand-maroon-dark)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
+                ✨ Recommended for You <Tag color="rose">Personalized</Tag>
+              </Title>
+              <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '12px', scrollbarWidth: 'thin' }}>
+                {recommendedFeed.data.recommendedContentFeed.map(item => (
+                  <div key={item.id} style={{ minWidth: '300px', width: '300px', flexShrink: 0 }}>
+                    <Card
+                      hoverable
+                      style={{ borderRadius: '16px', border: '1px solid #f1f5f9', background: '#fff', height: '100%' }}
+                      styles={{ body: { padding: '16px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' } }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: '#be123c' }}>{iconFor(item.contentType)}</span>
+                            <Tag color="rose">{item.category?.name || item.contentType.toUpperCase()}</Tag>
+                          </div>
+                          {item.completed && <Tag color="success">✓ Completed</Tag>}
+                        </div>
+                        <Title level={5} style={{ margin: '0 0 8px 0', fontSize: '14px', lineHeight: 1.3 }}>{item.translation?.title}</Title>
+                        <Paragraph ellipsis={{ rows: 2 }} type="secondary" style={{ fontSize: '12px', margin: 0 }}>{item.translation?.summary || item.translation?.body}</Paragraph>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '12px' }}>
+                        <Space size={4}>
+                          <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')} />
+                          {['video', 'audio'].includes(item.contentType) && (
+                            <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<ClockCircleOutlined />} onClick={() => save(item.id, 'watch_later')} />
+                          )}
+                        </Space>
+                        {['video', 'audio'].includes(item.contentType) ? (
+                          <Button size="small" type="primary" style={{ background: '#be123c', borderColor: '#be123c' }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
+                        ) : (
+                          <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e' }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+              <Divider style={{ margin: '24px 0 16px 0' }} />
+            </div>
+          )}
+
+          {items?.length ? (
+            <Row gutter={[20, 20]}>
+              {items.map((item) => (
+                <Col xs={24} sm={12} lg={8} key={item.id}>
+                  <Card 
+                    className="library-content-card"
+                    style={{ 
+                      borderRadius: '16px', 
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.01)', 
+                      border: '1px solid #f1f5f9',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff1f2', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#be123c' }}>
+                        {iconFor(item.contentType)}
+                      </div>
+                      <Tag color="rose">{item.category?.name || item.contentType.toUpperCase()}</Tag>
+                    </div>
+                    
+                    <Title level={4} style={{ margin: '0 0 8px 0', fontSize: '16px', minHeight: '44px' }}>
+                      {item.translation?.title}
+                    </Title>
+                    <Paragraph ellipsis={{ rows: 3 }} type="secondary" style={{ fontSize: '13px', marginBottom: '16px' }}>
+                      {item.translation?.summary || item.translation?.body}
+                    </Paragraph>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                      <Text type="secondary" style={{ fontSize: '11px' }}>
+                        {item.visibility === 'free' ? 'Free access' : `${item.visibility} access`}
+                      </Text>
+                      
+                      <Space size={4}>
+                        {view === 'explore' ? (
+                          <>
+                            <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')} />
+                            {['video', 'audio'].includes(item.contentType) && (
+                              <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<ClockCircleOutlined />} onClick={() => save(item.id, 'watch_later')} />
+                            )}
+                          </>
+                        ) : (
+                          <Button size="small" danger onClick={() => save(item.id, view, false)}>Remove</Button>
+                        )}
+                        
+                        {['video', 'audio'].includes(item.contentType) ? (
+                          <Button size="small" type="primary" style={{ background: '#be123c', borderColor: '#be123c' }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
+                        ) : (
+                          <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e' }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
+                        )}
+                      </Space>
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          ) : (
+            <Empty description={activeQuery ? `No results for “${activeQuery}”.` : 'No items yet.'} />
+          )}
+        </div>
       )}
 
       {playingVideo && (

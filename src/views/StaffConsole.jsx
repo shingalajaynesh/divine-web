@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@apollo/client';
 import toast from 'react-hot-toast';
 import { 
   Card, Table, Button, Input, Select, Tag, Space, Modal, Form, 
-  Typography, Row, Col, Tabs, Drawer, List, Divider, Checkbox, DatePicker, Tooltip, Alert
+  Typography, Row, Col, Tabs, Drawer, List, Divider, Checkbox, DatePicker, Tooltip, Alert, Progress, Badge
 } from 'antd';
 import { 
   SearchOutlined, MessageOutlined, CheckCircleOutlined, InfoCircleOutlined,
@@ -89,20 +89,39 @@ const MANAGE_CONTENT_QUERY = gql`
       contentType
       status
       medicalReviewed
+      reviewedBy
+      feedback
       translations {
         id
         language
         title
+        summary
+        body
       }
     }
   }
 `;
 
-const REVIEW_CONTENT_ITEM_MUTATION = gql`
-  mutation ReviewContentItem($id: ID!, $reviewed: Boolean!) {
-    reviewContentItem(id: $id, reviewed: $reviewed) {
+const APPROVE_MEDICAL_CONTENT_MUTATION = gql`
+  mutation ApproveMedicalContent($id: ID!, $feedback: String) {
+    approveMedicalContent(id: $id, feedback: $feedback) {
       id
+      status
       medicalReviewed
+      reviewedBy
+      feedback
+    }
+  }
+`;
+
+const FLAG_MEDICAL_CONTENT_MUTATION = gql`
+  mutation FlagMedicalContent($id: ID!, $feedback: String) {
+    flagMedicalContent(id: $id, feedback: $feedback) {
+      id
+      status
+      medicalReviewed
+      reviewedBy
+      feedback
     }
   }
 `;
@@ -197,9 +216,16 @@ const GET_LIVE_CLASSES_QUERY = gql`
     getLiveClassesDetailed {
       id
       title
+      titleEn
+      titleHi
       instructor
       startTime
       durationMins
+      videoCallUrl
+      replayUrl
+      centerId
+      seriesTitle
+      batchName
     }
   }
 `;
@@ -230,6 +256,34 @@ const RECORD_ATTENDANCE_MUTATION = gql`
   }
 `;
 
+const CREATE_LIVE_CLASS_MUTATION = gql`
+  mutation CreateLiveClass($titleEn: String!, $titleHi: String!, $instructor: String!, $startTime: String!, $durationMins: Int!, $videoCallUrl: String!, $seriesTitle: String, $batchName: String, $centerId: ID) {
+    createLiveClass(titleEn: $titleEn, titleHi: $titleHi, instructor: $instructor, startTime: $startTime, durationMins: $durationMins, videoCallUrl: $videoCallUrl, seriesTitle: $seriesTitle, batchName: $batchName, centerId: $centerId) {
+      id
+    }
+  }
+`;
+
+const UPDATE_LIVE_CLASS_MUTATION = gql`
+  mutation UpdateLiveClass($id: ID!, $titleEn: String, $titleHi: String, $instructor: String, $startTime: String, $durationMins: Int, $videoCallUrl: String, $seriesTitle: String, $batchName: String, $replayUrl: String) {
+    updateLiveClass(id: $id, titleEn: $titleEn, titleHi: $titleHi, instructor: $instructor, startTime: $startTime, durationMins: $durationMins, videoCallUrl: $videoCallUrl, seriesTitle: $seriesTitle, batchName: $batchName, replayUrl: $replayUrl) {
+      id
+    }
+  }
+`;
+
+const DELETE_LIVE_CLASS_MUTATION = gql`
+  mutation DeleteLiveClass($id: ID!) {
+    deleteLiveClass(id: $id)
+  }
+`;
+
+const SEND_LIVE_CLASS_REMINDER_MUTATION = gql`
+  mutation SendLiveClassReminder($classId: ID!) {
+    sendLiveClassReminder(classId: $classId)
+  }
+`;
+
 const GET_WORKSHEET_SUBMISSIONS_QUERY = gql`
   query GetWorksheetSubmissions {
     getWorksheetSubmissions {
@@ -257,6 +311,24 @@ const GRADE_WORKSHEET_SUBMISSION_MUTATION = gql`
   }
 `;
 
+const GET_CONTENT_PERFORMANCE_ANALYTICS_QUERY = gql`
+  query GetContentPerformanceAnalytics {
+    getContentPerformanceAnalytics {
+      id
+      slug
+      contentType
+      title
+      totalViews
+      uniqueViewers
+      completionCount
+      completionRate
+      saveCount
+      avgProgress
+      dropOffRate
+    }
+  }
+`;
+
 export default function StaffConsole({ isHi }) {
   const [activeTab, setActiveTab] = useState('tickets');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -269,6 +341,10 @@ export default function StaffConsole({ isHi }) {
   const [selectedDay, setSelectedDay] = useState(1);
   const [feedbackQuotient, setFeedbackQuotient] = useState('PQ');
   const [coachingFeedbackText, setCoachingFeedbackText] = useState('');
+
+  // Medical Review states
+  const [selectedReviewItem, setSelectedReviewItem] = useState(null);
+  const [reviewFeedback, setReviewFeedback] = useState('');
 
   useEffect(() => {
     if (selectedUser) {
@@ -306,11 +382,23 @@ export default function StaffConsole({ isHi }) {
     skip: activeTab !== 'crm' && activeTab !== 'followups' && activeTab !== 'reminders'
   });
   const manageContentQuery = useQuery(MANAGE_CONTENT_QUERY, { skip: activeTab !== 'review' });
-  const [reviewContent] = useMutation(REVIEW_CONTENT_ITEM_MUTATION, { 
-    onCompleted: () => { 
-      manageContentQuery.refetch(); 
-      toast.success('Content medical review updated'); 
-    } 
+  const [approveContent, { loading: approvingContent }] = useMutation(APPROVE_MEDICAL_CONTENT_MUTATION, {
+    onCompleted: () => {
+      manageContentQuery.refetch();
+      setSelectedReviewItem(null);
+      setReviewFeedback('');
+      toast.success('Content clinical review approved!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+  const [flagContent, { loading: flaggingContent }] = useMutation(FLAG_MEDICAL_CONTENT_MUTATION, {
+    onCompleted: () => {
+      manageContentQuery.refetch();
+      setSelectedReviewItem(null);
+      setReviewFeedback('');
+      toast.success('Content flagged/rejected and returned to Draft.');
+    },
+    onError: (err) => toast.error(err.message)
   });
 
   const crmNotesQuery = useQuery(GET_CRM_NOTES_QUERY, {
@@ -332,6 +420,7 @@ export default function StaffConsole({ isHi }) {
     onError: (err) => toast.error(err.message)
   });
   const auditLogsQuery = useQuery(GET_AUDIT_LOGS_QUERY, { skip: activeTab !== 'audit' });
+  const performanceQuery = useQuery(GET_CONTENT_PERFORMANCE_ANALYTICS_QUERY, { skip: activeTab !== 'analytics' });
 
   const [addCrmNote] = useMutation(ADD_CRM_NOTE_MUTATION, {
     onCompleted: () => {
@@ -402,6 +491,83 @@ export default function StaffConsole({ isHi }) {
     },
     onError: (err) => toast.error(err.message)
   });
+
+  const [createLiveClass, { loading: creatingLiveClass }] = useMutation(CREATE_LIVE_CLASS_MUTATION, {
+    onCompleted: () => {
+      liveClassesQuery.refetch();
+      setIsClassModalOpen(false);
+      resetClassForm();
+      toast.success(isHi ? 'लाइव क्लास जोड़ी गई!' : 'Live class created successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [updateLiveClass, { loading: updatingLiveClass }] = useMutation(UPDATE_LIVE_CLASS_MUTATION, {
+    onCompleted: () => {
+      liveClassesQuery.refetch();
+      setIsClassModalOpen(false);
+      resetClassForm();
+      toast.success(isHi ? 'लाइव क्लास अपडेट की गई!' : 'Live class updated successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [deleteLiveClass] = useMutation(DELETE_LIVE_CLASS_MUTATION, {
+    onCompleted: () => {
+      liveClassesQuery.refetch();
+      toast.success(isHi ? 'लाइव क्लास हटाई गई!' : 'Live class deleted successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [sendLiveClassReminder, { loading: sendingReminder }] = useMutation(SEND_LIVE_CLASS_REMINDER_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'रिमाइंडर सफलतापूर्वक भेजे गए!' : 'Reminders dispatched successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState(null);
+  const [classTitleEn, setClassTitleEn] = useState('');
+  const [classTitleHi, setClassTitleHi] = useState('');
+  const [classInstructor, setClassInstructor] = useState('');
+  const [classStartTime, setClassStartTime] = useState('');
+  const [classDurationMins, setClassDurationMins] = useState(60);
+  const [classVideoCallUrl, setClassVideoCallUrl] = useState('');
+  const [classReplayUrl, setClassReplayUrl] = useState('');
+  const [classSeriesTitle, setClassSeriesTitle] = useState('');
+  const [classBatchName, setClassBatchName] = useState('');
+
+  const resetClassForm = () => {
+    setEditingClass(null);
+    setClassTitleEn('');
+    setClassTitleHi('');
+    setClassInstructor('');
+    setClassStartTime('');
+    setClassDurationMins(60);
+    setClassVideoCallUrl('');
+    setClassReplayUrl('');
+    setClassSeriesTitle('');
+    setClassBatchName('');
+  };
+
+  const handleEditClass = (c) => {
+    setEditingClass(c);
+    setClassTitleEn(c.titleEn || '');
+    setClassTitleHi(c.titleHi || '');
+    setClassInstructor(c.instructor || '');
+    const date = new Date(c.startTime);
+    const tzoffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(date.getTime() - tzoffset)).toISOString().slice(0, 16);
+    setClassStartTime(localISOTime);
+    setClassDurationMins(c.durationMins || 60);
+    setClassVideoCallUrl(c.videoCallUrl || '');
+    setClassReplayUrl(c.replayUrl || '');
+    setClassSeriesTitle(c.seriesTitle || '');
+    setClassBatchName(c.batchName || '');
+    setIsClassModalOpen(true);
+  };
 
   // Data processing
   const inquiries = ticketData?.getInquiries?.items || [];
@@ -588,6 +754,7 @@ export default function StaffConsole({ isHi }) {
           { key: 'attendance', label: '📅 Class Attendance' },
           { key: 'quizzes', label: '🧠 Quiz & Worksheets' },
           { key: 'review', label: '🩺 Medical Article Review' },
+          { key: 'analytics', label: '📊 Content Analytics' },
           { key: 'audit', label: '🛡️ Security Audit Trail' }
         ]}
         style={{ marginBottom: '24px' }}
@@ -874,83 +1041,408 @@ export default function StaffConsole({ isHi }) {
         </Row>
       )}
 
-      {/* 5. CLASS ATTENDANCE WIDGET */}
+      {/* 5. CLASS ATTENDANCE & SCHEDULING WIDGET */}
       {activeTab === 'attendance' && (
-        <Card title="Class Attendance Roster" style={{ borderRadius: 16 }}>
-          <Space direction="vertical" style={{ width: '100%' }} size="large">
-            <div>
-              <Text strong style={{ fontSize: 13, marginRight: 12 }}>Select Session:</Text>
-              <Select 
-                placeholder="Choose live class..." 
-                style={{ width: '300px' }} 
-                onChange={setSelectedClassId}
-                value={selectedClassId}
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
+          <Row gutter={[20, 20]}>
+            {/* Left side: Live Classes Management */}
+            <Col xs={24} lg={12}>
+              <Card 
+                title={isHi ? "लाइव कक्षाएं और कार्यशालाएं" : "Live Classes Scheduling & Management"} 
+                style={{ borderRadius: 16 }}
+                extra={
+                  <Button 
+                    type="primary" 
+                    onClick={() => { resetClassForm(); setIsClassModalOpen(true); }}
+                    style={{ background: '#be123c', borderColor: '#be123c', fontWeight: 'bold' }}
+                  >
+                    + Add New Class
+                  </Button>
+                }
               >
-                {liveClasses.map(c => (
-                  <Select.Option key={c.id} value={c.id}>
-                    {c.title} ({c.instructor}) - {new Date(c.startTime).toLocaleDateString()}
-                  </Select.Option>
-                ))}
-              </Select>
-            </div>
+                <Table
+                  dataSource={liveClasses}
+                  rowKey="id"
+                  size="small"
+                  columns={[
+                    {
+                      title: 'Class Details',
+                      key: 'details',
+                      render: (_, record) => {
+                        const title = isHi ? record.titleHi : record.titleEn;
+                        return (
+                          <div>
+                            <Text strong style={{ fontSize: 13 }}>{title}</Text>
+                            <div style={{ fontSize: 11, color: '#64748b' }}>
+                              Instructor: {record.instructor} · {record.durationMins} mins
+                            </div>
+                            <div style={{ marginTop: 4 }}>
+                              {record.seriesTitle && <Tag color="purple">{record.seriesTitle}</Tag>}
+                              {record.batchName && <Tag color="cyan">{record.batchName}</Tag>}
+                            </div>
+                          </div>
+                        );
+                      }
+                    },
+                    {
+                      title: 'Start Time',
+                      key: 'startTime',
+                      render: (_, record) => new Date(record.startTime).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    },
+                    {
+                      title: 'Actions',
+                      key: 'actions',
+                      render: (_, record) => (
+                        <Space size="small">
+                          <Button 
+                            size="small" 
+                            onClick={() => handleEditClass(record)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            type="dashed"
+                            danger
+                            onClick={() => {
+                              Modal.confirm({
+                                title: 'Delete Live Class?',
+                                content: 'Are you sure you want to delete this class webinar?',
+                                onOk: () => deleteLiveClass({ variables: { id: record.id } })
+                              });
+                            }}
+                          >
+                            Delete
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setSelectedClassId(record.id);
+                              classBookingsQuery.refetch();
+                            }}
+                            type={selectedClassId === record.id ? 'primary' : 'default'}
+                            style={selectedClassId === record.id ? { background: '#be123c', borderColor: '#be123c' } : {}}
+                          >
+                            Roster
+                          </Button>
+                        </Space>
+                      )
+                    }
+                  ]}
+                />
+              </Card>
+            </Col>
 
-            {selectedClassId ? (
-              <Table
-                dataSource={classBookings}
-                rowKey="userId"
-                locale={{ emptyText: 'No members booked this class yet.' }}
-                columns={[
-                  {
-                    title: 'Attendee Name',
-                    dataIndex: 'user',
-                    key: 'user',
-                    render: (user) => user ? (
-                      <div>
-                        <Text strong>{user.displayName}</Text>
-                        <div style={{ fontSize: 11, color: '#666' }}>{user.emailAddress} · {user.mobileNo}</div>
-                      </div>
-                    ) : 'Unknown User'
-                  },
-                  {
-                    title: 'Status',
-                    key: 'status',
-                    render: (_, record) => (
-                      <Tag color={record.attended ? 'success' : 'default'}>
-                        {record.attended ? 'PRESENT' : 'ABSENT'}
-                      </Tag>
-                    )
-                  },
-                  {
-                    title: 'Mark Attendance',
-                    key: 'action',
-                    render: (_, record) => (
-                      <Checkbox 
-                        checked={record.attended}
-                        onChange={(e) => {
-                          recordClassAttendance({
-                            variables: {
-                              classId: selectedClassId,
-                              userId: record.userId,
-                              attended: e.target.checked
-                            }
-                          });
-                        }}
-                      >
-                        Mark Present
-                      </Checkbox>
-                    )
+            {/* Right side: Attendance roster for selected class */}
+            <Col xs={24} lg={12}>
+              <Card 
+                title={isHi ? "उपस्थिति रजिस्टर" : "Class Booking & Attendance Roster"} 
+                style={{ borderRadius: 16 }}
+                extra={
+                  selectedClassId && (
+                    <Button 
+                      size="small"
+                      type="primary"
+                      loading={sendingReminder}
+                      onClick={() => sendLiveClassReminder({ variables: { classId: selectedClassId } })}
+                      style={{ background: '#0f766e', borderColor: '#0f766e', fontWeight: 'bold' }}
+                    >
+                      Send Bookings Reminder
+                    </Button>
+                  )
+                }
+              >
+                {selectedClassId ? (
+                  <Table
+                    dataSource={classBookings}
+                    rowKey="userId"
+                    locale={{ emptyText: 'No members booked this class yet.' }}
+                    columns={[
+                      {
+                        title: 'Attendee Name',
+                        dataIndex: 'user',
+                        key: 'user',
+                        render: (user) => user ? (
+                          <div>
+                            <Text strong>{user.displayName}</Text>
+                            <div style={{ fontSize: 11, color: '#666' }}>{user.emailAddress} · {user.mobileNo}</div>
+                          </div>
+                        ) : 'Unknown User'
+                      },
+                      {
+                        title: 'Status',
+                        key: 'status',
+                        render: (_, record) => (
+                          <Tag color={record.attended ? 'success' : 'default'}>
+                            {record.attended ? 'PRESENT' : 'ABSENT'}
+                          </Tag>
+                        )
+                      },
+                      {
+                        title: 'Mark Attendance',
+                        key: 'action',
+                        render: (_, record) => (
+                          <Checkbox 
+                            checked={record.attended}
+                            onChange={(e) => {
+                              recordClassAttendance({
+                                variables: {
+                                  classId: selectedClassId,
+                                  userId: record.userId,
+                                  attended: e.target.checked
+                                }
+                              });
+                            }}
+                          >
+                            Mark Present
+                          </Checkbox>
+                        )
+                      }
+                    ]}
+                  />
+                ) : (
+                  <Alert 
+                    type="info" 
+                    message="Please select Roster next to a live class session on the left to inspect booked members and mark attendance." 
+                    showIcon 
+                  />
+                )}
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Add / Edit Class Modal */}
+          <Modal
+            title={editingClass ? "Edit Live Class Session" : "Schedule New Live Class"}
+            open={isClassModalOpen}
+            onCancel={() => { setIsClassModalOpen(false); resetClassForm(); }}
+            footer={[
+              <Button key="cancel" onClick={() => { setIsClassModalOpen(false); resetClassForm(); }}>Cancel</Button>,
+              <Button 
+                key="submit" 
+                type="primary" 
+                loading={creatingLiveClass || updatingLiveClass}
+                onClick={() => {
+                  if (!classTitleEn || !classTitleHi || !classInstructor || !classStartTime || !classVideoCallUrl) {
+                    toast.error("Please fill in all required fields.");
+                    return;
                   }
-                ]}
-              />
-            ) : (
-              <Alert 
-                type="warning" 
-                message="Please select an upcoming or completed class to view the attendee roster." 
-                showIcon 
-              />
-            )}
-          </Space>
-        </Card>
+                  const vars = {
+                    titleEn: classTitleEn,
+                    titleHi: classTitleHi,
+                    instructor: classInstructor,
+                    startTime: new Date(classStartTime).toISOString(),
+                    durationMins: parseInt(classDurationMins),
+                    videoCallUrl: classVideoCallUrl,
+                    seriesTitle: classSeriesTitle || null,
+                    batchName: classBatchName || null
+                  };
+                  if (editingClass) {
+                    updateLiveClass({
+                      variables: {
+                        id: editingClass.id,
+                        ...vars,
+                        replayUrl: classReplayUrl || null
+                      }
+                    });
+                  } else {
+                    createLiveClass({
+                      variables: vars
+                    });
+                  }
+                }}
+                style={{ background: '#be123c', borderColor: '#be123c' }}
+              >
+                {editingClass ? "Save Changes" : "Schedule Class"}
+              </Button>
+            ]}
+          >
+            <Form layout="vertical" style={{ marginTop: 16 }}>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Class Title (English) *" required>
+                    <Input value={classTitleEn} onChange={e => setClassTitleEn(e.target.value)} placeholder="e.g. Prenatal Yoga for Trimester 2" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Class Title (Hindi) *" required>
+                    <Input value={classTitleHi} onChange={e => setClassTitleHi(e.target.value)} placeholder="e.g. गर्भावस्था योग सत्र" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Instructor *" required>
+                    <Input value={classInstructor} onChange={e => setClassInstructor(e.target.value)} placeholder="e.g. Dr. Priya Sharma" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Duration (Minutes) *" required>
+                    <Input type="number" value={classDurationMins} onChange={e => setClassDurationMins(e.target.value)} />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Start Time *" required>
+                    <Input type="datetime-local" value={classStartTime} onChange={e => setClassStartTime(e.target.value)} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Video Call URL *" required>
+                    <Input value={classVideoCallUrl} onChange={e => setClassVideoCallUrl(e.target.value)} placeholder="e.g. https://meet.google.com/abc" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Series Title (Optional)">
+                    <Input value={classSeriesTitle} onChange={e => setClassSeriesTitle(e.target.value)} placeholder="e.g. Yoga Foundation Series" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Batch Segment (Optional)">
+                    <Input value={classBatchName} onChange={e => setClassBatchName(e.target.value)} placeholder="e.g. Morning Premium" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              {editingClass && (
+                <Form.Item label="Replay Video URL (Optional)">
+                  <Input value={classReplayUrl} onChange={e => setClassReplayUrl(e.target.value)} placeholder="e.g. https://youtube.com/watch?v=..." />
+                </Form.Item>
+              )}
+            </Form>
+          </Modal>
+        </Space>
+      )}
+
+      {/* 5.5 CONTENT PERFORMANCE ANALYTICS */}
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={8}>
+              <Card style={{ borderRadius: '16px', background: '#fffaf0', border: '1px solid #ffe8cc' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Total Content Count</Text>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#be123c', marginTop: '4px' }}>
+                  {performanceQuery.data?.getContentPerformanceAnalytics?.length || 0}
+                </div>
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card style={{ borderRadius: '16px', background: '#f5f3ff', border: '1px solid #ede9fe' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Total Engagement Views</Text>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#be123c', marginTop: '4px' }}>
+                  {(performanceQuery.data?.getContentPerformanceAnalytics || []).reduce((sum, item) => sum + item.totalViews, 0)}
+                </div>
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card style={{ borderRadius: '16px', background: '#f0fdf4', border: '1px solid #dcfce7' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Top Content Item</Text>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#be123c', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {performanceQuery.data?.getContentPerformanceAnalytics?.[0]?.title || 'None'}
+                </div>
+              </Card>
+            </Col>
+          </Row>
+
+          <Card 
+            title={isHi ? "सामग्री प्रदर्शन रिपोर्ट" : "Content Engagement & Performance Analytics"} 
+            style={{ borderRadius: '16px' }}
+            extra={
+              <Space>
+                <Button 
+                  onClick={() => {
+                    const reports = performanceQuery.data?.getContentPerformanceAnalytics || [];
+                    const headers = "Title,Slug,Content Type,Total Views,Unique Viewers,Completion Rate (%),Saves Count,Avg Progress (%),Drop-off Rate (%)\n";
+                    const rows = reports.map(r => `"${r.title.replace(/"/g, '""')}",${r.slug},${r.contentType},${r.totalViews},${r.uniqueViewers},${r.completionRate},${r.saveCount},${r.avgProgress},${r.dropOffRate}`).join("\n");
+                    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `content_performance_report_${new Date().toISOString().split('T')[0]}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    toast.success("CSV export downloaded successfully!");
+                  }}
+                  style={{ background: '#be123c', color: '#fff', borderColor: '#be123c', fontWeight: 'bold' }}
+                >
+                  Export CSV
+                </Button>
+                <Button 
+                  onClick={() => window.print()}
+                  style={{ fontWeight: 'bold' }}
+                >
+                  Print Report
+                </Button>
+              </Space>
+            }
+          >
+            <Table
+              dataSource={performanceQuery.data?.getContentPerformanceAnalytics || []}
+              loading={performanceQuery.loading}
+              rowKey="id"
+              columns={[
+                {
+                  title: 'Content Details',
+                  key: 'title',
+                  render: (_, record) => (
+                    <div>
+                      <Text strong style={{ fontSize: '13px' }}>{record.title}</Text>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>slug: {record.slug}</div>
+                    </div>
+                  )
+                },
+                {
+                  title: 'Type',
+                  dataIndex: 'contentType',
+                  key: 'contentType',
+                  render: (t) => <Tag color="purple">{t.toUpperCase()}</Tag>
+                },
+                {
+                  title: 'Total Views',
+                  dataIndex: 'totalViews',
+                  key: 'totalViews',
+                  render: (views) => <Badge count={views} style={{ backgroundColor: '#be123c' }} />
+                },
+                {
+                  title: 'Unique Viewers',
+                  dataIndex: 'uniqueViewers',
+                  key: 'uniqueViewers',
+                },
+                {
+                  title: 'Completion Rate',
+                  key: 'completionRate',
+                  render: (_, record) => (
+                    <div style={{ width: '130px' }}>
+                      <Progress percent={record.completionRate} size="small" strokeColor="#be123c" />
+                      <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                        Avg Progress: {record.avgProgress}%
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  title: 'Saves Count',
+                  dataIndex: 'saveCount',
+                  key: 'saveCount',
+                  render: (c) => <Tag color="cyan">{c} saves</Tag>
+                },
+                {
+                  title: 'Drop-off Rate',
+                  dataIndex: 'dropOffRate',
+                  key: 'dropOffRate',
+                  render: (rate) => (
+                    <Tag color={rate > 50 ? 'red' : 'green'}>
+                      {rate}% Drop-off
+                    </Tag>
+                  )
+                }
+              ]}
+            />
+          </Card>
+        </div>
       )}
 
       {/* 6. SECURITY AUDIT */}
@@ -987,60 +1479,181 @@ export default function StaffConsole({ isHi }) {
 
       {/* 7. MEDICAL REVIEW */}
       {activeTab === 'review' && (
-        <Table
-          dataSource={manageContentQuery.data?.manageContent || []}
-          rowKey="id"
-          columns={[
-            {
-              title: 'Article / Guide Title',
-              key: 'title',
-              render: (_, record) => {
-                const translation = record.translations?.find(t => t.language === 'en') || record.translations?.[0];
-                return (
-                  <div>
-                    <Text strong>{translation?.title || record.slug}</Text>
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>Type: {record.contentType} · Status: {record.status}</div>
-                  </div>
-                );
+        <div>
+          <Table
+            dataSource={manageContentQuery.data?.manageContent || []}
+            rowKey="id"
+            columns={[
+              {
+                title: 'Article / Guide Title',
+                key: 'title',
+                render: (_, record) => {
+                  const translation = record.translations?.find(t => t.language === 'en') || record.translations?.[0];
+                  return (
+                    <div>
+                      <Text strong>{translation?.title || record.slug}</Text>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>Type: {record.contentType} · Status: {record.status}</div>
+                    </div>
+                  );
+                }
+              },
+              {
+                title: 'Medical Review Status',
+                key: 'medicalReviewed',
+                render: (_, record) => (
+                  <Tag color={
+                    record.status === 'published' ? 'green' :
+                    record.status === 'approved' ? 'cyan' :
+                    record.status === 'review' ? 'orange' : 'default'
+                  }>
+                    {record.status === 'published' ? 'PUBLISHED' :
+                     record.status === 'approved' ? 'APPROVED CLINICAL GUIDE' :
+                     record.status === 'review' ? 'PENDING CLINICAL REVIEW' : 'DRAFT'}
+                  </Tag>
+                )
+              },
+              {
+                title: 'Action',
+                key: 'action',
+                render: (_, record) => (
+                  <Button 
+                    size="small" 
+                    type="primary" 
+                    onClick={() => {
+                      setSelectedReviewItem(record);
+                      setReviewFeedback(record.feedback || '');
+                    }}
+                    style={{ background: record.status === 'review' ? '#be123c' : '#475569', borderColor: record.status === 'review' ? '#be123c' : '#475569' }}
+                  >
+                    {record.status === 'review' ? 'Clinical Review' : 'Inspect Details'}
+                  </Button>
+                )
               }
-            },
-            {
-              title: 'Medical Review Status',
-              dataIndex: 'medicalReviewed',
-              key: 'medicalReviewed',
-              render: (reviewed) => (
-                <Tag color={reviewed ? 'green' : 'red'}>
-                  {reviewed ? 'APPROVED CLINICAL GUIDE' : 'PENDING REVIEW'}
-                </Tag>
-              )
-            },
-            {
-              title: 'Action',
-              key: 'action',
-              render: (_, record) => (
-                <Space>
-                  {!record.medicalReviewed ? (
+            ]}
+          />
+
+          <Modal
+            title={<><InfoCircleOutlined style={{ color: '#be123c' }} /> Clinical & Medical Review Board</>}
+            open={!!selectedReviewItem}
+            onCancel={() => { setSelectedReviewItem(null); setReviewFeedback(''); }}
+            footer={null}
+            width={650}
+          >
+            {selectedReviewItem && (
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Row gutter={[16, 16]}>
+                  <Col span={8}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Resource Key:</Text>
+                    <div><Text strong>{selectedReviewItem.slug}</Text></div>
+                  </Col>
+                  <Col span={8}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Content Type:</Text>
+                    <div><Tag color="purple">{selectedReviewItem.contentType.toUpperCase()}</Tag></div>
+                  </Col>
+                  <Col span={8}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Current Status:</Text>
+                    <div>
+                      <Tag color={
+                        selectedReviewItem.status === 'published' ? 'success' : 
+                        selectedReviewItem.status === 'approved' ? 'cyan' : 
+                        selectedReviewItem.status === 'review' ? 'orange' : 'default'
+                      }>
+                        {selectedReviewItem.status.toUpperCase()}
+                      </Tag>
+                    </div>
+                  </Col>
+                </Row>
+
+                <Divider style={{ margin: '12px 0' }} />
+
+                <div>
+                  <Text strong style={{ fontSize: 13 }}>Multilingual Translations:</Text>
+                  <List
+                    size="small"
+                    bordered
+                    dataSource={selectedReviewItem.translations || []}
+                    style={{ marginTop: 8, background: '#fafafa', borderRadius: 8 }}
+                    renderItem={t => (
+                      <List.Item>
+                        <div>
+                          <Tag color="purple">{t.language.toUpperCase()}</Tag>
+                          <Text strong>{t.title}</Text>
+                          {t.summary && <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>{t.summary}</div>}
+                          {t.body && <div style={{ fontSize: 11, color: '#475569', marginTop: 4, background: '#fff', padding: 8, borderRadius: 4, border: '1px solid #e2e8f0' }}>{t.body}</div>}
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                </div>
+
+                {selectedReviewItem.reviewedBy && (
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Last Reviewed By User ID:</Text>
+                    <div><Text code>{selectedReviewItem.reviewedBy}</Text></div>
+                  </div>
+                )}
+
+                {selectedReviewItem.status !== 'review' && selectedReviewItem.feedback && (
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Previous Clinical Feedback:</Text>
+                    <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: 8, fontStyle: 'italic', color: '#334155', marginTop: 4 }}>
+                      "{selectedReviewItem.feedback}"
+                    </div>
+                  </div>
+                )}
+
+                {selectedReviewItem.status === 'review' && (
+                  <div>
+                    <Text strong style={{ fontSize: 13 }}>Clinical Assessment Notes & Feedback:</Text>
+                    <TextArea
+                      rows={4}
+                      placeholder="Enter medical verification notes, safety verification details, or comments..."
+                      value={reviewFeedback}
+                      onChange={e => setReviewFeedback(e.target.value)}
+                      style={{ marginTop: 8, borderRadius: 8 }}
+                    />
+                  </div>
+                )}
+
+                <Divider style={{ margin: '12px 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <Button onClick={() => { setSelectedReviewItem(null); setReviewFeedback(''); }}>
+                    Close
+                  </Button>
+                  {selectedReviewItem.status === 'review' && (
+                    <>
+                      <Button 
+                        danger 
+                        loading={flaggingContent}
+                        onClick={() => flagContent({ variables: { id: selectedReviewItem.id, feedback: reviewFeedback } })}
+                      >
+                        Flag & Reject
+                      </Button>
+                      <Button 
+                        type="primary" 
+                        loading={approvingContent}
+                        onClick={() => approveContent({ variables: { id: selectedReviewItem.id, feedback: reviewFeedback } })}
+                        style={{ background: '#be123c', borderColor: '#be123c' }}
+                      >
+                        Approve Clinical Guide
+                      </Button>
+                    </>
+                  )}
+                  {selectedReviewItem.status === 'approved' && (
                     <Button 
-                      size="small" 
-                      type="primary" 
-                      onClick={() => reviewContent({ variables: { id: record.id, reviewed: true } })}
-                      style={{ background: '#be123c', borderColor: '#be123c' }}
+                      danger 
+                      loading={flaggingContent}
+                      onClick={() => flagContent({ variables: { id: selectedReviewItem.id, feedback: "Revoked approval by clinical user" } })}
                     >
-                      Approve Clinical Guide
-                    </Button>
-                  ) : (
-                    <Button 
-                      size="small" 
-                      onClick={() => reviewContent({ variables: { id: record.id, reviewed: false } })}
-                    >
-                      Revoke Approval
+                      Revoke & Move to Draft
                     </Button>
                   )}
-                </Space>
-              )
-            }
-          ]}
-        />
+                </div>
+              </Space>
+            )}
+          </Modal>
+        </div>
       )}
 
       {/* 8. QUIZ & WORKSHEETS TAB */}

@@ -121,6 +121,8 @@ export default function LiveClasses({ user }) {
                       </Tag>
                       {item.booked && <Tag color="green"><CheckOutlined /> {isHi ? "बुक किया गया" : "Booked"}</Tag>}
                       {isPast && <Tag color="blue">{isHi ? "पूर्ण सत्र" : "Completed Session"}</Tag>}
+                      {item.seriesTitle && <Tag color="purple">{item.seriesTitle}</Tag>}
+                      {item.batchName && <Tag color="cyan">{isHi ? `बैच: ${item.batchName}` : `Batch: ${item.batchName}`}</Tag>}
                     </Space>
                     <Title level={5} style={{ margin: '12px 0 4px 0', fontSize: '15px' }}>{title}</Title>
                     <Text type="secondary" style={{ fontSize: '12px' }}>

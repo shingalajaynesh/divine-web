@@ -38,8 +38,58 @@ export const CREATE_CONTENT_ITEM_MUTATION = gql`
 export const PUBLISH_CONTENT_ITEM_MUTATION = gql`
   mutation PublishContentItem($id: ID!) { publishContentItem(id: $id) { id status publishAt } }
 `;
+export const SUBMIT_FOR_REVIEW_MUTATION = gql`
+  mutation SubmitForReview($id: ID!) { submitForReview(id: $id) { id status } }
+`;
+export const APPROVE_MEDICAL_CONTENT_MUTATION = gql`
+  mutation ApproveMedicalContent($id: ID!, $feedback: String) { approveMedicalContent(id: $id, feedback: $feedback) { id status medicalReviewed reviewedBy feedback } }
+`;
+export const FLAG_MEDICAL_CONTENT_MUTATION = gql`
+  mutation FlagMedicalContent($id: ID!, $feedback: String) { flagMedicalContent(id: $id, feedback: $feedback) { id status medicalReviewed reviewedBy feedback } }
+`;
 export const CONTENT_FEED_QUERY = gql`
   query ContentFeed($language: String, $contentType: String) { contentFeed(language: $language, contentType: $contentType) { id slug contentType visibility category { slug name } coverAsset { url kind altText } translation { language title summary body } } }
+`;
+export const GET_RECOMMENDED_CONTENT_FEED_QUERY = gql`
+  query GetRecommendedContentFeed($language: String, $limit: Int) {
+    recommendedContentFeed(language: $language, limit: $limit) {
+      id slug contentType visibility trimester1Safe trimester2Safe trimester3Safe completed
+      category { slug name }
+      coverAsset { url kind altText }
+      translation { language title summary body }
+    }
+  }
+`;
+export const GET_MY_LEARNING_PATHS_QUERY = gql`
+  query GetMyLearningPaths($language: String) {
+    myLearningPaths(language: $language) {
+      id title description icon progressPercent
+      items {
+        id slug contentType visibility trimester1Safe trimester2Safe trimester3Safe completed
+        category { slug name }
+        coverAsset { url kind altText }
+        translation { language title summary body }
+      }
+    }
+  }
+`;
+
+export const GET_CONTENT_PERFORMANCE_ANALYTICS_QUERY = gql`
+  query GetContentPerformanceAnalytics {
+    getContentPerformanceAnalytics {
+      id
+      slug
+      contentType
+      title
+      totalViews
+      uniqueViewers
+      completionCount
+      completionRate
+      saveCount
+      avgProgress
+      dropOffRate
+    }
+  }
 `;
 
 export const SEARCH_CONTENT_QUERY = gql`
@@ -786,6 +836,9 @@ export const GET_LIVE_CLASSES_DETAILED_QUERY = gql`
       attended
       feedbackScore
       feedbackNotes
+      centerId
+      seriesTitle
+      batchName
     }
   }
 `;

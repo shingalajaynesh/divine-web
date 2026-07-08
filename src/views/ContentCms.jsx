@@ -10,7 +10,8 @@ import {
   UPDATE_CONTENT_ITEM_MUTATION,
   DELETE_CONTENT_ITEM_MUTATION,
   REGISTER_MEDIA_ASSET_MUTATION,
-  GET_CLOUDINARY_SIGNATURE_QUERY
+  GET_CLOUDINARY_SIGNATURE_QUERY,
+  SUBMIT_FOR_REVIEW_MUTATION
 } from '../graphql/operations';
 
 const { Title, Paragraph, Text } = Typography;
@@ -33,6 +34,7 @@ export default function ContentCms({ user }) {
   const [updateItem, { loading: updating }] = useMutation(UPDATE_CONTENT_ITEM_MUTATION);
   const [deleteItem, { loading: deleting }] = useMutation(DELETE_CONTENT_ITEM_MUTATION);
   const [registerMedia, { loading: registeringMedia }] = useMutation(REGISTER_MEDIA_ASSET_MUTATION);
+  const [submitForReview, { loading: submittingForReview }] = useMutation(SUBMIT_FOR_REVIEW_MUTATION);
   const client = useApolloClient();
   const [uploadingFile, setUploadingFile] = useState(false);
 
@@ -301,6 +303,16 @@ export default function ContentCms({ user }) {
     }
   };
 
+  const handleSubmitForReview = async (id) => {
+    try {
+      await submitForReview({ variables: { id } });
+      refetch();
+      toast.success('Content submitted for review.');
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
   const columns = [
     { 
       title: 'Content', 
@@ -335,7 +347,7 @@ export default function ContentCms({ user }) {
       title: 'Status', 
       dataIndex: 'status', 
       width: 110, 
-      render: (value) => <Tag color={value === 'published' ? 'success' : value === 'review' ? 'processing' : 'default'}>{value}</Tag> 
+      render: (value) => <Tag color={value === 'published' ? 'success' : value === 'approved' ? 'cyan' : value === 'review' ? 'processing' : 'default'}>{value}</Tag> 
     },
     { 
       title: 'Safety', 
@@ -355,7 +367,10 @@ export default function ContentCms({ user }) {
       render: (_, item) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEdit(item)}>Edit</Button>
-          {isAdmin && item.status !== 'published' && (
+          {item.status === 'draft' && (
+            <Button size="small" type="dashed" loading={submittingForReview} onClick={() => handleSubmitForReview(item.id)}>Submit Review</Button>
+          )}
+          {isAdmin && item.status === 'approved' && (
             <Button size="small" type="primary" icon={<CheckCircleOutlined />} loading={publishing} onClick={() => publish(item.id)}>Publish</Button>
           )}
           <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteItem(item.id)} />
