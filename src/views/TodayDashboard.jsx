@@ -462,7 +462,8 @@ export default function TodayDashboard({ user, t }) {
     (contentLoading && !content) || 
     (babyLoading && !baby) || 
     (progressLoading && !progressData) || 
-    (timelineLoading && !timelineOverviewData);
+    (timelineLoading && !timelineOverviewData) ||
+    (recLoading && recommendations.length === 0);
 
   if (isInitialLoading) {
     return (
@@ -474,7 +475,7 @@ export default function TodayDashboard({ user, t }) {
             border: 0,
             borderRadius: 24,
             boxShadow: '0 8px 24px rgba(63, 10, 17, 0.18)',
-            height: 180,
+            height: 220,
             display: 'flex',
             alignItems: 'center'
           }}
@@ -495,8 +496,8 @@ export default function TodayDashboard({ user, t }) {
         </div>
 
         {/* Calendar Card Skeleton */}
-        <Card style={{ borderRadius: 24, border: '1px solid var(--line)', height: 350 }}>
-          <Skeleton active paragraph={{ rows: 6 }} />
+        <Card style={{ borderRadius: 24, border: '1px solid var(--line)', height: 580 }}>
+          <Skeleton active paragraph={{ rows: 10 }} />
         </Card>
       </Space>
     );
@@ -524,7 +525,8 @@ export default function TodayDashboard({ user, t }) {
           background: 'linear-gradient(135deg, var(--brand-maroon) 0%, var(--brand-maroon-dark) 100%)',
           border: 0,
           borderRadius: 24,
-          boxShadow: '0 8px 24px rgba(63, 10, 17, 0.18)'
+          boxShadow: '0 8px 24px rgba(63, 10, 17, 0.18)',
+          minHeight: '220px'
         }}
         styles={{ body: { padding: '24px' } }}
       >
@@ -705,7 +707,8 @@ export default function TodayDashboard({ user, t }) {
         border: '1px solid #f1f5f9',
         background: '#fff',
         overflow: 'hidden',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        minHeight: '580px'
       }}>
         <div style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fffcf6 100%)', padding: '24px', borderBottom: '1px solid #fed7aa' }}>
           <Title level={4} style={{ margin: 0, color: 'var(--brand-maroon-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
