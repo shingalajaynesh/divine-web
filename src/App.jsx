@@ -36,10 +36,9 @@ import { TRANSLATIONS } from './translations/translations';
 // Components Imports
 const OnboardingCalculator = React.lazy(() => import('./views/OnboardingCalculator'));
 const DeviceLockScreen = React.lazy(() => import('./views/DeviceLockScreen'));
+const AppRoutes = React.lazy(() => import('./routes/AppRoutes'));
+import { WelcomeScreen } from './components/WelcomeScreen.jsx';
 import { divineTheme } from './theme/themeConfig';
-
-// Routing Imports
-import AppRoutes, { WelcomeScreen } from './routes/AppRoutes';
 
 function App() {
   const navigate = useNavigate();
