@@ -36,7 +36,7 @@ import { TRANSLATIONS } from './translations/translations';
 // Components Imports
 const OnboardingCalculator = React.lazy(() => import('./views/OnboardingCalculator'));
 const DeviceLockScreen = React.lazy(() => import('./views/DeviceLockScreen'));
-const AppRoutes = React.lazy(() => import('./routes/AppRoutes'));
+import AppRoutes from './routes/AppRoutes';
 import { WelcomeScreen } from './components/WelcomeScreen.jsx';
 import { divineTheme } from './theme/themeConfig';
 
@@ -339,7 +339,7 @@ function App() {
           <>
           <Suspense fallback={
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-              <Spin size="large" description="Loading..." />
+              <Spin size="large" />
             </div>
           }>
             {isLockScreen ? (
