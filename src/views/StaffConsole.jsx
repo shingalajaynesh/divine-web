@@ -1855,7 +1855,7 @@ export default function StaffConsole({ isHi }) {
         open={selectedUser !== null}
       >
         {selectedUser && (
-          <Space orientation="vertical" style={{ width: '100%' }} size="large">
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
             <div>
               <Title level={5}>Patient Info</Title>
               <Paragraph style={{ margin: 0 }}>Email: {selectedUser.email}</Paragraph>

@@ -267,7 +267,7 @@ export default function UpgradePlans({ user, lang }) {
                   ))}
                 </ul>
 
-                <Space style={{ width: '100%', marginTop: '24px' }} orientation="vertical">
+                <Space style={{ width: '100%', marginTop: '24px' }} direction="vertical">
                   {!currentSub && (
                     <Button type="dashed" block size="large" onClick={() => handleStartTrial(plan.id)}>
                       Start {plan.trialDays}-Day Free Trial

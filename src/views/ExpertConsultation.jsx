@@ -615,7 +615,7 @@ export default function ExpertConsultation({ user, t = {}, lang = 'en' }) {
       {/* MOTHER TAB 1: BOOK CONSULTATION */}
       {/* ======================================================== */}
       {!isExpert && activeTab === 'book' && (
-        <Space orientation="vertical" size="large" style={{ width: '100%', maxWidth: '600px' }}>
+        <Space direction="vertical" size="large" style={{ width: '100%', maxWidth: '600px' }}>
           {/* Select Expert */}
           <div>
             <Text strong type="secondary" style={{ fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>

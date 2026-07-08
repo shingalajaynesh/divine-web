@@ -150,7 +150,7 @@ export default function DeviceLockScreen({ refetchMe }) {
           <Spin description="Validating registered devices..." />
         </div>
       ) : (
-        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
           {/* Current Browser Card */}
           <Card style={{ borderRadius: 16, background: '#f8fafc', border: '1px solid #e2e8f0' }} styles={{ body: { padding: '20px' } }}>
             <Text type="secondary" strong style={{ fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>

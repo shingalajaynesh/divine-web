@@ -256,7 +256,7 @@ export default function AuthModal({ visible, onClose }) {
       key: 'phone',
       label: 'Phone OTP',
       children: !verificationId ? (
-        <Space orientation="vertical" style={{ width: '100%' }} size={12}>
+        <Space direction="vertical" style={{ width: '100%' }} size={12}>
           <Input
             prefix={<PhoneOutlined />}
             placeholder="Phone (e.g. 9876543210)"
@@ -275,7 +275,7 @@ export default function AuthModal({ visible, onClose }) {
           </Button>
         </Space>
       ) : (
-        <Space orientation="vertical" style={{ width: '100%' }} size={12}>
+        <Space direction="vertical" style={{ width: '100%' }} size={12}>
           <Input
             prefix={<LockOutlined />}
             placeholder="Enter 6-digit OTP"

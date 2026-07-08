@@ -462,19 +462,11 @@ export default function TodayDashboard({ user, t }) {
     (contentLoading && !content) || 
     (babyLoading && !baby) || 
     (progressLoading && !progressData) || 
-    (timelineLoading && !timelineOverviewData) ||
-    (recLoading && recommendations.length === 0) ||
-    quizLoading ||
-    quizAttemptLoading ||
-    partnerLoading ||
-    partnerLogLoading ||
-    sensoryLoading ||
-    sensoryLogLoading ||
-    partnerStreakLoading;
+    (timelineLoading && !timelineOverviewData);
 
   if (isInitialLoading) {
     return (
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <div style={{ padding: screens.xs ? '8px 0 80px 0' : '0 0 40px 0', maxWidth: '1200px', margin: '0 auto' }}>
         {/* Banner Card Skeleton */}
         <Card
           style={{
@@ -484,7 +476,8 @@ export default function TodayDashboard({ user, t }) {
             boxShadow: '0 8px 24px rgba(63, 10, 17, 0.18)',
             height: 220,
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            marginBottom: '24px'
           }}
           styles={{ body: { padding: '24px', width: '100%' } }}
         >
@@ -494,7 +487,7 @@ export default function TodayDashboard({ user, t }) {
         </Card>
 
         {/* Quick Actions Row Skeleton */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', margin: '8px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', margin: '8px 0 24px 0' }}>
           {[1, 2, 3, 4, 5].map((i) => (
             <Card key={i} style={{ borderRadius: 16, border: '1px solid var(--line)', background: '#fff', height: 82 }}>
               <Skeleton active avatar={{ shape: 'square', size: 38 }} title={{ width: '50%' }} paragraph={{ rows: 1, width: '80%' }} />
@@ -503,16 +496,16 @@ export default function TodayDashboard({ user, t }) {
         </div>
 
         {/* Calendar Card Skeleton */}
-        <Card style={{ borderRadius: 24, border: '1px solid var(--line)', height: 580 }}>
+        <Card style={{ borderRadius: 24, border: '1px solid var(--line)', height: 580, marginBottom: '20px' }}>
           <Skeleton active paragraph={{ rows: 10 }} />
         </Card>
-      </Space>
+      </div>
     );
   }
 
   // Music Player State
   return (
-    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+    <div style={{ padding: screens.xs ? '8px 0 80px 0' : '0 0 40px 0', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Waveforms Styles Injection */}
       <style>{`
         @keyframes soundwave {
@@ -533,7 +526,8 @@ export default function TodayDashboard({ user, t }) {
           border: 0,
           borderRadius: 24,
           boxShadow: '0 8px 24px rgba(63, 10, 17, 0.18)',
-          minHeight: '220px'
+          minHeight: '220px',
+          marginBottom: '24px'
         }}
         styles={{ body: { padding: '24px' } }}
       >
@@ -612,7 +606,7 @@ export default function TodayDashboard({ user, t }) {
       </Card>
 
       {/* Quick Actions Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', margin: '8px 0' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', margin: '8px 0 24px 0' }}>
         {[
           { key: '/diet-planner', icon: '🍎', title: isHi ? 'आहार योजना' : 'Diet Planner', desc: isHi ? 'दैनिक पोषण और भोजन' : 'Daily nutrition & recipes' },
           { key: '/vitals', icon: '💓', title: isHi ? 'वाइटल्स ट्रैकर' : 'Vitals Tracker', desc: isHi ? 'दैनिक वजन और लक्षण ट्रैक करें' : 'Track symptoms & vitals' },
@@ -640,7 +634,9 @@ export default function TodayDashboard({ user, t }) {
         ))}
       </div>
 
-      {recommendations.length > 0 && (
+      {recLoading ? (
+        <Card loading={true} style={{ borderRadius: 20, border: '1px solid #f1f5f9', height: 180, margin: '24px 0' }} />
+      ) : recommendations.length > 0 ? (
         <div style={{ margin: '24px 0' }}>
           <Title level={4} style={{ color: 'var(--brand-maroon-dark)', margin: '0 0 16px 0', fontSize: '18px', fontWeight: 'bold' }}>
             ✨ {isHi ? "आपके लिए दैनिक सिफारिशें" : "Personalized Recommendations"}
@@ -705,7 +701,7 @@ export default function TodayDashboard({ user, t }) {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* 280-Day Calendar & Navigation */}
       <Card style={{ 
@@ -714,7 +710,7 @@ export default function TodayDashboard({ user, t }) {
         border: '1px solid #f1f5f9',
         background: '#fff',
         overflow: 'hidden',
-        marginBottom: '20px',
+        marginBottom: '24px',
         minHeight: '580px'
       }}>
         <div style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fffcf6 100%)', padding: '24px', borderBottom: '1px solid #fed7aa' }}>
@@ -1710,7 +1706,7 @@ export default function TodayDashboard({ user, t }) {
 
         <Row gutter={[24, 24]}>
           <Col xs={24} md={12}>
-            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               <div>
                 <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {isHi ? "शिशु का नाम या लाडला नाम (Nickname)" : "Baby Name or Nickname"}
@@ -1728,7 +1724,7 @@ export default function TodayDashboard({ user, t }) {
                 <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
                   {isHi ? "गुणों का चयन करें (अधिकतम 4)" : "Select Virtues (Max 4)"}
                 </Text>
-                <Space orientation="vertical" style={{ width: '100%', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+                <Space direction="vertical" style={{ width: '100%', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
                   {allVirtues.map((v) => {
                     const isSelected = selectedVirtues.includes(v.id);
                     return (
@@ -1851,6 +1847,6 @@ export default function TodayDashboard({ user, t }) {
         body={quotients[activeQuotient].description}
         lang={userLang}
       />
-    </Space>
+    </div>
   );
 }
