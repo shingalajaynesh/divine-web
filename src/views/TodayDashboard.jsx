@@ -501,6 +501,11 @@ export default function TodayDashboard({ user, t }) {
         <Card style={{ borderRadius: 24, border: '1px solid var(--line)', height: 580, marginBottom: '20px' }}>
           <Skeleton active paragraph={{ rows: 10 }} />
         </Card>
+
+        {/* Daily Activities Card Skeleton */}
+        <Card style={{ borderRadius: 24, border: '1px solid var(--line)', height: 340, marginBottom: '20px' }}>
+          <Skeleton active avatar={{ size: 'large' }} paragraph={{ rows: 5 }} title={{ width: '40%' }} />
+        </Card>
       </div>
     );
   }
