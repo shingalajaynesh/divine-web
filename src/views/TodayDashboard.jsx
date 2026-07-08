@@ -21,7 +21,8 @@ import {
   Space,
   Divider,
   Avatar,
-  Skeleton
+  Skeleton,
+  Grid
 } from 'antd';
 import {
   PlayCircleOutlined,
@@ -129,6 +130,7 @@ const getDaysForWeek = (wk) => {
 
 export default function TodayDashboard({ user, t }) {
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
   const [selectedDay, setSelectedDay] = useState(user.pregnancyDay || 1);
   const [activeQuotient, setActiveQuotient] = useState('PQ');
   const [assignTaskTitle, setAssignTaskTitle] = useState('');
