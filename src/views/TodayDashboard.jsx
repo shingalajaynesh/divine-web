@@ -208,12 +208,12 @@ export default function TodayDashboard({ user, t }) {
     }
   });
 
-  const { data: quizData } = useQuery(GET_DAILY_QUIZ_QUERY, {
+  const { data: quizData, loading: quizLoading } = useQuery(GET_DAILY_QUIZ_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
 
-  const { data: quizAttemptData } = useQuery(GET_MY_QUIZ_ATTEMPT_QUERY, {
+  const { data: quizAttemptData, loading: quizAttemptLoading } = useQuery(GET_MY_QUIZ_ATTEMPT_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
@@ -250,12 +250,12 @@ export default function TodayDashboard({ user, t }) {
   const dailyQuiz = quizData?.getDailyQuiz;
   const quizAttempt = quizAttemptData?.getMyQuizAttempt;
 
-  const { data: partnerData } = useQuery(GET_PARTNER_ACTIVITY_QUERY, {
+  const { data: partnerData, loading: partnerLoading } = useQuery(GET_PARTNER_ACTIVITY_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
 
-  const { data: partnerLogData } = useQuery(GET_MY_PARTNER_ACTIVITY_LOG_QUERY, {
+  const { data: partnerLogData, loading: partnerLogLoading } = useQuery(GET_MY_PARTNER_ACTIVITY_LOG_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
@@ -280,12 +280,12 @@ export default function TodayDashboard({ user, t }) {
   const partnerActivity = partnerData?.getPartnerActivity;
   const partnerLog = partnerLogData?.getMyPartnerActivityLog;
 
-  const { data: sensoryData } = useQuery(GET_SENSORY_ACTIVITY_QUERY, {
+  const { data: sensoryData, loading: sensoryLoading } = useQuery(GET_SENSORY_ACTIVITY_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
 
-  const { data: sensoryLogData } = useQuery(GET_MY_SENSORY_ACTIVITY_LOG_QUERY, {
+  const { data: sensoryLogData, loading: sensoryLogLoading } = useQuery(GET_MY_SENSORY_ACTIVITY_LOG_QUERY, {
     variables: { dayNumber: selectedDay },
     skip: !user
   });
@@ -307,7 +307,7 @@ export default function TodayDashboard({ user, t }) {
     }
   });
 
-  const { data: partnerStreakData } = useQuery(GET_PARTNER_STREAK_QUERY, { skip: !user });
+  const { data: partnerStreakData, loading: partnerStreakLoading } = useQuery(GET_PARTNER_STREAK_QUERY, { skip: !user });
   const partnerStreak = partnerStreakData?.myPartnerStreak;
 
   const [assignPartnerTask, { loading: assigningTask }] = useMutation(ASSIGN_PARTNER_TASK_MUTATION, {
@@ -463,7 +463,14 @@ export default function TodayDashboard({ user, t }) {
     (babyLoading && !baby) || 
     (progressLoading && !progressData) || 
     (timelineLoading && !timelineOverviewData) ||
-    (recLoading && recommendations.length === 0);
+    (recLoading && recommendations.length === 0) ||
+    quizLoading ||
+    quizAttemptLoading ||
+    partnerLoading ||
+    partnerLogLoading ||
+    sensoryLoading ||
+    sensoryLogLoading ||
+    partnerStreakLoading;
 
   if (isInitialLoading) {
     return (

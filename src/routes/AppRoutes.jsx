@@ -53,9 +53,7 @@ function BrandBlock({ compact = false }) {
 function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const screens = useBreakpoint();
   const [navOpen, setNavOpen] = useState(false);
-  const isDesktop = Boolean(screens.lg);
   const selectedPath = location.pathname === '/' ? '/dashboard' : location.pathname;
   const currentItem = menuItems.find((item) => item.key === selectedPath) || menuItems[0];
   const primaryMobileItems = menuItems.slice(0, 4);
@@ -92,31 +90,25 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
 
   return (
     <Layout className="app-shell">
-      {isDesktop && (
-        <Sider width={260} theme="light" className="app-sider">
-          <BrandBlock />
-          <div className="sidebar-caption">Programme</div>
-          {navigation}
-          <div className="sidebar-version">Divine App · v1.1.0</div>
-        </Sider>
-      )}
+      <Sider width={260} theme="light" className="desktop-only-layout app-sider">
+        <BrandBlock />
+        <div className="sidebar-caption">Programme</div>
+        {navigation}
+        <div className="sidebar-version">Divine App · v1.1.0</div>
+      </Sider>
 
       <Layout className="app-main-layout">
         <Header className="app-topbar">
           <Space size={12}>
-            {!isDesktop && (
-              <Button type="text" icon={<MenuOutlined />} onClick={() => setNavOpen(true)} aria-label="Open navigation" />
-            )}
-            {!isDesktop && <BrandBlock compact />}
-            {isDesktop && (
-              <div className="page-context">
-                <Text>{currentItem?.label || 'Dashboard'}</Text>
-                <span>{user?.center?.name || 'Divine Garbh Sanskar'}</span>
-              </div>
-            )}
+            <Button className="mobile-only-layout" type="text" icon={<MenuOutlined />} onClick={() => setNavOpen(true)} aria-label="Open navigation" />
+            <div className="mobile-only-layout"><BrandBlock compact /></div>
+            <div className="desktop-only-layout page-context">
+              <Text>{currentItem?.label || 'Dashboard'}</Text>
+              <span>{user?.center?.name || 'Divine Garbh Sanskar'}</span>
+            </div>
           </Space>
 
-          <Space size={isDesktop ? 16 : 8} align="center">
+          <Space size={16} align="center">
             <Select
               value={lang}
               onChange={handleLanguageToggle}
@@ -125,12 +117,10 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
               className="language-select"
               aria-label="Choose language"
             />
-            {isDesktop && (
-              <div className="user-summary">
-                <strong>{user?.displayName || 'Member'}</strong>
-                <span>{roleLabel}</span>
-              </div>
-            )}
+            <div className="desktop-only-layout user-summary">
+              <strong>{user?.displayName || 'Member'}</strong>
+              <span>{roleLabel}</span>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <Dropdown
                 menu={{
@@ -170,23 +160,21 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
           <div className="content-frame"><Outlet /></div>
         </Content>
 
-        {!isDesktop && (
-          <nav className="mobile-bottom-nav" aria-label="Primary navigation">
-            {primaryMobileItems.map((item) => (
-              <button key={item.key} className={selectedPath === item.key ? 'active' : ''} onClick={() => goTo(item)}>
-                {item.icon}<span>{item.label}</span>
-              </button>
-            ))}
-            <button className={primaryMobileItems.some((item) => item.key === selectedPath) ? '' : 'active'} onClick={() => setNavOpen(true)}>
-              <MoreOutlined /><span>More</span>
+        <nav className="mobile-only-layout mobile-bottom-nav" aria-label="Primary navigation">
+          {primaryMobileItems.map((item) => (
+            <button key={item.key} className={selectedPath === item.key ? 'active' : ''} onClick={() => goTo(item)}>
+              {item.icon}<span>{item.label}</span>
             </button>
-          </nav>
-        )}
+          ))}
+          <button className={primaryMobileItems.some((item) => item.key === selectedPath) ? '' : 'active'} onClick={() => setNavOpen(true)}>
+            <MoreOutlined /><span>More</span>
+          </button>
+        </nav>
       </Layout>
 
       <Drawer
         placement="left"
-        open={!isDesktop && navOpen}
+        open={navOpen}
         onClose={() => setNavOpen(false)}
         width={300}
         title={<BrandBlock />}

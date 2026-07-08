@@ -326,7 +326,7 @@ function App() {
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Toaster position="top-center" reverseOrder={false} />
 
-        {!authLoaded && !cachedUser ? (
+        {!authLoaded ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
             <Spin size="large" />
           </div>
