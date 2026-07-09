@@ -84,7 +84,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (authLoaded && firebaseUser && !meLoading) {
+    if (authLoaded && firebaseUser && !meLoading && !meError) {
       const dbUser = meData?.me;
       if (!dbUser && !syncing) {
         setSyncing(true);
@@ -96,7 +96,7 @@ function App() {
           });
       }
     }
-  }, [authLoaded, firebaseUser, meData, meLoading, syncing]);
+  }, [authLoaded, firebaseUser, meData, meLoading, meError, syncing]);
 
   useEffect(() => {
     if (meData?.me) {
