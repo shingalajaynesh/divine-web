@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import toast from 'react-hot-toast';
 import { 
-  Card, Table, Button, Input, Select, Tag, Space, Modal, Form, 
+  Card, Table, Button, Input, InputNumber, Select, Tag, Space, Modal, Form, 
   Typography, Row, Col, Tabs, Drawer, List, Divider, Checkbox, DatePicker, Tooltip, Alert, Progress, Badge
 } from 'antd';
 import { 
@@ -51,6 +51,15 @@ const GET_CRM_NOTES_QUERY = gql`
       author {
         displayName
       }
+    }
+  }
+`;
+
+const GET_CENTERS_QUERY = gql`
+  query GetCenters {
+    getCenters {
+      id
+      name
     }
   }
 `;
@@ -329,8 +338,290 @@ const GET_CONTENT_PERFORMANCE_ANALYTICS_QUERY = gql`
   }
 `;
 
+const GET_REPORT_TEMPLATES_QUERY = gql`
+  query GetReportTemplates($role: String) {
+    getReportTemplates(role: $role) {
+      id
+      title
+      description
+      role
+      filters
+      widgets
+      sharedWithRoles
+      createdAt
+    }
+  }
+`;
+
+const GET_REPORT_DATA_QUERY = gql`
+  query GetReportData($templateId: ID!, $filters: String) {
+    getReportData(templateId: $templateId, filters: $filters) {
+      templateId
+      metrics
+    }
+  }
+`;
+
+const CREATE_REPORT_TEMPLATE_MUTATION = gql`
+  mutation CreateReportTemplate($title: String!, $description: String, $role: String!, $filters: String, $widgets: String!) {
+    createReportTemplate(title: $title, description: $description, role: $role, filters: $filters, widgets: $widgets) {
+      id
+      title
+    }
+  }
+`;
+
+const DELETE_REPORT_TEMPLATE_MUTATION = gql`
+  mutation DeleteReportTemplate($id: ID!) {
+    deleteReportTemplate(id: $id)
+  }
+`;
+
+const SHARE_REPORT_TEMPLATE_MUTATION = gql`
+  mutation ShareReportTemplate($templateId: ID!, $roles: String!) {
+    shareReportTemplate(templateId: $templateId, roles: $roles) {
+      id
+      sharedWithRoles
+    }
+  }
+`;
+
+const GET_REPORT_SCHEDULES_QUERY = gql`
+  query GetReportSchedules {
+    getReportSchedules {
+      id
+      templateId
+      frequency
+      recipientEmails
+      nextRunAt
+      isActive
+      template {
+        title
+      }
+    }
+  }
+`;
+
+const CREATE_REPORT_SCHEDULE_MUTATION = gql`
+  mutation CreateReportSchedule($templateId: ID!, $frequency: String!, $recipientEmails: String!) {
+    createReportSchedule(templateId: $templateId, frequency: $frequency, recipientEmails: $recipientEmails) {
+      id
+      frequency
+    }
+  }
+`;
+
+const DELETE_REPORT_SCHEDULE_MUTATION = gql`
+  mutation DeleteReportSchedule($id: ID!) {
+    deleteReportSchedule(id: $id)
+  }
+`;
+
+const PROCESS_SCHEDULED_REPORTS_MUTATION = gql`
+  mutation ProcessScheduledReports {
+    processScheduledReports
+  }
+`;
+
+// NEW operations for Platform Config (Chunk 46)
+const GET_SYSTEM_SETTINGS_QUERY = gql`
+  query GetSystemSettings {
+    getSystemSettings {
+      id
+      key
+      value
+      description
+      updatedAt
+    }
+  }
+`;
+
+const UPDATE_SYSTEM_SETTING_MUTATION = gql`
+  mutation UpdateSystemSetting($key: String!, $value: String!) {
+    updateSystemSetting(key: $key, value: $value) {
+      id
+      key
+      value
+    }
+  }
+`;
+
+const GET_FEATURE_FLAGS_QUERY = gql`
+  query GetFeatureFlags {
+    getFeatureFlags {
+      id
+      name
+      description
+      isEnabled
+      rules
+      updatedAt
+    }
+  }
+`;
+
+const UPDATE_FEATURE_FLAG_MUTATION = gql`
+  mutation UpdateFeatureFlag($name: String!, $isEnabled: Boolean!, $rules: String) {
+    updateFeatureFlag(name: $name, isEnabled: $isEnabled, rules: $rules) {
+      id
+      name
+      isEnabled
+      rules
+    }
+  }
+`;
+
+const GET_LOCALE_STRINGS_QUERY = gql`
+  query GetLocaleStrings($lang: String!) {
+    getLocaleStrings(lang: $lang) {
+      id
+      lang
+      key
+      value
+      updatedAt
+    }
+  }
+`;
+
+const UPSERT_LOCALE_STRING_MUTATION = gql`
+  mutation UpsertLocaleString($lang: String!, $key: String!, $value: String!) {
+    upsertLocaleString(lang: $lang, key: $key, value: $value) {
+      id
+      lang
+      key
+      value
+    }
+  }
+`;
+
+const GET_SERVER_DIAGNOSTICS_QUERY = gql`
+  query GetServerDiagnostics {
+    getServerDiagnostics {
+      cpuLoad
+      freeMem
+      totalMem
+      processMemory
+      uptimeSeconds
+      activeDbConnections
+      errorCount
+    }
+  }
+`;
+
+const GET_SYSTEM_METRICS_HISTORY_QUERY = gql`
+  query GetSystemMetricsHistory($metricType: String!) {
+    getSystemMetricsHistory(metricType: $metricType) {
+      id
+      metricType
+      value
+      timestamp
+    }
+  }
+`;
+
+const EXPORT_SYSTEM_LOGS_QUERY = gql`
+  query ExportSystemLogs($limit: Int) {
+    exportSystemLogs(limit: $limit)
+  }
+`;
+
+const GET_SLOW_QUERIES_REPORT_QUERY = gql`
+  query GetSlowQueriesReport($thresholdMs: Float) {
+    getSlowQueriesReport(thresholdMs: $thresholdMs) {
+      id
+      sqlQuery
+      durationMs
+      thresholdMs
+      timestamp
+    }
+  }
+`;
+
+const RUN_DATABASE_INDEX_DIAGNOSTIC_QUERY = gql`
+  query RunDatabaseIndexDiagnostic {
+    runDatabaseIndexDiagnostic {
+      table
+      field
+      status
+      recommendation
+    }
+  }
+`;
+
+const CLEAR_SLOW_QUERY_LOGS_MUTATION = gql`
+  mutation ClearSlowQueryLogs {
+    clearSlowQueryLogs
+  }
+`;
+
+const GET_DATABASE_CLUSTER_STATUS_QUERY = gql`
+  query GetDatabaseClusterStatus {
+    getDatabaseClusterStatus {
+      primaryNodeHealthy
+      replicaLagMs
+      activeConnections
+      maxPoolSize
+      idleConnections
+    }
+  }
+`;
+
+const UPDATE_CONNECTION_POOL_CONFIG_MUTATION = gql`
+  mutation UpdateConnectionPoolConfig($maxConnections: Int!, $idleTimeoutMs: Int!) {
+    updateConnectionPoolConfig(maxConnections: $maxConnections, idleTimeoutMs: $idleTimeoutMs)
+  }
+`;
+
+const TRIGGER_FAILOVER_SIMULATION_MUTATION = gql`
+  mutation TriggerFailoverSimulation {
+    triggerFailoverSimulation
+  }
+`;
+
+const GET_ENVIRONMENT_STATUS_QUERY = gql`
+  query GetEnvironmentStatus {
+    getEnvironmentStatus {
+      releaseVersion
+      envMode
+      nodeVersion
+      platform
+    }
+  }
+`;
+
+const GET_BACKUP_HISTORY_QUERY = gql`
+  query GetBackupHistory {
+    getBackupHistory {
+      id
+      fileName
+      backupSize
+      status
+      timestamp
+    }
+  }
+`;
+
+const TRIGGER_BACKUP_DRILL_MUTATION = gql`
+  mutation TriggerBackupDrill {
+    triggerBackupDrill {
+      id
+      fileName
+      backupSize
+      status
+      timestamp
+    }
+  }
+`;
+
+const TRIGGER_RESTORE_DRILL_MUTATION = gql`
+  mutation TriggerRestoreDrill($backupId: ID!) {
+    triggerRestoreDrill(backupId: $backupId)
+  }
+`;
+
 export default function StaffConsole({ isHi }) {
   const [activeTab, setActiveTab] = useState('tickets');
+  const crmTabs = ['crm', 'followups', 'reminders'];
+  const centersAwareTabs = ['attendance', 'reports', 'platform', 'health', 'sqlAudit', 'dbTuning', 'devops', 'crm', 'followups', 'reminders', 'review', 'quizzes'];
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [replyText, setReplyText] = useState('');
@@ -365,8 +656,8 @@ export default function StaffConsole({ isHi }) {
 
   // Queries & Mutations
   const { data: ticketData, loading: ticketsLoading, refetch: refetchTickets } = useQuery(GET_INQUIRIES, {
-    variables: { status: null, limit: 100, offset: 0 },
-    fetchPolicy: 'network-only',
+    variables: { status: null, limit: 50, offset: 0 },
+    fetchPolicy: 'cache-and-network',
   });
   const [updateInquiryStatus] = useMutation(UPDATE_INQUIRY_STATUS, { onCompleted: () => refetchTickets() });
   const [replyToInquiry] = useMutation(REPLY_TO_INQUIRY, { 
@@ -379,7 +670,11 @@ export default function StaffConsole({ isHi }) {
   });
 
   const crmUsersQuery = useQuery(GET_CRM_USERS_QUERY, { 
-    skip: activeTab !== 'crm' && activeTab !== 'followups' && activeTab !== 'reminders'
+    skip: !crmTabs.includes(activeTab)
+  });
+  const centersQuery = useQuery(GET_CENTERS_QUERY, {
+    skip: !centersAwareTabs.includes(activeTab),
+    fetchPolicy: 'cache-first'
   });
   const manageContentQuery = useQuery(MANAGE_CONTENT_QUERY, { skip: activeTab !== 'review' });
   const [approveContent, { loading: approvingContent }] = useMutation(APPROVE_MEDICAL_CONTENT_MUTATION, {
@@ -523,6 +818,247 @@ export default function StaffConsole({ isHi }) {
   const [sendLiveClassReminder, { loading: sendingReminder }] = useMutation(SEND_LIVE_CLASS_REMINDER_MUTATION, {
     onCompleted: () => {
       toast.success(isHi ? 'रिमाइंडर सफलतापूर्वक भेजे गए!' : 'Reminders dispatched successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  // --- Chunk 45 Report Builder states & hooks ---
+  const [reportRoleFilter, setReportRoleFilter] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
+  const [customReportFilters, setCustomReportFilters] = useState('{}');
+
+  const reportTemplatesQuery = useQuery(GET_REPORT_TEMPLATES_QUERY, {
+    variables: { role: reportRoleFilter || null },
+    skip: activeTab !== 'reports'
+  });
+
+  const reportDataQuery = useQuery(GET_REPORT_DATA_QUERY, {
+    variables: { templateId: selectedTemplateId || '', filters: customReportFilters || null },
+    skip: !selectedTemplateId || activeTab !== 'reports'
+  });
+
+  const reportSchedulesQuery = useQuery(GET_REPORT_SCHEDULES_QUERY, {
+    skip: activeTab !== 'reports'
+  });
+
+  const [createReportTemplate] = useMutation(CREATE_REPORT_TEMPLATE_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'रिपोर्ट टेम्प्लेट बनाया गया!' : 'Report template created successfully!');
+      reportTemplatesQuery.refetch();
+      setIsReportModalOpen(false);
+      resetReportForm();
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [deleteReportTemplate] = useMutation(DELETE_REPORT_TEMPLATE_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'रिपोर्ट टेम्प्लेट हटाया गया!' : 'Report template deleted!');
+      reportTemplatesQuery.refetch();
+      setSelectedTemplateId(null);
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [createReportSchedule] = useMutation(CREATE_REPORT_SCHEDULE_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'रिपोर्ट शेड्यूल बनाया गया!' : 'Report schedule created successfully!');
+      reportSchedulesQuery.refetch();
+      setIsScheduleModalOpen(false);
+      setScheduleFrequency('weekly');
+      setScheduleEmails('');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [deleteReportSchedule] = useMutation(DELETE_REPORT_SCHEDULE_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'रिपोर्ट शेड्यूल हटाया गया!' : 'Report schedule deleted!');
+      reportSchedulesQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [shareReportTemplate] = useMutation(SHARE_REPORT_TEMPLATE_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'रिपोर्ट एक्सेस साझा किया गया!' : 'Report shared successfully!');
+      reportTemplatesQuery.refetch();
+      setIsShareModalOpen(false);
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [processScheduledReports] = useMutation(PROCESS_SCHEDULED_REPORTS_MUTATION, {
+    onCompleted: (res) => {
+      const dispatched = JSON.parse(res.processScheduledReports || '[]');
+      toast.success(isHi ? `${dispatched.length} शेड्यूल की गई रिपोर्ट भेजी गईं!` : `${dispatched.length} scheduled reports processed!`);
+      reportSchedulesQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  // Report Modal states
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportTitle, setReportTitle] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportRole, setReportRole] = useState('PLATFORM');
+  const [reportFiltersText, setReportFiltersText] = useState('{}');
+  const [reportWidgetsText, setReportWidgetsText] = useState('[]');
+
+  // Share & Schedule Modal states
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareRolesText, setShareRolesText] = useState('');
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleFrequency, setScheduleFrequency] = useState('weekly');
+  const [scheduleEmails, setScheduleEmails] = useState('');
+
+  const resetReportForm = () => {
+    setReportTitle('');
+    setReportDescription('');
+    setReportRole('PLATFORM');
+    setReportFiltersText('{}');
+    setReportWidgetsText('[]');
+  };
+
+  // --- Chunk 46 Platform Config states & hooks ---
+  const [localeLang, setLocaleLang] = useState('en');
+  const [editingSetting, setEditingSetting] = useState(null);
+  const [settingValueInput, setSettingValueInput] = useState('');
+  const [editingFlag, setEditingFlag] = useState(null);
+  const [flagRulesInput, setFlagRulesInput] = useState('');
+  const [editingLocale, setEditingLocale] = useState(null);
+  const [localeValueInput, setLocaleValueInput] = useState('');
+
+  const systemSettingsQuery = useQuery(GET_SYSTEM_SETTINGS_QUERY, {
+    skip: activeTab !== 'platform'
+  });
+  const featureFlagsQuery = useQuery(GET_FEATURE_FLAGS_QUERY, {
+    skip: activeTab !== 'platform'
+  });
+  const localeStringsQuery = useQuery(GET_LOCALE_STRINGS_QUERY, {
+    variables: { lang: localeLang },
+    skip: activeTab !== 'platform'
+  });
+
+  const [updateSystemSetting, { loading: updatingSetting }] = useMutation(UPDATE_SYSTEM_SETTING_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'सिस्टम सेटिंग अपडेट की गई!' : 'System setting updated successfully!');
+      systemSettingsQuery.refetch();
+      setEditingSetting(null);
+      setSettingValueInput('');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [updateFeatureFlag, { loading: updatingFlag }] = useMutation(UPDATE_FEATURE_FLAG_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'फीचर फ़्लैग अपडेट किया गया!' : 'Feature flag updated successfully!');
+      featureFlagsQuery.refetch();
+      setEditingFlag(null);
+      setFlagRulesInput('');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [upsertLocaleString, { loading: upsertingLocale }] = useMutation(UPSERT_LOCALE_STRING_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'स्थानीयकरण स्ट्रिंग सहेजी गई!' : 'Localization string saved successfully!');
+      localeStringsQuery.refetch();
+      setEditingLocale(null);
+      setLocaleValueInput('');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  // --- Chunk 47 System Health states & hooks ---
+  const [selectedMetricType, setSelectedMetricType] = useState('cpu');
+
+  const serverDiagnosticsQuery = useQuery(GET_SERVER_DIAGNOSTICS_QUERY, {
+    pollInterval: 15000,
+    skip: activeTab !== 'health'
+  });
+
+  const systemMetricsHistoryQuery = useQuery(GET_SYSTEM_METRICS_HISTORY_QUERY, {
+    variables: { metricType: selectedMetricType },
+    skip: activeTab !== 'health'
+  });
+
+  const exportSystemLogsQuery = useQuery(EXPORT_SYSTEM_LOGS_QUERY, {
+    variables: { limit: 150 },
+    skip: true
+  });
+
+  // --- Chunk 48 SQL Optimization states & hooks ---
+  const [slowQueryThreshold, setSlowQueryThreshold] = useState(50);
+
+  const slowQueriesQuery = useQuery(GET_SLOW_QUERIES_REPORT_QUERY, {
+    variables: { thresholdMs: parseFloat(slowQueryThreshold || 50) },
+    skip: activeTab !== 'sqlAudit'
+  });
+
+  const indexDiagnosticsQuery = useQuery(RUN_DATABASE_INDEX_DIAGNOSTIC_QUERY, {
+    skip: activeTab !== 'sqlAudit'
+  });
+
+  const [clearSlowQueryLogs, { loading: clearingSlowLogs }] = useMutation(CLEAR_SLOW_QUERY_LOGS_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'धीमी क्वेरी लॉग हटा दिए गए!' : 'Slow query logs cleared successfully!');
+      slowQueriesQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  // --- Chunk 49 DB Tuning states & hooks ---
+  const [maxConnectionsInput, setMaxConnectionsInput] = useState(20);
+  const [idleTimeoutInput, setIdleTimeoutInput] = useState(10000);
+
+  const databaseClusterStatusQuery = useQuery(GET_DATABASE_CLUSTER_STATUS_QUERY, {
+    pollInterval: 20000,
+    skip: activeTab !== 'dbTuning',
+    onCompleted: (data) => {
+      if (data?.getDatabaseClusterStatus) {
+        setMaxConnectionsInput(data.getDatabaseClusterStatus.maxPoolSize);
+      }
+    }
+  });
+
+  const [updateConnectionPoolConfig, { loading: updatingPool }] = useMutation(UPDATE_CONNECTION_POOL_CONFIG_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'कनेक्शन पूल अपडेट किया गया!' : 'Database connection pool config updated successfully!');
+      databaseClusterStatusQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [triggerFailoverSimulation, { loading: triggeringFailover }] = useMutation(TRIGGER_FAILOVER_SIMULATION_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'फ़ेलओवर सिम्युलेशन सफल रहा!' : 'Manual replica failover diagnostics sequence triggered successfully!');
+      databaseClusterStatusQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  // --- Chunk 50 DevOps & Observability hooks ---
+  const environmentStatusQuery = useQuery(GET_ENVIRONMENT_STATUS_QUERY, {
+    skip: activeTab !== 'devops'
+  });
+
+  const backupHistoryQuery = useQuery(GET_BACKUP_HISTORY_QUERY, {
+    skip: activeTab !== 'devops'
+  });
+
+  const [triggerBackupDrill, { loading: triggeringBackup }] = useMutation(TRIGGER_BACKUP_DRILL_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'बैकअप फ़ाइल तैयार की गई!' : 'Database snapshot backup archive created successfully!');
+      backupHistoryQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [triggerRestoreDrill, { loading: triggeringRestore }] = useMutation(TRIGGER_RESTORE_DRILL_MUTATION, {
+    onCompleted: () => {
+      toast.success(isHi ? 'डाटाबेस रिस्टोर सिम्युलेशन सफल रहा!' : 'Simulated database state recovery completed successfully!');
+      backupHistoryQuery.refetch();
     },
     onError: (err) => toast.error(err.message)
   });
@@ -706,7 +1242,7 @@ export default function StaffConsole({ isHi }) {
       key: 'actions',
       width: 180,
       render: (_, record) => (
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           {record.status !== 'resolved' && (
             <Button 
               type="primary" 
@@ -754,7 +1290,12 @@ export default function StaffConsole({ isHi }) {
           { key: 'attendance', label: '📅 Class Attendance' },
           { key: 'quizzes', label: '🧠 Quiz & Worksheets' },
           { key: 'review', label: '🩺 Medical Article Review' },
-          { key: 'analytics', label: '📊 Content Analytics' },
+          { key: 'reports', label: '📊 Report Builder' },
+          { key: 'platform', label: '⚙️ Platform Settings' },
+          { key: 'health', label: '📈 System Health' },
+          { key: 'sqlAudit', label: '⚡ SQL Performance & Index Tuning' },
+          { key: 'dbTuning', label: '💾 Database Cluster & Replication' },
+          { key: 'devops', label: '🚀 DevOps Observability & Backups' },
           { key: 'audit', label: '🛡️ Security Audit Trail' }
         ]}
         style={{ marginBottom: '24px' }}
@@ -934,7 +1475,7 @@ export default function StaffConsole({ isHi }) {
         <Row gutter={[24, 24]}>
           <Col xs={24} md={8}>
             <Card title="Add Administrative Reminder" style={{ borderRadius: 16 }}>
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <div>
                   <Text strong style={{ fontSize: 12 }}>Task Title</Text>
                   <Input 
@@ -1043,7 +1584,7 @@ export default function StaffConsole({ isHi }) {
 
       {/* 5. CLASS ATTENDANCE & SCHEDULING WIDGET */}
       {activeTab === 'attendance' && (
-        <Space direction="vertical" style={{ width: '100%' }} size="large">
+        <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <Row gutter={[20, 20]}>
             {/* Left side: Live Classes Management */}
             <Col xs={24} lg={12}>
@@ -1316,132 +1857,464 @@ export default function StaffConsole({ isHi }) {
         </Space>
       )}
 
-      {/* 5.5 CONTENT PERFORMANCE ANALYTICS */}
-      {activeTab === 'analytics' && (
+      {/* 5.5 REPORT BUILDER, SCHEDULING & SHARING SYSTEM */}
+      {activeTab === 'reports' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <Row gutter={[16, 16]}>
-            <Col xs={24} sm={8}>
-              <Card style={{ borderRadius: '16px', background: '#fffaf0', border: '1px solid #ffe8cc' }}>
-                <Text type="secondary" style={{ fontSize: '12px' }}>Total Content Count</Text>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#be123c', marginTop: '4px' }}>
-                  {performanceQuery.data?.getContentPerformanceAnalytics?.length || 0}
-                </div>
-              </Card>
+            {/* Left sidebar: Templates and schedules list */}
+            <Col xs={24} md={8}>
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
+                {/* Templates Card */}
+                <Card
+                  title="Report Templates"
+                  extra={
+                    <Button type="primary" size="small" style={{ background: '#be123c', borderColor: '#be123c' }} onClick={() => setIsReportModalOpen(true)}>
+                      + Create Template
+                    </Button>
+                  }
+                  style={{ borderRadius: 16 }}
+                >
+                  {/* Role filter */}
+                  <div style={{ marginBottom: 12 }}>
+                    <Text strong style={{ fontSize: 12 }}>Filter templates by target role:</Text>
+                    <Select
+                      style={{ width: '100%', marginTop: 4 }}
+                      value={reportRoleFilter}
+                      onChange={setReportRoleFilter}
+                      allowClear
+                      placeholder="All Roles"
+                    >
+                      <Select.Option value="MOTHER">Mother Dashboard</Select.Option>
+                      <Select.Option value="PARTNER">Partner Dashboard</Select.Option>
+                      <Select.Option value="CENTER">Center Management</Select.Option>
+                      <Select.Option value="FRANCHISE">Franchise Settlements</Select.Option>
+                      <Select.Option value="STAFF">Staff Productivity</Select.Option>
+                      <Select.Option value="PLATFORM">Platform Operations</Select.Option>
+                    </Select>
+                  </div>
+
+                  <Table
+                    dataSource={reportTemplatesQuery.data?.getReportTemplates || []}
+                    loading={reportTemplatesQuery.loading}
+                    rowKey="id"
+                    showHeader={false}
+                    pagination={{ pageSize: 5 }}
+                    columns={[
+                      {
+                        key: 'template',
+                        render: (_, record) => (
+                          <div
+                            style={{
+                              padding: '6px 0',
+                              cursor: 'pointer',
+                              background: selectedTemplateId === record.id ? '#fcf0f2' : 'transparent',
+                              borderRadius: 6
+                            }}
+                            onClick={() => {
+                              setSelectedTemplateId(record.id);
+                              setCustomReportFilters(record.filters || '{}');
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Text strong style={{ color: selectedTemplateId === record.id ? '#be123c' : 'inherit' }}>{record.title}</Text>
+                              <Tag color="cyan">{record.role}</Tag>
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{record.description}</div>
+                            {record.sharedWithRoles && (
+                              <div style={{ marginTop: 4 }}>
+                                <Text type="secondary" style={{ fontSize: 9 }}>Shared with: </Text>
+                                <Tag color="geekblue" style={{ fontSize: 9 }}>{record.sharedWithRoles}</Tag>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      }
+                    ]}
+                  />
+                </Card>
+
+                {/* Schedules list */}
+                <Card
+                  title="Scheduled Email Reports"
+                  extra={
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        processScheduledReports();
+                      }}
+                    >
+                      Simulate Cron
+                    </Button>
+                  }
+                  style={{ borderRadius: 16 }}
+                >
+                  <Table
+                    dataSource={reportSchedulesQuery.data?.getReportSchedules || []}
+                    loading={reportSchedulesQuery.loading}
+                    rowKey="id"
+                    size="small"
+                    pagination={{ pageSize: 3 }}
+                    columns={[
+                      {
+                        title: 'Report / Freq',
+                        key: 'desc',
+                        render: (_, record) => (
+                          <div>
+                            <Text strong style={{ fontSize: 11 }}>{record.template?.title}</Text>
+                            <div><Tag color="blue" style={{ fontSize: 9 }}>{record.frequency.toUpperCase()}</Tag></div>
+                          </div>
+                        )
+                      },
+                      {
+                        title: 'Recipients',
+                        dataIndex: 'recipientEmails',
+                        key: 'emails',
+                        render: (emails) => <Text style={{ fontSize: 10 }}>{emails}</Text>
+                      },
+                      {
+                        key: 'actions',
+                        render: (_, record) => (
+                          <Button
+                            size="small"
+                            type="text"
+                            danger
+                            onClick={() => {
+                              if (confirm('Delete this report schedule?')) {
+                                deleteReportSchedule({ variables: { id: record.id } });
+                              }
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        )
+                      }
+                    ]}
+                  />
+                </Card>
+              </Space>
             </Col>
-            <Col xs={24} sm={8}>
-              <Card style={{ borderRadius: '16px', background: '#f5f3ff', border: '1px solid #ede9fe' }}>
-                <Text type="secondary" style={{ fontSize: '12px' }}>Total Engagement Views</Text>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#be123c', marginTop: '4px' }}>
-                  {(performanceQuery.data?.getContentPerformanceAnalytics || []).reduce((sum, item) => sum + item.totalViews, 0)}
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card style={{ borderRadius: '16px', background: '#f0fdf4', border: '1px solid #dcfce7' }}>
-                <Text type="secondary" style={{ fontSize: '12px' }}>Top Content Item</Text>
-                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#be123c', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {performanceQuery.data?.getContentPerformanceAnalytics?.[0]?.title || 'None'}
-                </div>
-              </Card>
+
+            {/* Right workspace: Selected Template Dashboard rendering */}
+            <Col xs={24} md={16}>
+              {selectedTemplateId ? (
+                (() => {
+                  const activeTpl = reportTemplatesQuery.data?.getReportTemplates?.find(t => t.id === selectedTemplateId);
+                  const metrics = JSON.parse(reportDataQuery.data?.getReportData?.metrics || '{}');
+                  return (
+                    <Card
+                      title={activeTpl?.title || 'Report Details'}
+                      extra={
+                        <Space>
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setShareRolesText(activeTpl?.sharedWithRoles || '');
+                              setIsShareModalOpen(true);
+                            }}
+                          >
+                            Share Dashboard
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setIsScheduleModalOpen(true);
+                            }}
+                          >
+                            Schedule Dispatch
+                          </Button>
+                          <Button
+                            type="text"
+                            danger
+                            onClick={() => {
+                              if (confirm('Delete this report template?')) {
+                                deleteReportTemplate({ variables: { id: selectedTemplateId } });
+                              }
+                            }}
+                          >
+                            Delete Template
+                          </Button>
+                        </Space>
+                      }
+                      style={{ borderRadius: 16 }}
+                    >
+                      <Paragraph style={{ color: '#64748b' }}>{activeTpl?.description}</Paragraph>
+
+                      {/* Filters and Exports bar */}
+                      <Card style={{ background: '#f8fafc', marginBottom: 20 }} bodyStyle={{ padding: 12 }}>
+                        <Row gutter={[12, 12]} align="middle">
+                          <Col xs={24} sm={12}>
+                            <Text strong style={{ fontSize: 12 }}>Custom JSON query parameters:</Text>
+                            <Input
+                              value={customReportFilters}
+                              onChange={e => setCustomReportFilters(e.target.value)}
+                              style={{ marginTop: 4 }}
+                            />
+                          </Col>
+                          <Col xs={24} sm={12} style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
+                            <Button type="primary" onClick={() => reportDataQuery.refetch({ templateId: selectedTemplateId, filters: customReportFilters })}>
+                              Apply Filters
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                const csv = 'Metric,Value\n' + Object.entries(metrics).map(([k, v]) => `"${k}","${typeof v === 'object' ? JSON.stringify(v).replace(/"/g, '""') : v}"`).join('\n');
+                                const blob = new Blob([csv], { type: 'text/csv' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${activeTpl?.title.toLowerCase().replace(/\s+/g, '-')}-metrics.csv`;
+                                a.click();
+                              }}
+                            >
+                              Export CSV
+                            </Button>
+                            <Button onClick={() => window.print()}>
+                              Export PDF
+                            </Button>
+                          </Col>
+                        </Row>
+                      </Card>
+
+                      {/* Dynamic widgets rendering based on role scope */}
+                      {reportDataQuery.loading ? (
+                        <Skeleton active />
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                          {activeTpl?.role === 'MOTHER' && (
+                            <Row gutter={[16, 16]}>
+                              <Col xs={12} sm={8}>
+                                <Card><Statistic title="Daily Logs logged" value={metrics.vitalsCount || 0} /></Card>
+                              </Col>
+                              <Col xs={12} sm={8}>
+                                <Card><Statistic title="Content Bookmarks" value={metrics.bookmarksCount || 0} /></Card>
+                              </Col>
+                              <Col xs={12} sm={8}>
+                                <Card><Statistic title="Worksheets Progress" value={metrics.progressCount || 0} /></Card>
+                              </Col>
+                              <Col xs={24}>
+                                <Card>
+                                  <Text strong>Mother Journey stage: </Text>
+                                  <Tag color="magenta">{metrics.trimester}</Tag>
+                                  <Text style={{ marginLeft: 12 }}>Active Streak: <strong>{metrics.streakDays} days</strong></Text>
+                                </Card>
+                              </Col>
+                            </Row>
+                          )}
+
+                          {activeTpl?.role === 'PARTNER' && (
+                            <Row gutter={[16, 16]}>
+                              <Col xs={12} sm={12}>
+                                <Card><Statistic title="Partner Activities log" value={metrics.partnerActivitiesCount || 0} /></Card>
+                              </Col>
+                              <Col xs={12} sm={12}>
+                                <Card><Statistic title="Sensory Exercises done" value={metrics.sensoryActivitiesCount || 0} /></Card>
+                              </Col>
+                              <Col xs={24}>
+                                <Card>
+                                  <Text strong>Engagement Status: </Text>
+                                  <Tag color="purple">{metrics.status}</Tag>
+                                </Card>
+                              </Col>
+                            </Row>
+                          )}
+
+                          {activeTpl?.role === 'CENTER' && (
+                            <Row gutter={[16, 16]}>
+                              <Col xs={12} sm={12} md={8}>
+                                <Card><Statistic title="Active Members" value={metrics.activeMothers || 0} /></Card>
+                              </Col>
+                              <Col xs={12} sm={12} md={8}>
+                                <Card><Statistic title="Scheduled Appointments" value={metrics.upcomingAppointments || 0} /></Card>
+                              </Col>
+                              <Col xs={12} sm={24} md={8}>
+                                <Card><Statistic title="Counseling Calls" value={metrics.counselingCallsCount || 0} /></Card>
+                              </Col>
+                              <Col xs={24}>
+                                <Card style={{ background: '#fdf4ff' }}>
+                                  <Statistic title="Total Revenue collected" value={metrics.localRevenue || 0.0} precision={2} prefix="₹" />
+                                </Card>
+                              </Col>
+                            </Row>
+                          )}
+
+                          {activeTpl?.role === 'FRANCHISE' && (
+                            <Row gutter={[16, 16]}>
+                              <Col xs={24} sm={12}>
+                                <Card><Statistic title="Franchise gross Revenue" value={metrics.totalFranchiseRevenue || 0.0} precision={2} prefix="₹" /></Card>
+                              </Col>
+                              <Col xs={24} sm={12}>
+                                <Card><Statistic title="Leads conversion Rate" value={metrics.leadsConversionRate || 0.0} precision={2} suffix="%" /></Card>
+                              </Col>
+                              <Col xs={24}>
+                                <Card title="Revenue share breakdown by Center">
+                                  <Table
+                                    dataSource={metrics.centerRevenueBreakdown || []}
+                                    rowKey="centerId"
+                                    size="small"
+                                    columns={[
+                                      { title: 'Center Name', dataIndex: 'name', key: 'name' },
+                                      { title: 'Revenue collected', dataIndex: 'revenue', key: 'revenue', render: (val) => `₹${parseFloat(val).toFixed(2)}` }
+                                    ]}
+                                  />
+                                </Card>
+                              </Col>
+                            </Row>
+                          )}
+
+                          {activeTpl?.role === 'STAFF' && (
+                            <Row gutter={[16, 16]}>
+                              <Col xs={12} sm={12}>
+                                <Card><Statistic title="Tasks completed" value={metrics.tasksCompleted || 0} /></Card>
+                              </Col>
+                              <Col xs={12} sm={12}>
+                                <Card><Statistic title="Assigned open tickets" value={metrics.pendingTickets || 0} /></Card>
+                              </Col>
+                              <Col xs={24}>
+                                <Card>
+                                  <Text>Average Customer satisfaction score: </Text>
+                                  <strong style={{ color: '#15803d' }}>{metrics.satisfactionRating} / 5.0</strong>
+                                </Card>
+                              </Col>
+                            </Row>
+                          )}
+
+                          {activeTpl?.role === 'PLATFORM' && (
+                            <Row gutter={[16, 16]}>
+                              <Col xs={12} sm={8}>
+                                <Card><Statistic title="Global Registered users" value={metrics.totalUsers || 0} /></Card>
+                              </Col>
+                              <Col xs={12} sm={8}>
+                                <Card><Statistic title="Premium Conversion ratio" value={metrics.premiumConversionRatio || 0} precision={2} suffix="%" /></Card>
+                              </Col>
+                              <Col xs={12} sm={8}>
+                                <Card><Statistic title="Global gross Revenue" value={metrics.grossRevenue || 0.0} precision={2} prefix="₹" /></Card>
+                              </Col>
+                              <Col xs={24}>
+                                <Card style={{ background: '#f0fdf4' }}>
+                                  <Text>Platform Infrastructure Uptime: </Text>
+                                  <strong style={{ color: '#16a34a' }}>{metrics.serverUptime}</strong>
+                                </Card>
+                              </Col>
+                            </Row>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })()
+              ) : (
+                <Card style={{ borderRadius: 16, textAlign: 'center', padding: '40px 0' }}>
+                  <Text type="secondary">Select a template from the list sidebar to render the analytics dashboard.</Text>
+                </Card>
+              )}
             </Col>
           </Row>
 
-          <Card 
-            title={isHi ? "सामग्री प्रदर्शन रिपोर्ट" : "Content Engagement & Performance Analytics"} 
-            style={{ borderRadius: '16px' }}
-            extra={
-              <Space>
-                <Button 
-                  onClick={() => {
-                    const reports = performanceQuery.data?.getContentPerformanceAnalytics || [];
-                    const headers = "Title,Slug,Content Type,Total Views,Unique Viewers,Completion Rate (%),Saves Count,Avg Progress (%),Drop-off Rate (%)\n";
-                    const rows = reports.map(r => `"${r.title.replace(/"/g, '""')}",${r.slug},${r.contentType},${r.totalViews},${r.uniqueViewers},${r.completionRate},${r.saveCount},${r.avgProgress},${r.dropOffRate}`).join("\n");
-                    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `content_performance_report_${new Date().toISOString().split('T')[0]}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    toast.success("CSV export downloaded successfully!");
-                  }}
-                  style={{ background: '#be123c', color: '#fff', borderColor: '#be123c', fontWeight: 'bold' }}
-                >
-                  Export CSV
-                </Button>
-                <Button 
-                  onClick={() => window.print()}
-                  style={{ fontWeight: 'bold' }}
-                >
-                  Print Report
-                </Button>
-              </Space>
-            }
-          >
-            <Table
-              dataSource={performanceQuery.data?.getContentPerformanceAnalytics || []}
-              loading={performanceQuery.loading}
-              rowKey="id"
-              columns={[
-                {
-                  title: 'Content Details',
-                  key: 'title',
-                  render: (_, record) => (
-                    <div>
-                      <Text strong style={{ fontSize: '13px' }}>{record.title}</Text>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>slug: {record.slug}</div>
-                    </div>
-                  )
-                },
-                {
-                  title: 'Type',
-                  dataIndex: 'contentType',
-                  key: 'contentType',
-                  render: (t) => <Tag color="purple">{t.toUpperCase()}</Tag>
-                },
-                {
-                  title: 'Total Views',
-                  dataIndex: 'totalViews',
-                  key: 'totalViews',
-                  render: (views) => <Badge count={views} style={{ backgroundColor: '#be123c' }} />
-                },
-                {
-                  title: 'Unique Viewers',
-                  dataIndex: 'uniqueViewers',
-                  key: 'uniqueViewers',
-                },
-                {
-                  title: 'Completion Rate',
-                  key: 'completionRate',
-                  render: (_, record) => (
-                    <div style={{ width: '130px' }}>
-                      <Progress percent={record.completionRate} size="small" strokeColor="#be123c" />
-                      <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                        Avg Progress: {record.avgProgress}%
-                      </div>
-                    </div>
-                  )
-                },
-                {
-                  title: 'Saves Count',
-                  dataIndex: 'saveCount',
-                  key: 'saveCount',
-                  render: (c) => <Tag color="cyan">{c} saves</Tag>
-                },
-                {
-                  title: 'Drop-off Rate',
-                  dataIndex: 'dropOffRate',
-                  key: 'dropOffRate',
-                  render: (rate) => (
-                    <Tag color={rate > 50 ? 'red' : 'green'}>
-                      {rate}% Drop-off
-                    </Tag>
-                  )
+          {/* Create Report Template Modal */}
+          <Modal
+            title="Create Custom Report template"
+            open={isReportModalOpen}
+            onCancel={() => setIsReportModalOpen(false)}
+            onOk={() => {
+              createReportTemplate({
+                variables: {
+                  title: reportTitle,
+                  description: reportDescription,
+                  role: reportRole,
+                  filters: reportFiltersText,
+                  widgets: reportWidgetsText
                 }
-              ]}
-            />
-          </Card>
+              });
+            }}
+            destroyOnClose
+            style={{ borderRadius: 16 }}
+          >
+            <Form layout="vertical">
+              <Form.Item label="Template Title" required>
+                <Input value={reportTitle} onChange={e => setReportTitle(e.target.value)} placeholder="e.g. Center A Financials Overview" />
+              </Form.Item>
+              <Form.Item label="Description">
+                <Input.TextArea value={reportDescription} onChange={e => setReportDescription(e.target.value)} placeholder="e.g. Monthly settlements overview" />
+              </Form.Item>
+              <Form.Item label="Target dashboard role scope" required>
+                <Select value={reportRole} onChange={setReportRole}>
+                  <Select.Option value="MOTHER">MOTHER</Select.Option>
+                  <Select.Option value="PARTNER">PARTNER</Select.Option>
+                  <Select.Option value="CENTER">CENTER</Select.Option>
+                  <Select.Option value="FRANCHISE">FRANCHISE</Select.Option>
+                  <Select.Option value="STAFF">STAFF</Select.Option>
+                  <Select.Option value="PLATFORM">PLATFORM</Select.Option>
+                </Select>
+              </Form.Item>
+              <Form.Item label="Default filters JSON" required>
+                <Input.TextArea value={reportFiltersText} onChange={e => setReportFiltersText(e.target.value)} rows={2} />
+              </Form.Item>
+              <Form.Item label="Widgets config array JSON" required>
+                <Input.TextArea value={reportWidgetsText} onChange={e => setReportWidgetsText(e.target.value)} rows={3} />
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* Share Report Access Modal */}
+          <Modal
+            title="Share Dashboard Access with Roles"
+            open={isShareModalOpen}
+            onCancel={() => setIsShareModalOpen(false)}
+            onOk={() => {
+              shareReportTemplate({
+                variables: {
+                  templateId: selectedTemplateId,
+                  roles: shareRolesText
+                }
+              });
+            }}
+            destroyOnClose
+            style={{ borderRadius: 16 }}
+          >
+            <Form layout="vertical">
+              <Form.Item label="Roles allowed to view this report (comma-separated)" required>
+                <Input
+                  value={shareRolesText}
+                  onChange={e => setShareRolesText(e.target.value)}
+                  placeholder="e.g. CENTER, FRANCHISE, STAFF"
+                />
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* Schedule Report Dispatch Modal */}
+          <Modal
+            title="Configure Recurring Email Dispatch"
+            open={isScheduleModalOpen}
+            onCancel={() => setIsScheduleModalOpen(false)}
+            onOk={() => {
+              createReportSchedule({
+                variables: {
+                  templateId: selectedTemplateId,
+                  frequency: scheduleFrequency,
+                  recipientEmails: scheduleEmails
+                }
+              });
+            }}
+            destroyOnClose
+            style={{ borderRadius: 16 }}
+          >
+            <Form layout="vertical">
+              <Form.Item label="Dispatch Frequency" required>
+                <Select value={scheduleFrequency} onChange={setScheduleFrequency}>
+                  <Select.Option value="daily">Daily</Select.Option>
+                  <Select.Option value="weekly">Weekly</Select.Option>
+                  <Select.Option value="monthly">Monthly</Select.Option>
+                </Select>
+              </Form.Item>
+              <Form.Item label="Recipient Email Addresses (comma-separated)" required>
+                <Input
+                  value={scheduleEmails}
+                  onChange={e => setScheduleEmails(e.target.value)}
+                  placeholder="e.g. partner@example.com, admin@care.com"
+                />
+              </Form.Item>
+            </Form>
+          </Modal>
         </div>
       )}
 
@@ -1475,6 +2348,714 @@ export default function StaffConsole({ isHi }) {
             }
           ]}
         />
+      )}
+
+      {/* 6.5 PLATFORM CONFIGURATION & SYSTEM SETTINGS */}
+      {activeTab === 'platform' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <Row gutter={[16, 16]}>
+            {/* System Settings Panel */}
+            <Col xs={24} lg={8}>
+              <Card title="⚙️ Global System Settings" style={{ borderRadius: '16px' }}>
+                <Table
+                  dataSource={systemSettingsQuery.data?.getSystemSettings || []}
+                  loading={systemSettingsQuery.loading}
+                  rowKey="id"
+                  size="small"
+                  pagination={{ pageSize: 5 }}
+                  columns={[
+                    {
+                      title: 'Setting Key',
+                      dataIndex: 'key',
+                      key: 'key',
+                      render: (k) => <Text strong style={{ fontSize: 11 }}>{k}</Text>
+                    },
+                    {
+                      title: 'Value',
+                      key: 'value',
+                      render: (_, record) => (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 11, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{record.value}</Text>
+                          <Button
+                            size="small"
+                            type="link"
+                            onClick={() => {
+                              setEditingSetting(record);
+                              setSettingValueInput(record.value);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        </div>
+                      )
+                    }
+                  ]}
+                />
+              </Card>
+            </Col>
+
+            {/* Feature Flags Panel */}
+            <Col xs={24} lg={8}>
+              <Card title="🚩 Feature Toggles" style={{ borderRadius: '16px' }}>
+                <Table
+                  dataSource={featureFlagsQuery.data?.getFeatureFlags || []}
+                  loading={featureFlagsQuery.loading}
+                  rowKey="id"
+                  size="small"
+                  pagination={{ pageSize: 5 }}
+                  columns={[
+                    {
+                      title: 'Flag Name',
+                      key: 'name',
+                      render: (_, record) => (
+                        <div>
+                          <Text strong style={{ fontSize: 11 }}>{record.name}</Text>
+                          <div style={{ fontSize: 9, color: '#64748b' }}>{record.description}</div>
+                        </div>
+                      )
+                    },
+                    {
+                      title: 'Status',
+                      key: 'status',
+                      render: (_, record) => (
+                        <Checkbox
+                          checked={record.isEnabled}
+                          onChange={(e) => {
+                            updateFeatureFlag({
+                              variables: {
+                                name: record.name,
+                                isEnabled: e.target.checked,
+                                rules: record.rules
+                              }
+                            });
+                          }}
+                        />
+                      )
+                    },
+                    {
+                      title: 'Rules',
+                      key: 'rules',
+                      render: (_, record) => (
+                        <Button
+                          size="small"
+                          type="text"
+                          onClick={() => {
+                            setEditingFlag(record);
+                            setFlagRulesInput(record.rules || '{}');
+                          }}
+                        >
+                          Rules
+                        </Button>
+                      )
+                    }
+                  ]}
+                />
+              </Card>
+            </Col>
+
+            {/* Localization Settings Panel */}
+            <Col xs={24} lg={8}>
+              <Card
+                title="🗣️ Dictionary Translations"
+                extra={
+                  <Select value={localeLang} onChange={setLocaleLang} size="small">
+                    <Select.Option value="en">English (EN)</Select.Option>
+                    <Select.Option value="hi">Hindi (HI)</Select.Option>
+                  </Select>
+                }
+                style={{ borderRadius: '16px' }}
+              >
+                <Table
+                  dataSource={localeStringsQuery.data?.getLocaleStrings || []}
+                  loading={localeStringsQuery.loading}
+                  rowKey="id"
+                  size="small"
+                  pagination={{ pageSize: 5 }}
+                  columns={[
+                    {
+                      title: 'Key Code',
+                      dataIndex: 'key',
+                      key: 'key',
+                      render: (k) => <Text code style={{ fontSize: 10 }}>{k}</Text>
+                    },
+                    {
+                      title: 'Value',
+                      key: 'value',
+                      render: (_, record) => (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 11, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{record.value}</Text>
+                          <Button
+                            size="small"
+                            type="link"
+                            onClick={() => {
+                              setEditingLocale(record);
+                              setLocaleValueInput(record.value);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        </div>
+                      )
+                    }
+                  ]}
+                />
+                <Divider style={{ margin: '10px 0' }} />
+                <Button type="dashed" size="small" block onClick={() => {
+                  setEditingLocale({ lang: localeLang, key: '', value: '' });
+                  setLocaleValueInput('');
+                }}>
+                  + Add Dictionary Entry
+                </Button>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Edit System Setting Modal */}
+          <Modal
+            title="Edit System Setting Value"
+            open={editingSetting !== null}
+            onCancel={() => setEditingSetting(null)}
+            onOk={() => {
+              updateSystemSetting({
+                variables: {
+                  key: editingSetting.key,
+                  value: settingValueInput
+                }
+              });
+            }}
+            destroyOnClose
+          >
+            <Form layout="vertical">
+              <Form.Item label="Setting Key">
+                <Input value={editingSetting?.key} disabled />
+              </Form.Item>
+              <Form.Item label="Description">
+                <Text type="secondary">{editingSetting?.description || 'No description provided.'}</Text>
+              </Form.Item>
+              <Form.Item label="Value" required>
+                <Input.TextArea value={settingValueInput} onChange={e => setSettingValueInput(e.target.value)} rows={3} />
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* Edit Feature Flag Rules Modal */}
+          <Modal
+            title="Edit Feature Flag Cohort Rules"
+            open={editingFlag !== null}
+            onCancel={() => setEditingFlag(null)}
+            onOk={() => {
+              updateFeatureFlag({
+                variables: {
+                  name: editingFlag.name,
+                  isEnabled: editingFlag.isEnabled,
+                  rules: flagRulesInput
+                }
+              });
+            }}
+            destroyOnClose
+          >
+            <Form layout="vertical">
+              <Form.Item label="Flag Name">
+                <Input value={editingFlag?.name} disabled />
+              </Form.Item>
+              <Form.Item label="Description">
+                <Text type="secondary">{editingFlag?.description || 'No description provided.'}</Text>
+              </Form.Item>
+              <Form.Item label="Rules JSON (e.g. {'centers': ['c1', 'c2']})" required>
+                <Input.TextArea value={flagRulesInput} onChange={e => setFlagRulesInput(e.target.value)} rows={4} />
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* Upsert Localization String Modal */}
+          <Modal
+            title="Manage Localized Phrase"
+            open={editingLocale !== null}
+            onCancel={() => setEditingLocale(null)}
+            onOk={() => {
+              upsertLocaleString({
+                variables: {
+                  lang: editingLocale.lang,
+                  key: editingLocale.key || document.getElementById('new_locale_key')?.value,
+                  value: localeValueInput
+                }
+              });
+            }}
+            destroyOnClose
+          >
+            <Form layout="vertical">
+              <Form.Item label="Target Language">
+                <Tag color="purple">{editingLocale?.lang?.toUpperCase()}</Tag>
+              </Form.Item>
+              {editingLocale?.id ? (
+                <Form.Item label="Key Code">
+                  <Input value={editingLocale.key} disabled />
+                </Form.Item>
+              ) : (
+                <Form.Item label="Key Code" required>
+                  <Input id="new_locale_key" placeholder="e.g. login_welcome_message" />
+                </Form.Item>
+              )}
+              <Form.Item label="Translation Value" required>
+                <Input.TextArea value={localeValueInput} onChange={e => setLocaleValueInput(e.target.value)} rows={3} />
+              </Form.Item>
+            </Form>
+          </Modal>
+        </div>
+      )}
+
+      {/* 6.6 SYSTEM HEALTH DIAGNOSTICS & LOGS EXPORTER */}
+      {activeTab === 'health' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Resource Diagnostics Widgets */}
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12} md={6}>
+              <Card style={{ borderRadius: '16px', background: '#f0fdf4', border: '1px solid #dcfce7' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>CPU Load average</Text>
+                <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#16a34a', marginTop: '4px' }}>
+                  {serverDiagnosticsQuery.data?.getServerDiagnostics?.cpuLoad ? `${(serverDiagnosticsQuery.data.getServerDiagnostics.cpuLoad * 100).toFixed(1)}%` : '0%'}
+                </div>
+                <Progress percent={Math.round((serverDiagnosticsQuery.data?.getServerDiagnostics?.cpuLoad || 0) * 100)} showInfo={false} strokeColor="#16a34a" size="small" style={{ marginTop: 8 }} />
+              </Card>
+            </Col>
+            
+            <Col xs={24} sm={12} md={6}>
+              <Card style={{ borderRadius: '16px', background: '#eff6ff', border: '1px solid #dbeafe' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Server Memory allocation</Text>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1d4ed8', marginTop: '4px' }}>
+                  {serverDiagnosticsQuery.data?.getServerDiagnostics ? (
+                    `${(serverDiagnosticsQuery.data.getServerDiagnostics.processMemory / (1024 * 1024)).toFixed(1)} MB / ${(serverDiagnosticsQuery.data.getServerDiagnostics.totalMem / (1024 * 1024 * 1024)).toFixed(1)} GB`
+                  ) : '0 MB'}
+                </div>
+                <Text type="secondary" style={{ fontSize: '10px' }}>
+                  Free system memory: {serverDiagnosticsQuery.data?.getServerDiagnostics ? `${(serverDiagnosticsQuery.data.getServerDiagnostics.freeMem / (1024 * 1024 * 1024)).toFixed(1)} GB` : '0 GB'}
+                </Text>
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={12} md={6}>
+              <Card style={{ borderRadius: '16px', background: '#fffbeb', border: '1px solid #fef3c7' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Uptime duration</Text>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#d97706', marginTop: '4px' }}>
+                  {(() => {
+                    const secs = serverDiagnosticsQuery.data?.getServerDiagnostics?.uptimeSeconds || 0;
+                    const h = Math.floor(secs / 3600);
+                    const m = Math.floor((secs % 3600) / 60);
+                    const s = secs % 60;
+                    return `${h}h ${m}m ${s}s`;
+                  })()}
+                </div>
+                <Text type="secondary" style={{ fontSize: '10px' }}>Active DB Pool: {serverDiagnosticsQuery.data?.getServerDiagnostics?.activeDbConnections || 0} connections</Text>
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={12} md={6}>
+              <Card style={{ borderRadius: '16px', background: '#fdf2f8', border: '1px solid #fce7f3' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>System Exceptions Logged</Text>
+                <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#be123c', marginTop: '4px' }}>
+                  {serverDiagnosticsQuery.data?.getServerDiagnostics?.errorCount || 0} errors
+                </div>
+                <Badge status="processing" text="Heartbeat healthy" style={{ marginTop: 8 }} />
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            {/* Telemetry charts */}
+            <Col xs={24} md={16}>
+              <Card
+                title="📈 Historical Telemetry"
+                extra={
+                  <Select value={selectedMetricType} onChange={setSelectedMetricType} size="small" style={{ width: 150 }}>
+                    <Select.Option value="cpu">CPU Usage</Select.Option>
+                    <Select.Option value="memory">Memory Usage</Select.Option>
+                    <Select.Option value="latency">API Response Latency</Select.Option>
+                  </Select>
+                }
+                style={{ borderRadius: '16px' }}
+              >
+                <div style={{ padding: '10px 0' }}>
+                  {systemMetricsHistoryQuery.loading ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading telemetry...</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {systemMetricsHistoryQuery.data?.getSystemMetricsHistory?.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#64748b', fontStyle: 'italic', padding: '20px 0' }}>No telemetry records logged yet.</div>
+                      ) : (
+                        systemMetricsHistoryQuery.data.getSystemMetricsHistory.map(m => (
+                          <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px', width: '130px' }}>
+                              {new Date(m.timestamp).toLocaleTimeString()}
+                            </Text>
+                            <div style={{ flex: 1, background: '#f1f5f9', height: '14px', borderRadius: '4px', overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  background: selectedMetricType === 'cpu' ? '#16a34a' : selectedMetricType === 'memory' ? '#1d4ed8' : '#be123c',
+                                  width: `${Math.min(m.value, 100)}%`,
+                                  height: '100%',
+                                  transition: 'width 0.3s ease'
+                                }}
+                              />
+                            </div>
+                            <Text strong style={{ fontSize: '11px', width: '60px', textAlign: 'right' }}>
+                              {m.value.toFixed(1)} {selectedMetricType === 'cpu' ? '%' : selectedMetricType === 'memory' ? 'MB' : 'ms'}
+                            </Text>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </Col>
+
+            {/* Logs Exporter Card */}
+            <Col xs={24} md={8}>
+              <Card title="📁 Audit Logs & Operations Exporter" style={{ borderRadius: '16px' }}>
+                <Paragraph type="secondary" style={{ fontSize: '12px' }}>
+                  Export security audit records, database transaction reports, and system operations logs as a formatted CSV spreadsheet file.
+                </Paragraph>
+                <Button
+                  type="primary"
+                  block
+                  style={{ background: '#be123c', borderColor: '#be123c', fontWeight: 'bold', height: '40px', borderRadius: '8px' }}
+                  onClick={async () => {
+                    try {
+                      const res = await exportSystemLogsQuery.refetch();
+                      const csvContent = res.data?.exportSystemLogs || '';
+                      if (!csvContent) {
+                        toast.error('No logs available to export.');
+                        return;
+                      }
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", url);
+                      link.setAttribute("download", `system_audit_logs_${new Date().toISOString().split('T')[0]}.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      toast.success("Audit logs exported and downloaded successfully!");
+                    } catch (err) {
+                      toast.error('Failed to export system logs: ' + err.message);
+                    }
+                  }}
+                >
+                  Download System Audit Logs
+                </Button>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      )}
+
+      {/* 6.7 DATABASE PERFORMANCE & SQL AUDIT */}
+      {activeTab === 'sqlAudit' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <Card
+            title="⚡ SQL Optimization & Performance Metrics"
+            extra={
+              <Space>
+                <Text style={{ fontSize: '12px' }}>Tuning Threshold (ms):</Text>
+                <InputNumber
+                  value={slowQueryThreshold}
+                  onChange={setSlowQueryThreshold}
+                  min={10}
+                  max={2000}
+                  style={{ width: 80 }}
+                />
+                <Button
+                  danger
+                  onClick={() => clearSlowQueryLogs()}
+                  loading={clearingSlowLogs}
+                >
+                  Clear Logs
+                </Button>
+              </Space>
+            }
+            style={{ borderRadius: '16px' }}
+          >
+            <Table
+              dataSource={slowQueriesQuery.data?.getSlowQueriesReport || []}
+              rowKey="id"
+              loading={slowQueriesQuery.loading}
+              columns={[
+                {
+                  title: 'SQL Statement',
+                  dataIndex: 'sqlQuery',
+                  key: 'sqlQuery',
+                  render: (q) => <code style={{ fontSize: '11px', color: '#475569', wordBreak: 'break-all' }}>{q}</code>
+                },
+                {
+                  title: 'Latency',
+                  dataIndex: 'durationMs',
+                  key: 'durationMs',
+                  render: (lat) => <Tag color={lat > 100 ? 'red' : 'orange'}>{lat.toFixed(1)} ms</Tag>,
+                  width: 120
+                },
+                {
+                  title: 'Captured',
+                  dataIndex: 'timestamp',
+                  key: 'timestamp',
+                  render: (t) => new Date(t).toLocaleTimeString(),
+                  width: 130
+                }
+              ]}
+              locale={{ emptyText: 'No queries exceeded this execution speed limit threshold.' }}
+            />
+          </Card>
+
+          <Card title="🩺 Database Index Diagnostics Audit" style={{ borderRadius: '16px' }}>
+            <Paragraph type="secondary" style={{ fontSize: '12px', marginBottom: 16 }}>
+              The following audit scans all tables and validates whether proper indices exist on core foreign keys to avoid full table scans.
+            </Paragraph>
+            <Table
+              dataSource={indexDiagnosticsQuery.data?.runDatabaseIndexDiagnostic || []}
+              rowKey={(record) => `${record.table}_${record.field}`}
+              loading={indexDiagnosticsQuery.loading}
+              pagination={false}
+              columns={[
+                {
+                  title: 'Table Name',
+                  dataIndex: 'table',
+                  key: 'table',
+                  render: (txt) => <Text strong>{txt}</Text>
+                },
+                {
+                  title: 'Field',
+                  dataIndex: 'field',
+                  key: 'field',
+                  render: (txt) => <code style={{ color: '#0f172a' }}>{txt}</code>
+                },
+                {
+                  title: 'Status',
+                  dataIndex: 'status',
+                  key: 'status',
+                  render: (st) => <Tag color={st === 'OK' ? 'success' : 'warning'}>{st}</Tag>,
+                  width: 100
+                },
+                {
+                  title: 'Tuning Advice',
+                  dataIndex: 'recommendation',
+                  key: 'recommendation',
+                  render: (rec) => <Text style={{ fontSize: '12px' }}>{rec}</Text>
+                }
+              ]}
+            />
+          </Card>
+        </div>
+      )}
+
+      {/* 6.8 DATABASE REPLICATION & POOL TUNING */}
+      {activeTab === 'dbTuning' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={8}>
+              <Card style={{ borderRadius: '16px', background: '#f0fdf4', border: '1px solid #dcfce7' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Primary Write Node</Text>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#16a34a', marginTop: '4px' }}>
+                  {databaseClusterStatusQuery.data?.getDatabaseClusterStatus?.primaryNodeHealthy ? '🟢 ONLINE & ACTIVE' : '🔴 UNHEALTHY / DOWN'}
+                </div>
+                <Text type="secondary" style={{ fontSize: '10px' }}>Role: master-node-primary-01</Text>
+              </Card>
+            </Col>
+
+            <Col xs={24} md={8}>
+              <Card style={{ borderRadius: '16px', background: '#eff6ff', border: '1px solid #dbeafe' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Replica replication lag</Text>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1d4ed8', marginTop: '4px' }}>
+                  {databaseClusterStatusQuery.data?.getDatabaseClusterStatus?.replicaLagMs ?? 0} ms
+                </div>
+                <Text type="secondary" style={{ fontSize: '10px' }}>Status: Sync complete</Text>
+              </Card>
+            </Col>
+
+            <Col xs={24} md={8}>
+              <Card style={{ borderRadius: '16px', background: '#fffbeb', border: '1px solid #fef3c7' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>Active Pool Connections</Text>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#d97706', marginTop: '4px' }}>
+                  {databaseClusterStatusQuery.data?.getDatabaseClusterStatus?.activeConnections ?? 0} / {databaseClusterStatusQuery.data?.getDatabaseClusterStatus?.maxPoolSize ?? 20}
+                </div>
+                <Text type="secondary" style={{ fontSize: '10px' }}>Idle connections count: {databaseClusterStatusQuery.data?.getDatabaseClusterStatus?.idleConnections ?? 0}</Text>
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Card title="⚙️ Database Pool Parameters Configuration" style={{ borderRadius: '16px' }}>
+                <Form layout="vertical" onFinish={() => {
+                  updateConnectionPoolConfig({
+                    variables: {
+                      maxConnections: parseInt(maxConnectionsInput),
+                      idleTimeoutMs: parseInt(idleTimeoutInput)
+                    }
+                  });
+                }}>
+                  <Form.Item label="Max Connection Pool Limit" required>
+                    <InputNumber
+                      value={maxConnectionsInput}
+                      onChange={setMaxConnectionsInput}
+                      min={5}
+                      max={200}
+                      style={{ width: '100%' }}
+                    />
+                  </Form.Item>
+                  <Form.Item label="Idle Connection Timeout (ms)" required>
+                    <InputNumber
+                      value={idleTimeoutInput}
+                      onChange={setIdleTimeoutInput}
+                      min={1000}
+                      max={60000}
+                      style={{ width: '100%' }}
+                    />
+                  </Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={updatingPool}
+                    style={{ background: '#be123c', borderColor: '#be123c', fontWeight: 'bold', borderRadius: '8px' }}
+                  >
+                    Apply Pool Configuration
+                  </Button>
+                </Form>
+              </Card>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Card title="💾 Cluster Failover Sequence Simulation" style={{ borderRadius: '16px' }}>
+                <Paragraph type="secondary" style={{ fontSize: '12px' }}>
+                  Trigger a manual node failover diagnostic sequence to test platform fallback logic and high-availability redirection.
+                </Paragraph>
+                <Button
+                  type="primary"
+                  danger
+                  loading={triggeringFailover}
+                  onClick={() => {
+                    Modal.confirm({
+                      title: 'Confirm Node Failover',
+                      content: 'Are you sure you want to trigger manual cluster failover sequence? This will simulate primary database failover.',
+                      okText: 'Trigger Failover',
+                      okType: 'danger',
+                      cancelText: 'Cancel',
+                      onOk: () => triggerFailoverSimulation()
+                    });
+                  }}
+                  style={{ fontWeight: 'bold', height: '40px', borderRadius: '8px' }}
+                >
+                  Initiate Replica Failover
+                </Button>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      )}
+
+      {/* 6.9 DEVOPS OBSERVABILITY & ENVIRONMENT GOVERNANCE */}
+      {activeTab === 'devops' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <Row gutter={[16, 16]}>
+            {/* Environment Governance Details */}
+            <Col xs={24} md={8}>
+              <Card title="🚀 Active Node Environment" style={{ borderRadius: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>Release Version</Text>
+                    <div><Text strong style={{ fontSize: '15px' }}>{environmentStatusQuery.data?.getEnvironmentStatus?.releaseVersion || 'v1.4.0-stable'}</Text></div>
+                  </div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>Environment Type</Text>
+                    <div><Tag color="cyan">{(environmentStatusQuery.data?.getEnvironmentStatus?.envMode || 'production').toUpperCase()}</Tag></div>
+                  </div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>Node Runtime Engine</Text>
+                    <div><Text style={{ fontFamily: 'monospace' }}>{environmentStatusQuery.data?.getEnvironmentStatus?.nodeVersion || 'v20.11.0'}</Text></div>
+                  </div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>Server Host OS</Text>
+                    <div><Text style={{ textTransform: 'capitalize' }}>{environmentStatusQuery.data?.getEnvironmentStatus?.platform || 'win32'}</Text></div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+
+            {/* Observability Backup Logs */}
+            <Col xs={24} md={16}>
+              <Card
+                title="💾 Database Backup Registry Log"
+                extra={
+                  <Button
+                    type="primary"
+                    onClick={() => triggerBackupDrill()}
+                    loading={triggeringBackup}
+                    style={{ background: '#be123c', borderColor: '#be123c', fontWeight: 'bold' }}
+                  >
+                    Archive Database Snapshot
+                  </Button>
+                }
+                style={{ borderRadius: '16px' }}
+              >
+                <Table
+                  dataSource={backupHistoryQuery.data?.getBackupHistory || []}
+                  rowKey="id"
+                  loading={backupHistoryQuery.loading}
+                  columns={[
+                    {
+                      title: 'Archive Filename',
+                      dataIndex: 'fileName',
+                      key: 'fileName',
+                      render: (name) => <Text style={{ fontFamily: 'monospace', fontSize: '11px' }}>{name}</Text>
+                    },
+                    {
+                      title: 'Size',
+                      dataIndex: 'backupSize',
+                      key: 'backupSize',
+                      render: (size) => `${size.toFixed(1)} MB`,
+                      width: 100
+                    },
+                    {
+                      title: 'Status',
+                      dataIndex: 'status',
+                      key: 'status',
+                      render: (st) => <Tag color="success">{st}</Tag>,
+                      width: 100
+                    },
+                    {
+                      title: 'Created At',
+                      dataIndex: 'timestamp',
+                      key: 'timestamp',
+                      render: (t) => new Date(t).toLocaleString(),
+                      width: 170
+                    },
+                    {
+                      title: 'Restore Test',
+                      key: 'restore',
+                      render: (_, record) => (
+                        <Button
+                          size="small"
+                          danger
+                          onClick={() => {
+                            Modal.confirm({
+                              title: 'Trigger Restore Test',
+                              content: `Confirm restore test execution using backup: ${record.fileName}? This will validate snapshot readability.`,
+                              okText: 'Run Restore Drill',
+                              okType: 'danger',
+                              onOk: () => triggerRestoreDrill({ variables: { backupId: record.id } })
+                            });
+                          }}
+                        >
+                          Restore Drill
+                        </Button>
+                      ),
+                      width: 120
+                    }
+                  ]}
+                  locale={{ emptyText: 'No database snapshots archived yet.' }}
+                />
+              </Card>
+            </Col>
+          </Row>
+        </div>
       )}
 
       {/* 7. MEDICAL REVIEW */}
@@ -1540,7 +3121,7 @@ export default function StaffConsole({ isHi }) {
             width={650}
           >
             {selectedReviewItem && (
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <Row gutter={[16, 16]}>
                   <Col span={8}>
                     <Text type="secondary" style={{ fontSize: 11 }}>Resource Key:</Text>
@@ -1780,7 +3361,7 @@ export default function StaffConsole({ isHi }) {
         ]}
       >
         {selectedWorksheet && (
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Space orientation="vertical" style={{ width: '100%' }} size="middle">
             <Alert 
               message={`${selectedWorksheet.userDisplayName} submitted:`}
               description={<Text strong>{selectedWorksheet.title}</Text>}
@@ -1855,7 +3436,7 @@ export default function StaffConsole({ isHi }) {
         open={selectedUser !== null}
       >
         {selectedUser && (
-          <Space direction="vertical" style={{ width: '100%' }} size="large">
+          <Space orientation="vertical" style={{ width: '100%' }} size="large">
             <div>
               <Title level={5}>Patient Info</Title>
               <Paragraph style={{ margin: 0 }}>Email: {selectedUser.email}</Paragraph>

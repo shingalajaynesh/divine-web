@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
+import PanelLoader from '../components/PanelLoader.jsx';
 import { 
   Card, Table, Progress, Tag, Row, Col, Typography, Spin, 
   List, Space, Alert, Button, Statistic, Badge 
@@ -40,7 +41,7 @@ const GET_FRANCHISE_METRICS = gql`
 
 export default function FranchiseConsole() {
   const { data, loading, refetch } = useQuery(GET_FRANCHISE_METRICS, {
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'cache-and-network'
   });
 
   const metrics = data?.getFranchiseMetrics;
@@ -108,9 +109,11 @@ export default function FranchiseConsole() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" description="Benchmarking franchise centers..." />
-        </div>
+        <PanelLoader
+          title="Loading franchise benchmarks"
+          subtitle="Comparing centers, compliance, and growth signals..."
+          cards={4}
+        />
       ) : metrics ? (
         <div>
           {/* Main indicators row */}

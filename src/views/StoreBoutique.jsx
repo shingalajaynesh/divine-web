@@ -563,7 +563,7 @@ export default function StoreBoutique({ user, lang }) {
         onClose={() => setAddressDrawerOpen(false)}
         open={addressDrawerOpen}
       >
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        <Space orientation="vertical" style={{ width: '100%' }} size="middle">
           <div>
             <Text strong style={{ fontSize: '11px', display: 'block', marginBottom: '6px' }}>Recipient Full Name</Text>
             <Input placeholder="e.g. Jayne Smith" value={fullName} onChange={e => setFullName(e.target.value)} />
@@ -619,7 +619,7 @@ export default function StoreBoutique({ user, lang }) {
         onClose={() => setReturningOrderId(null)}
         open={returningOrderId !== null}
       >
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        <Space orientation="vertical" style={{ width: '100%' }} size="middle">
           <Paragraph type="secondary">
             Our shipping agents will retrieve the returned package from your delivery address. Please explain the reason for the return below:
           </Paragraph>

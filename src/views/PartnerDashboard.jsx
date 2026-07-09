@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { Card, Col, Row, Progress, Button, Input, Space, Table, Empty, Tag, Typography, message, Divider } from 'antd';
+import PanelLoader from '../components/PanelLoader.jsx';
 import { 
   HeartOutlined, 
   SmileOutlined, 
@@ -20,8 +21,9 @@ const { Title, Paragraph, Text } = Typography;
 
 export default function PartnerDashboard({ user, lang }) {
   const isHi = lang === 'hi';
+  const [messageApi, messageContext] = message.useMessage();
   const { data, loading, error, refetch } = useQuery(GET_PARTNER_DASHBOARD_QUERY, {
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'cache-and-network'
   });
 
   const [customMsg, setCustomMsg] = useState('');
@@ -39,10 +41,10 @@ export default function PartnerDashboard({ user, lang }) {
     setSending(true);
     try {
       await sendEncourage({ variables: { message: msg.trim() } });
-      message.success(isHi ? 'प्रोत्साहन संदेश सफलतापूर्वक भेजा गया!' : 'Encouragement message sent successfully!');
+      messageApi.success(isHi ? 'प्रोत्साहन संदेश सफलतापूर्वक भेजा गया!' : 'Encouragement message sent successfully!');
       setCustomMsg('');
     } catch (err) {
-      message.error(err.message);
+      messageApi.error(err.message);
     } finally {
       setSending(false);
     }
@@ -51,13 +53,25 @@ export default function PartnerDashboard({ user, lang }) {
   const handleToggleTask = async (dayNumber) => {
     try {
       await acknowledgeTask({ variables: { dayNumber } });
-      message.success(isHi ? 'गतिविधि स्थिति अपडेट की गई!' : 'Activity status updated!');
+      messageApi.success(isHi ? 'गतिविधि स्थिति अपडेट की गई!' : 'Activity status updated!');
     } catch (err) {
-      message.error(err.message);
+      messageApi.error(err.message);
     }
   };
 
   if (loading) {
+    return (
+      <div className="partner-loading" style={{ padding: '24px' }}>
+        <PanelLoader
+          title={isHi ? 'पार्टनर डैशबोर्ड लोड हो रहा है' : 'Loading partner dashboard'}
+          subtitle={isHi ? 'साझा यात्रा, कार्य और प्रेरणा तैयार की जा रही है...' : 'Preparing shared journey updates, tasks, and encouragements...'}
+          cards={3}
+        />
+      </div>
+    );
+  }
+
+  if (false && loading) {
     return (
       <div className="partner-loading" style={{ padding: '40px', textAlign: 'center' }}>
         <Progress type="circle" percent={45} status="active" strokeColor="#f27a54" />
@@ -125,6 +139,7 @@ export default function PartnerDashboard({ user, lang }) {
 
   return (
     <div className="partner-dashboard" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      {messageContext}
       
       {/* Header Greeting */}
       <section className="partner-greeting" style={{ marginBottom: '30px' }}>
@@ -148,7 +163,7 @@ export default function PartnerDashboard({ user, lang }) {
         
         {/* Left Side: Journey Card & Daily Task */}
         <Col xs={24} lg={16}>
-          <Space direction="vertical" size={24} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={24} style={{ width: '100%' }}>
             
             {/* Journey Status Card */}
             <Card 
@@ -313,7 +328,7 @@ export default function PartnerDashboard({ user, lang }) {
 
         {/* Right Side: Encouragement & Storytelling */}
         <Col xs={24} lg={8}>
-          <Space direction="vertical" size={24} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={24} style={{ width: '100%' }}>
             
             {/* Encouragement Console */}
             <Card 

@@ -571,6 +571,7 @@ export default function TodayDashboard({ user, t }) {
               justifyContent: 'center'
             }}>
               <Avatar
+                src="/smiling_baby.png"
                 size={{ xs: 64, sm: 80, md: 100, lg: 110, xl: 120 }}
                 style={{
                   border: '2px solid rgba(255, 255, 255, 0.4)',
@@ -1306,7 +1307,7 @@ export default function TodayDashboard({ user, t }) {
                   <Text strong style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '8px' }}>
                     ➕ {isHi ? "साथी के लिए नया कार्य असाइन करें" : "Assign a Custom Task to Partner"}
                   </Text>
-                  <Space direction="vertical" style={{ width: '100%' }} size="small">
+                  <Space orientation="vertical" style={{ width: '100%' }} size="small">
                     <Input
                       placeholder={isHi ? "कार्य का नाम (जैसे: पैरों की मालिश)" : "Task Title (e.g. Back massage)"}
                       value={assignTaskTitle}
@@ -1355,7 +1356,7 @@ export default function TodayDashboard({ user, t }) {
                 <Text strong style={{ fontSize: '12px', color: '#b45309', display: 'block', marginBottom: '8px' }}>
                   ✏️ {isHi ? "अपनी प्रतिक्रिया दर्ज करें" : "Write Your Action Response"}
                 </Text>
-                <Space direction="vertical" style={{ width: '100%' }} size="small">
+                <Space orientation="vertical" style={{ width: '100%' }} size="small">
                   <Input.TextArea
                     rows={2}
                     placeholder={isHi ? "आपने यह कार्य कैसे पूरा किया..." : "How did you perform this activity..."}
@@ -1478,7 +1479,7 @@ export default function TodayDashboard({ user, t }) {
                 <Text strong style={{ fontSize: '13px', display: 'block', marginBottom: '12px' }}>
                   {isHi ? "साझाकरण अनुमतियाँ" : "Sharing Permissions"}
                 </Text>
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                   <Checkbox
                     checked={user.shareVitalsWithPartner}
                     onChange={(e) => {
@@ -1713,7 +1714,7 @@ export default function TodayDashboard({ user, t }) {
 
         <Row gutter={[24, 24]}>
           <Col xs={24} md={12}>
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
               <div>
                 <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {isHi ? "शिशु का नाम या लाडला नाम (Nickname)" : "Baby Name or Nickname"}
@@ -1731,7 +1732,7 @@ export default function TodayDashboard({ user, t }) {
                 <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
                   {isHi ? "गुणों का चयन करें (अधिकतम 4)" : "Select Virtues (Max 4)"}
                 </Text>
-                <Space direction="vertical" style={{ width: '100%', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+                <Space orientation="vertical" style={{ width: '100%', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
                   {allVirtues.map((v) => {
                     const isSelected = selectedVirtues.includes(v.id);
                     return (

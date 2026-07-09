@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import toast from 'react-hot-toast';
-import { Card, Form, InputNumber, Button, Table, Tag, Typography, Row, Col, Space, Input, DatePicker, Select, Checkbox, Progress, List, Tabs, Divider } from 'antd';
+import { Card, Form, InputNumber, Button, Table, Tag, Typography, Row, Col, Space, Input, DatePicker, Select, Checkbox, Progress, List, Tabs, Divider, Alert } from 'antd';
 import { 
   GET_WELLNESS_DATA_QUERY, 
   LOG_VITALS_MUTATION, 
@@ -338,7 +338,38 @@ export default function VitalsTracker({ user, lang }) {
       <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} style={{ marginBottom: '24px' }} />
 
       {activeTab === 'vitals' && (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+          {latestLog && (latestLog.systolicBp >= 140 || latestLog.diastolicBp >= 90 || (latestLog.kickCount !== null && latestLog.kickCount < 10) || latestLog.bloodSugar >= 140) && (
+            <div style={{ marginBottom: '8px' }}>
+              {(latestLog.systolicBp >= 140 || latestLog.diastolicBp >= 90) && (
+                <Alert 
+                  type="error" 
+                  message={isHi ? "🚨 उच्च रक्तचाप चेतावनी" : "🚨 High Blood Pressure Alert"}
+                  description={isHi ? `आपका रक्तचाप (BP) सीमा से अधिक है: ${latestLog.systolicBp}/${latestLog.diastolicBp} mmHg। कृपया आराम करें और तुरंत डॉक्टर से परामर्श लें।` : `Your BP is elevated: ${latestLog.systolicBp}/${latestLog.diastolicBp} mmHg. Please rest and contact your obstetrician immediately.`}
+                  showIcon
+                  style={{ marginBottom: '8px', borderRadius: '12px' }}
+                />
+              )}
+              {latestLog.kickCount !== null && latestLog.kickCount < 10 && (
+                <Alert 
+                  type="warning" 
+                  message={isHi ? "🚨 भ्रूण की हलचल में कमी" : "🚨 Low Fetal Movement Alert"}
+                  description={isHi ? `2 घंटे में ${latestLog.kickCount} किक दर्ज की गईं (10 से कम)। कृपया पानी पिएं, बाईं करवट सोएं और पुन: गणना करें। यदि हलचल कम ही रहती है, तो तुरंत डॉक्टर से संपर्क करें।` : `Fewer than 10 kicks counted (${latestLog.kickCount} kicks in 2h). Try drinking cold water, lying on your left side, and recount. Contact your clinic if it remains low.`}
+                  showIcon
+                  style={{ marginBottom: '8px', borderRadius: '12px' }}
+                />
+              )}
+              {latestLog.bloodSugar >= 140 && (
+                <Alert 
+                  type="warning" 
+                  message={isHi ? "🚨 उच्च रक्त शर्करा चेतावनी" : "🚨 High Blood Sugar Alert"}
+                  description={isHi ? `आपकी रक्त शर्करा ${latestLog.bloodSugar} mg/dL है (सीमा से अधिक)। कृपया अपने जेस्टेशनल डाइट चार्ट का पालन करें और मीठा कम लें।` : `Your blood sugar is elevated: ${latestLog.bloodSugar} mg/dL. Please follow your gestational diet guidelines closely.`}
+                  showIcon
+                  style={{ marginBottom: '8px', borderRadius: '12px' }}
+                />
+              )}
+            </div>
+          )}
           <Row gutter={[16, 16]}>
             <Col xs={12} sm={6}>
               <Card style={{ borderRadius: 20, background: '#fffbeb', border: '1px solid #fef3c7' }}>
@@ -384,7 +415,7 @@ export default function VitalsTracker({ user, lang }) {
               </Text>
               <Row gutter={[16, 16]}>
                 <Col xs={24} sm={8}>
-                  <Space direction="vertical" size={2}>
+                  <Space orientation="vertical" size={2}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>
                       {isHi ? "औसत नींद (अंतिम 7 प्रविष्टियाँ):" : "Average Sleep (Last 7 logs):"}{' '}
                       <Text strong>{trendFeedback.avgSleep} hrs</Text>
@@ -569,7 +600,7 @@ export default function VitalsTracker({ user, lang }) {
           <Col xs={24} md={10}>
             <Card style={{ borderRadius: 20, border: '1px solid #e2e8f0' }}>
               <Title level={5} style={{ margin: '0 0 16px 0' }}>💊 Add Medicine Schedule</Title>
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <div>
                   <Text strong style={{ fontSize: '11px', display: 'block', marginBottom: '6px' }}>Medicine Name</Text>
                   <Input placeholder="e.g. Iron Supplement, Folic Acid" value={newMedName} onChange={e => setNewMedName(e.target.value)} />
@@ -633,7 +664,7 @@ export default function VitalsTracker({ user, lang }) {
           <Col xs={24} md={10}>
             <Card style={{ borderRadius: 20, border: '1px solid #e2e8f0' }}>
               <Title level={5} style={{ margin: '0 0 16px 0' }}>🏥 Log Doctor Visit</Title>
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <div>
                   <Text strong style={{ fontSize: '11px', display: 'block', marginBottom: '6px' }}>Appointment Purpose</Text>
                   <Input placeholder="e.g. Trimester 1 Ultrasound Scan" value={appTitle} onChange={e => setAppTitle(e.target.value)} />
@@ -717,7 +748,7 @@ export default function VitalsTracker({ user, lang }) {
             <Col xs={24} md={8}>
               <Card style={{ borderRadius: 16, background: '#fcfcfc' }}>
                 <Title level={5} style={{ fontSize: '13px', margin: '0 0 12px 0' }}>➕ Add Packing Item</Title>
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                   <Input placeholder="e.g. Diapers, Swaddle Cloth" value={newBagItemName} onChange={e => setNewBagItemName(e.target.value)} />
                   <Select value={newBagCategory} onChange={setNewBagCategory} style={{ width: '100%' }}>
                     <Select.Option value="mother">🤰 For Mother</Select.Option>

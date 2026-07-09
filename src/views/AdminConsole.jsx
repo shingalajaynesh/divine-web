@@ -3,9 +3,10 @@ import { useMutation, useQuery } from '@apollo/client';
 import { ADMIN_ADD_CONTENT_MUTATION } from '../graphql/operations';
 import { gql } from '@apollo/client';
 import toast from 'react-hot-toast';
+import PanelLoader from '../components/PanelLoader.jsx';
 import { 
   Card, Form, Input, InputNumber, Select, Button, Typography, Row, Col, 
-  Tabs, Table, Progress, Tag, Space, Alert, List, Avatar, Statistic, Tooltip
+  Tabs, Table, Progress, Tag, Space, Alert, List, Avatar, Statistic, Tooltip, Spin
 } from 'antd';
 import { 
   PlusCircleOutlined, TeamOutlined, HeartOutlined, TrophyOutlined, 
@@ -54,7 +55,7 @@ export default function AdminConsole() {
   
   // Queries
   const { data: kpisData, loading: loadingKpis, refetch: refetchKpis } = useQuery(GET_CENTER_KPIS, {
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'cache-and-network'
   });
 
   const [adminAddContent, { loading: submitting }] = useMutation(ADMIN_ADD_CONTENT_MUTATION);
@@ -126,9 +127,11 @@ export default function AdminConsole() {
       />
 
       {loadingKpis && activeTab !== 'upload' ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" description="Aggregating center indicators..." />
-        </div>
+        <PanelLoader
+          title="Loading center operations"
+          subtitle="Collecting members, staff health, and support indicators..."
+          cards={4}
+        />
       ) : (
         <>
           {/* ======================================================== */}

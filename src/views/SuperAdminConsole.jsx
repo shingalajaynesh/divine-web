@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { gql } from '@apollo/client';
 import toast from 'react-hot-toast';
+import PanelLoader from '../components/PanelLoader.jsx';
 import { 
   Card, Tabs, Table, Progress, Tag, Row, Col, Typography, Spin, 
   List, Space, Alert, Button, Statistic, Switch, Select, Input, Form
 } from 'antd';
+import { 
+  GET_MODERATION_QUEUE_QUERY, 
+  MODERATE_POST_MUTATION, 
+  MODERATE_COMMENT_MUTATION 
+} from '../graphql/operations';
 import { 
   DashboardOutlined, AuditOutlined, SafetyCertificateOutlined, 
   ShopOutlined, UserOutlined, AlertOutlined, CloudServerOutlined, 
@@ -82,11 +88,17 @@ export default function SuperAdminConsole() {
 
   // Queries
   const { data: metricsData, loading: loadingMetrics, refetch: refetchMetrics } = useQuery(GET_SUPER_ADMIN_METRICS, {
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'cache-and-network'
   });
 
   const { data: centersData, loading: loadingCenters, refetch: refetchCenters } = useQuery(GET_CENTERS, {
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'cache-and-network',
+    skip: activeTab !== 'centers'
+  });
+
+  const { data: modData, loading: loadingMod, refetch: refetchMod } = useQuery(GET_MODERATION_QUEUE_QUERY, {
+    fetchPolicy: 'cache-and-network',
+    skip: activeTab !== 'moderation'
   });
 
   // Mutations
@@ -102,6 +114,22 @@ export default function SuperAdminConsole() {
   const [updateRolePermissions, { loading: updatingPermissions }] = useMutation(UPDATE_ROLE_PERMISSIONS, {
     onCompleted: () => {
       toast.success('Role permissions updated successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [moderatePost, { loading: moderatingPost }] = useMutation(MODERATE_POST_MUTATION, {
+    onCompleted: () => {
+      refetchMod();
+      toast.success('Post moderation resolved successfully!');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const [moderateComment, { loading: moderatingComment }] = useMutation(MODERATE_COMMENT_MUTATION, {
+    onCompleted: () => {
+      refetchMod();
+      toast.success('Comment moderation resolved successfully!');
     },
     onError: (err) => toast.error(err.message)
   });
@@ -125,6 +153,10 @@ export default function SuperAdminConsole() {
     {
       key: 'audits',
       label: <span><AuditOutlined /> Platform Security Audits</span>,
+    },
+    {
+      key: 'moderation',
+      label: <span><AlertOutlined /> Community Moderation Queue</span>,
     }
   ];
 
@@ -182,9 +214,11 @@ export default function SuperAdminConsole() {
       />
 
       {loadingMetrics && activeTab === 'overview' ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" description="Connecting to platform node metrics..." />
-        </div>
+        <PanelLoader
+          title="Loading platform control tower"
+          subtitle="Checking platform metrics, audit summaries, and operations state..."
+          cards={4}
+        />
       ) : (
         <>
           {/* ======================================================== */}
@@ -395,6 +429,148 @@ export default function SuperAdminConsole() {
                   }
                 ]}
               />
+            </Card>
+          )}
+
+          {/* ======================================================== */}
+          {/* TAB 5: COMMUNITY MODERATION QUEUE */}
+          {/* ======================================================== */}
+          {activeTab === 'moderation' && (
+            <Card title="Flagged Community Content Review" style={{ borderRadius: 16 }}>
+              <Paragraph type="secondary">
+                Review user-submitted reports for posts and comments. Dismiss false reports or delete offending content items.
+              </Paragraph>
+              
+              {loadingMod ? (
+                <Spin size="large" />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                  
+                  {/* Flagged Posts */}
+                  <div>
+                    <Title level={5} style={{ color: '#be123c', marginBottom: '16px' }}>🚨 Flagged Posts Queue</Title>
+                    <Table 
+                      dataSource={modData?.getModerationQueue?.flaggedPosts || []}
+                      rowKey="id"
+                      columns={[
+                        {
+                          title: 'Reporter Count',
+                          dataIndex: 'reportsCount',
+                          key: 'reportsCount',
+                          render: (count) => <Tag color="red">{count} Reports</Tag>
+                        },
+                        {
+                          title: 'Flagged Reason',
+                          dataIndex: 'reportedReason',
+                          key: 'reportedReason',
+                          render: (text) => <Text strong>{text || 'No reason specified'}</Text>
+                        },
+                        {
+                          title: 'Author',
+                          dataIndex: ['user', 'displayName'],
+                          key: 'author'
+                        },
+                        {
+                          title: 'Title',
+                          dataIndex: 'title',
+                          key: 'title'
+                        },
+                        {
+                          title: 'Content Snippet',
+                          dataIndex: 'content',
+                          key: 'content',
+                          ellipsis: true
+                        },
+                        {
+                          title: 'Actions',
+                          key: 'actions',
+                          render: (_, record) => (
+                            <Space>
+                              <Button 
+                                type="primary" 
+                                style={{ background: '#10b981', borderColor: '#10b981' }}
+                                onClick={() => moderatePost({ variables: { postId: record.id, action: 'APPROVE' } })}
+                                loading={moderatingPost}
+                              >
+                                Keep / Dismiss
+                              </Button>
+                              <Button 
+                                danger 
+                                type="primary"
+                                onClick={() => moderatePost({ variables: { postId: record.id, action: 'DELETE' } })}
+                                loading={moderatingPost}
+                              >
+                                Delete Post
+                              </Button>
+                            </Space>
+                          )
+                        }
+                      ]}
+                    />
+                  </div>
+
+                  <Divider />
+
+                  {/* Flagged Comments */}
+                  <div>
+                    <Title level={5} style={{ color: '#be123c', marginBottom: '16px' }}>🚨 Flagged Comments Queue</Title>
+                    <Table 
+                      dataSource={modData?.getModerationQueue?.flaggedComments || []}
+                      rowKey="id"
+                      columns={[
+                        {
+                          title: 'Reporter Count',
+                          dataIndex: 'reportsCount',
+                          key: 'reportsCount',
+                          render: (count) => <Tag color="red">{count} Reports</Tag>
+                        },
+                        {
+                          title: 'Flagged Reason',
+                          dataIndex: 'reportedReason',
+                          key: 'reportedReason',
+                          render: (text) => <Text strong>{text || 'No reason specified'}</Text>
+                        },
+                        {
+                          title: 'Author',
+                          dataIndex: ['user', 'displayName'],
+                          key: 'author'
+                        },
+                        {
+                          title: 'Comment Content',
+                          dataIndex: 'content',
+                          key: 'content',
+                          ellipsis: true
+                        },
+                        {
+                          title: 'Actions',
+                          key: 'actions',
+                          render: (_, record) => (
+                            <Space>
+                              <Button 
+                                type="primary" 
+                                style={{ background: '#10b981', borderColor: '#10b981' }}
+                                onClick={() => moderateComment({ variables: { commentId: record.id, action: 'APPROVE' } })}
+                                loading={moderatingComment}
+                              >
+                                Keep / Dismiss
+                              </Button>
+                              <Button 
+                                danger 
+                                type="primary"
+                                onClick={() => moderateComment({ variables: { commentId: record.id, action: 'DELETE' } })}
+                                loading={moderatingComment}
+                              >
+                                Delete Comment
+                              </Button>
+                            </Space>
+                          )
+                        }
+                      ]}
+                    />
+                  </div>
+
+                </div>
+              )}
             </Card>
           )}
         </>

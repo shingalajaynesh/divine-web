@@ -11,7 +11,8 @@ import {
   DELETE_CONTENT_ITEM_MUTATION,
   REGISTER_MEDIA_ASSET_MUTATION,
   GET_CLOUDINARY_SIGNATURE_QUERY,
-  SUBMIT_FOR_REVIEW_MUTATION
+  SUBMIT_FOR_REVIEW_MUTATION,
+  APPROVE_MEDICAL_CONTENT_MUTATION
 } from '../graphql/operations';
 
 const { Title, Paragraph, Text } = Typography;
@@ -35,6 +36,7 @@ export default function ContentCms({ user }) {
   const [deleteItem, { loading: deleting }] = useMutation(DELETE_CONTENT_ITEM_MUTATION);
   const [registerMedia, { loading: registeringMedia }] = useMutation(REGISTER_MEDIA_ASSET_MUTATION);
   const [submitForReview, { loading: submittingForReview }] = useMutation(SUBMIT_FOR_REVIEW_MUTATION);
+  const [approveMedicalContent, { loading: approving }] = useMutation(APPROVE_MEDICAL_CONTENT_MUTATION);
   const client = useApolloClient();
   const [uploadingFile, setUploadingFile] = useState(false);
 
@@ -313,6 +315,16 @@ export default function ContentCms({ user }) {
     }
   };
 
+  const approve = async (id) => {
+    try {
+      await approveMedicalContent({ variables: { id, feedback: 'Approved by admin' } });
+      refetch();
+      toast.success('Content approved.');
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
   const columns = [
     { 
       title: 'Content', 
@@ -369,6 +381,9 @@ export default function ContentCms({ user }) {
           <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEdit(item)}>Edit</Button>
           {item.status === 'draft' && (
             <Button size="small" type="dashed" loading={submittingForReview} onClick={() => handleSubmitForReview(item.id)}>Submit Review</Button>
+          )}
+          {isAdmin && item.status === 'review' && (
+            <Button size="small" type="primary" icon={<CheckCircleOutlined />} loading={approving} onClick={() => approve(item.id)} style={{ background: '#0f766e', borderColor: '#0f766e' }}>Approve</Button>
           )}
           {isAdmin && item.status === 'approved' && (
             <Button size="small" type="primary" icon={<CheckCircleOutlined />} loading={publishing} onClick={() => publish(item.id)}>Publish</Button>

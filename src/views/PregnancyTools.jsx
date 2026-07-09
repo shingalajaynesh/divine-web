@@ -728,7 +728,7 @@ export default function PregnancyTools({ user, lang }) {
                 title={<span><PhoneOutlined style={{ color: '#16a34a', marginRight: 8 }} />{isHi ? "आपातकालीन संपर्क निर्देशिका" : "Emergency Contact Directory"}</span>}
                 style={{ borderRadius: '24px', border: '1px solid #f1f5f9' }}
               >
-                <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                   <div>
                     <Text strong style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
                       {isHi ? "प्रसूति रोग विशेषज्ञ (Doctor Name)" : "OBSTETRICIAN / GYNECOLOGIST"}

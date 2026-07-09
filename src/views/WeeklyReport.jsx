@@ -141,7 +141,7 @@ export default function WeeklyReport({ user, lang }) {
       dataIndex: 'reflections',
       key: 'reflections',
       render: (notes) => (
-        <Space direction="vertical" size={2} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={2} style={{ width: '100%' }}>
           {notes && notes.length > 0 ? (
             notes.map((note, index) => (
               <Paragraph key={index} style={{ margin: 0, fontSize: '12px' }} type="secondary">
@@ -258,7 +258,7 @@ export default function WeeklyReport({ user, lang }) {
       <Row gutter={[24, 24]}>
         {/* Left Column: Streaks and Achievements */}
         <Col xs={24} lg={8} className="no-print">
-          <Space direction="vertical" style={{ width: '100%' }} size={24}>
+          <Space orientation="vertical" style={{ width: '100%' }} size={24}>
             {/* Streak Card */}
             <Card 
               title={<span><FireOutlined style={{ color: '#f97316', marginRight: 8 }} />{isHi ? 'आपकी यात्रा निरंतरता' : 'Your Journey Streaks'}</span>}
@@ -289,7 +289,7 @@ export default function WeeklyReport({ user, lang }) {
               title={<span><TrophyOutlined style={{ color: '#eab308', marginRight: 8 }} />{isHi ? 'अर्जित उपलब्धियां' : 'Achievements & Badges'}</span>}
               style={{ borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 8px 24px rgba(0,0,0,0.02)' }}
             >
-              <Space direction="vertical" style={{ width: '100%' }} size={12}>
+              <Space orientation="vertical" style={{ width: '100%' }} size={12}>
                 {Object.entries(badgeDefinitions).map(([key, def]) => {
                   const unlocked = unlockedBadgeKeys.includes(key);
                   return (
