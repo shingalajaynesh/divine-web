@@ -56,7 +56,9 @@ function App() {
     }
   });
   
-  const { data: meData, loading: meLoading, error: meError, refetch: refetchMe } = useQuery(ME_QUERY);
+  const { data: meData, loading: meLoading, error: meError, refetch: refetchMe } = useQuery(ME_QUERY, {
+    skip: !authLoaded || !firebaseUser
+  });
 
   const [syncUser] = useMutation(gql`
     mutation SyncUser {
