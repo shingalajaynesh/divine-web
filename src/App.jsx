@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import { auth } from './config/firebase.js';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import AuthModal from './components/AuthModal.jsx';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
@@ -104,6 +104,18 @@ function App() {
       localStorage.setItem('divine_cached_user', JSON.stringify(meData.me));
     }
   }, [meData]);
+
+  useEffect(() => {
+    if (meError) {
+      const isAuthError = 
+        meError.message.includes('Authentication required') || 
+        meError.graphQLErrors?.some(e => e.extensions?.code === 'UNAUTHENTICATED');
+      
+      if (isAuthError && firebaseUser) {
+        signOut(auth).catch(err => console.error('Sign out error:', err));
+      }
+    }
+  }, [meError, firebaseUser]);
 
   const user = meData?.me || cachedUser;
   const lang = user?.language || 'en';
