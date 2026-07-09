@@ -317,7 +317,13 @@ function App() {
     ];
   }, [activeRole, t, lang]);
 
-  const isLockScreen = meError && (meError.message.includes('Device unauthorized') || meError.message.includes('DEVICE_UNAUTHORIZED') || meError.message.includes('device unauthorized'));
+  const isLockScreen = meError && (
+    meError.message.includes('Device unauthorized') || 
+    meError.message.includes('DEVICE_UNAUTHORIZED') || 
+    meError.message.includes('device unauthorized') ||
+    meError.message.includes('Maximum concurrent device limit reached') ||
+    meError.message.includes('device limit reached')
+  );
 
   return (
     <ConfigProvider
