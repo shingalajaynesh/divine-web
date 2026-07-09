@@ -1037,4 +1037,54 @@ a:focus-visible {
   }
 }
 
+/* Premium UI/UX Redesign Classes */
+.quotient-tab-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 2px solid #f1f5f9;
+  background: #ffffff;
+  cursor: pointer;
+  height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(63, 10, 17, 0.02);
+}
+
+.quotient-tab-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(63, 10, 17, 0.06);
+  border-color: #e2e8f0;
+}
+
+.quotient-tab-card.active {
+  border-color: var(--brand-saffron);
+  background: radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.08) 0%, #fffbf2 70%);
+  box-shadow: 0 10px 24px rgba(245, 158, 11, 0.12);
+  transform: scale(1.02);
+}
+
+.quotient-tab-card.completed {
+  border-color: #d1fae5;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.quotient-tab-card.completed.active {
+  border-color: var(--brand-saffron);
+  background: radial-gradient(circle at 100% 0%, rgba(40, 122, 85, 0.08) 0%, #f6fcf8 70%);
+  box-shadow: 0 10px 24px rgba(245, 158, 11, 0.12);
+}
+
+.quick-action-card-premium {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.quick-action-card-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md) !important;
+  border-color: var(--brand-saffron) !important;
+}
+
+
 

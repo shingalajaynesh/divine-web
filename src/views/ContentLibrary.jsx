@@ -1,11 +1,11 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
-import { Button, Card, Col, Empty, Input, Row, Segmented, Skeleton, Tag, Typography, List, Modal, Space, Divider, Badge, Alert } from 'antd';
+import { Button, Card, Col, Empty, Input, Row, Skeleton, Tag, Typography, List, Modal, Space, Divider, Badge } from 'antd';
 import { 
   AudioOutlined, BookOutlined, ClockCircleOutlined, HeartOutlined, 
   PlayCircleOutlined, SearchOutlined, StarOutlined, PlusOutlined, 
   DeleteOutlined, CustomerServiceOutlined, DownloadOutlined,
-  FilePdfOutlined, CheckCircleOutlined, InfoCircleOutlined
+  FilePdfOutlined
 } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import { 
@@ -230,81 +230,158 @@ export default function ContentLibrary({ lang = 'en' }) {
   }, [playlistData, selectedPlaylistId]);
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-        <Tag color="rose" style={{ borderRadius: '12px', padding: '4px 12px' }}>DIVINE LIBRARY</Tag>
-        <Title level={1} style={{ margin: '12px 0 8px 0', color: 'var(--brand-maroon-dark)' }}>Learn, Listen & Practice</Title>
-        <Paragraph type="secondary" style={{ fontSize: '16px' }}>Search original pregnancy exercises, audio wellness collection, and customized playlists.</Paragraph>
-        
-        <Input.Search 
-          style={{ maxWidth: '600px', margin: '20px auto 0 auto', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} 
-          size="large" 
-          value={query} 
-          onChange={(event) => setQuery(event.target.value)} 
-          onSearch={runSearch} 
-          enterButton={<SearchOutlined />} 
-          placeholder="Search meditation, stories, yoga…" 
-        />
-        
-        {recent.data?.recentContentSearches?.length ? (
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Recent searches:</span>
-            {recent.data.recentContentSearches.slice(0, 5).map((item) => (
-              <Button size="small" shape="round" key={item.id} onClick={() => runSearch(item.query)}>{item.query}</Button>
-            ))}
-            <Button size="small" type="text" onClick={async () => { await clearRecent(); recent.refetch(); }}>Clear</Button>
+    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 16px' }}>
+      {/* ─── Premium Hero Banner ─── */}
+      <div style={{
+        background: 'radial-gradient(ellipse at 20% 50%, rgba(190, 18, 60, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(245, 158, 11, 0.1) 0%, transparent 50%), linear-gradient(135deg, #fefce8 0%, #fff7ed 30%, #fff1f2 70%, #fdf2f8 100%)',
+        borderRadius: 28,
+        padding: 'clamp(24px, 5vw, 48px)',
+        marginBottom: 32,
+        border: '1px solid rgba(234, 223, 216, 0.5)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(245, 158, 11, 0.06)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -30, left: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(190, 18, 60, 0.04)', pointerEvents: 'none' }} />
+
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(190, 18, 60, 0.08)', borderRadius: 20, padding: '6px 16px', marginBottom: 16 }}>
+            <span style={{ fontSize: 14 }}>📚</span>
+            <Text strong style={{ color: 'var(--brand-maroon)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '1.5px' }}>Divine Library</Text>
           </div>
-        ) : null}
-        
-        <div style={{ marginTop: '24px', maxWidth: '500px', margin: '24px auto 0 auto' }}>
-          <Segmented block options={views} value={view} onChange={(value) => { setView(value); if (value !== 'explore') setActiveQuery(''); }} />
+
+          <Title level={2} style={{ margin: '0 0 8px 0', color: 'var(--brand-maroon-dark)', fontWeight: 900, fontSize: 'clamp(22px, 4vw, 32px)' }}>
+            Learn, Listen & Practice
+          </Title>
+          <Paragraph style={{ color: 'var(--muted)', fontSize: 15, maxWidth: 520, margin: '0 auto 24px auto', lineHeight: 1.6 }}>
+            Explore pregnancy exercises, curated audio wellness, guided meditations, and customized playlists for your journey.
+          </Paragraph>
+
+          {/* Search Bar */}
+          <div style={{ maxWidth: 560, margin: '0 auto' }}>
+            <Input.Search
+              size="large"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onSearch={runSearch}
+              enterButton={<SearchOutlined />}
+              placeholder="Search meditation, stories, yoga…"
+              style={{ borderRadius: 16, boxShadow: '0 8px 24px rgba(63, 10, 17, 0.06)' }}
+            />
+          </div>
+
+          {/* Recent Searches */}
+          {recent.data?.recentContentSearches?.length ? (
+            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <Text type="secondary" style={{ fontSize: 11 }}>Recent:</Text>
+              {recent.data.recentContentSearches.slice(0, 5).map((item) => (
+                <Button size="small" shape="round" key={item.id} onClick={() => runSearch(item.query)} style={{ fontSize: 11, borderColor: 'var(--line)' }}>{item.query}</Button>
+              ))}
+              <Button size="small" type="text" danger onClick={async () => { await clearRecent(); recent.refetch(); }} style={{ fontSize: 11 }}>Clear</Button>
+            </div>
+          ) : null}
         </div>
-        
-        {view === 'explore' ? (
-          <div style={{ marginTop: '16px', overflowX: 'auto', whiteSpace: 'nowrap', padding: '4px 0' }}>
-            <Segmented options={filters} value={type} onChange={(value) => { setType(value); if (activeQuery) search({ variables: { query: activeQuery, language: lang, contentType: value || null } }); }} />
-          </div>
-        ) : null}
-        
-        {notice ? <div style={{ marginTop: '12px', color: '#be123c', fontWeight: '500' }}>{notice}</div> : null}
       </div>
 
+      {/* ─── Navigation & Filters ─── */}
+      <div style={{ display: 'flex', gap: 24, marginBottom: 28, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* View Navigation Pills */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {views.map(v => (
+            <button
+              key={v.value}
+              onClick={() => { setView(v.value); if (v.value !== 'explore') setActiveQuery(''); }}
+              style={{
+                padding: '8px 18px',
+                borderRadius: 12,
+                border: view === v.value ? '2px solid var(--brand-maroon)' : '1px solid var(--line)',
+                background: view === v.value ? 'var(--soft-maroon)' : '#fff',
+                color: view === v.value ? 'var(--brand-maroon)' : 'var(--muted)',
+                fontWeight: view === v.value ? 800 : 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: 'inherit'
+              }}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Category Filter Chips (only on Explore) */}
+        {view === 'explore' && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {filters.map(f => (
+              <button
+                key={f.value}
+                onClick={() => { setType(f.value); if (activeQuery) search({ variables: { query: activeQuery, language: lang, contentType: f.value || null } }); }}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 10,
+                  border: type === f.value ? '2px solid var(--brand-saffron)' : '1px solid var(--line)',
+                  background: type === f.value ? 'var(--soft-saffron)' : '#fff',
+                  color: type === f.value ? '#b45309' : 'var(--muted)',
+                  fontWeight: type === f.value ? 800 : 500,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontFamily: 'inherit'
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {notice && <div style={{ marginBottom: 16, padding: '10px 16px', background: '#fef2f2', borderRadius: 12, color: '#be123c', fontWeight: 600, fontSize: 13 }}>{notice}</div>}
+
+      {/* ─── Content Area ─── */}
       {loading ? (
-        <Card style={{ borderRadius: '16px' }}><Skeleton active /></Card>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+          {[1,2,3].map(i => <Card key={i} style={{ borderRadius: 20, border: '1px solid var(--line)' }}><Skeleton active paragraph={{ rows: 4 }} /></Card>)}
+        </div>
       ) : error ? (
-        <Empty description="Library could not be loaded." />
+        <Card style={{ borderRadius: 24, padding: 48, textAlign: 'center', border: '1px solid var(--line)' }}>
+          <Empty description="Library could not be loaded. Please try again." />
+        </Card>
       ) : view === 'playlists' ? (
-        // Playlist Workspace
+        /* ─── Playlists Workspace ─── */
         <Row gutter={[24, 24]}>
           <Col xs={24} md={8}>
-            <Card title="My Playlists" style={{ borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.01)' }}>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                <Input 
-                  placeholder="Create new playlist..." 
-                  value={newPlaylistName} 
+            <Card style={{ borderRadius: 24, border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }} styles={{ body: { padding: 20 } }}>
+              <Title level={5} style={{ margin: '0 0 16px 0', color: 'var(--brand-maroon-dark)' }}>My Playlists</Title>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <Input
+                  placeholder="New playlist name…"
+                  value={newPlaylistName}
                   onChange={e => setNewPlaylistName(e.target.value)}
                   onPressEnter={handleCreatePlaylist}
+                  style={{ borderRadius: 10 }}
                 />
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePlaylist} style={{ background: '#be123c', borderColor: '#be123c' }} />
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePlaylist} style={{ background: 'var(--brand-maroon)', borderColor: 'var(--brand-maroon)', borderRadius: 10 }} />
               </div>
               <List
                 dataSource={playlistData?.getMyPlaylists || []}
                 renderItem={playlist => (
-                  <List.Item 
-                    actions={[
-                      <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeletePlaylist(playlist.id)} />
-                    ]}
+                  <List.Item
+                    actions={[<Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeletePlaylist(playlist.id)} />]}
                     onClick={() => setSelectedPlaylistId(playlist.id)}
-                    style={{ 
-                      cursor: 'pointer', 
-                      borderRadius: '8px', 
-                      padding: '8px 12px',
-                      background: selectedPlaylistId === playlist.id ? '#fff1f2' : 'transparent',
-                      borderBottom: 'none'
+                    style={{
+                      cursor: 'pointer',
+                      borderRadius: 12,
+                      padding: '10px 14px',
+                      background: selectedPlaylistId === playlist.id ? 'var(--soft-maroon)' : 'transparent',
+                      border: selectedPlaylistId === playlist.id ? '1px solid rgba(190, 18, 60, 0.15)' : '1px solid transparent',
+                      transition: 'all 0.2s ease',
+                      marginBottom: 4
                     }}
                   >
-                    <List.Item.Meta 
-                      avatar={<CustomerServiceOutlined style={{ fontSize: '20px', color: '#be123c' }} />}
+                    <List.Item.Meta
+                      avatar={<CustomerServiceOutlined style={{ fontSize: 20, color: 'var(--brand-maroon)' }} />}
                       title={<Text strong>{playlist.name}</Text>}
                       description={`${playlist.items?.length || 0} tracks`}
                     />
@@ -315,38 +392,39 @@ export default function ContentLibrary({ lang = 'en' }) {
           </Col>
           <Col xs={24} md={16}>
             {selectedPlaylist ? (
-              <Card 
-                title={selectedPlaylist.name} 
+              <Card
+                title={<Title level={5} style={{ margin: 0, color: 'var(--brand-maroon-dark)' }}>{selectedPlaylist.name}</Title>}
                 extra={
-                  <Button 
-                    type="primary" 
-                    icon={<PlayCircleOutlined />} 
+                  <Button
+                    type="primary"
+                    icon={<PlayCircleOutlined />}
                     disabled={!selectedPlaylist.items?.length}
                     onClick={() => playEntirePlaylist(selectedPlaylist)}
-                    style={{ background: '#be123c', borderColor: '#be123c' }}
+                    style={{ background: 'var(--brand-maroon)', borderColor: 'var(--brand-maroon)', borderRadius: 10 }}
                   >
-                    Play Entire Playlist
+                    Play All
                   </Button>
                 }
-                style={{ borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.01)' }}
+                style={{ borderRadius: 24, border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}
               >
-                <Paragraph>{selectedPlaylist.description || 'Personal audio playlist'}</Paragraph>
+                <Paragraph type="secondary">{selectedPlaylist.description || 'Personal audio playlist'}</Paragraph>
                 <Divider />
                 <List
                   dataSource={selectedPlaylist.items || []}
-                  locale={{ emptyText: 'No tracks added to this playlist yet. Browse content and click "+" to add.' }}
+                  locale={{ emptyText: 'No tracks yet. Browse content and click "+" to add.' }}
                   renderItem={(item, index) => (
                     <List.Item
                       actions={[
-                        <Button 
-                          type="primary" 
-                          shape="circle" 
-                          icon={<PlayCircleOutlined />} 
+                        <Button
+                          type="primary"
+                          shape="circle"
+                          icon={<PlayCircleOutlined />}
+                          style={{ background: 'var(--brand-maroon)', borderColor: 'var(--brand-maroon)' }}
                           onClick={() => {
                             const tracksToPlay = selectedPlaylist.items.map(t => ({
                               id: t.contentItem.id,
-                              url: t.contentItem.translation?.body?.startsWith('http') 
-                                ? t.contentItem.translation.body 
+                              url: t.contentItem.translation?.body?.startsWith('http')
+                                ? t.contentItem.translation.body
                                 : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
                               title: t.contentItem.translation?.title,
                               description: t.contentItem.slug
@@ -360,7 +438,7 @@ export default function ContentLibrary({ lang = 'en' }) {
                       ]}
                     >
                       <List.Item.Meta
-                        avatar={<Tag color="volcano">{index + 1}</Tag>}
+                        avatar={<Tag color="volcano" style={{ borderRadius: 8 }}>{index + 1}</Tag>}
                         title={<Text strong>{item.contentItem.translation?.title}</Text>}
                         description={`${item.contentItem.slug} · ${item.contentItem.contentType}`}
                       />
@@ -369,247 +447,196 @@ export default function ContentLibrary({ lang = 'en' }) {
                 />
               </Card>
             ) : (
-              <Card style={{ borderRadius: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-                <Empty description="Select a playlist from the left panel to manage or play tracks." />
+              <Card style={{ borderRadius: 24, border: '1px solid var(--line)', display: 'flex', justifyContent: 'center', alignItems: 'center', height: 320 }}>
+                <Empty description="Select a playlist from the left to manage or play tracks." />
               </Card>
             )}
           </Col>
         </Row>
       ) : view === 'downloads' ? (
+        /* ─── Downloads Center ─── */
         <div>
-          {/* Download Center Welcome banner & Total stats */}
-          <Alert
-            message={
-              <Text strong style={{ color: '#0f766e' }}>
-                📥 Your Garbh Sanskar Material Center
-              </Text>
-            }
-            description={
-              <div>
-                <p style={{ margin: '4px 0 0 0' }}>
-                  Access premium downloadable guides, workout maps, and worksheets. You have successfully downloaded{' '}
-                  <Badge 
-                    count={downloadCount} 
-                    style={{ backgroundColor: '#be123c', transform: 'scale(0.9)', verticalAlign: 'middle' }} 
-                  />{' '}
-                  documents to support your clinical routines.
-                </p>
+          <div style={{
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+            borderRadius: 20,
+            padding: 24,
+            border: '1px solid #bbf7d0',
+            marginBottom: 28,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <DownloadOutlined style={{ fontSize: 22, color: '#16a34a' }} />
               </div>
-            }
-            type="success"
-            showIcon
-            icon={<CheckCircleOutlined style={{ color: '#0f766e' }} />}
-            style={{ borderRadius: '16px', marginBottom: '24px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}
-          />
-
-          {/* Downloads Filter Category tabs */}
-          <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-            <Segmented
-              options={[
-                { label: 'All Resources', value: '' },
-                { label: 'PDF E-Books', value: 'pdf' },
-                { label: 'Printable Worksheets', value: 'printable' },
-                { label: 'Yoga Safety Guides', value: 'yoga' },
-                { label: 'Wellness Kits', value: 'kit' }
-              ]}
-              value={selectedDownloadCategory}
-              onChange={setSelectedDownloadCategory}
-              style={{ borderRadius: '10px' }}
-            />
+              <div>
+                <Text strong style={{ color: '#15803d', fontSize: 15, display: 'block' }}>Garbh Sanskar Material Center</Text>
+                <Text style={{ color: '#4ade80', fontSize: 12 }}>Premium downloadable guides & worksheets</Text>
+              </div>
+            </div>
+            <Badge count={downloadCount} style={{ backgroundColor: '#16a34a' }}>
+              <Tag color="green" style={{ borderRadius: 10, padding: '4px 12px', fontWeight: 700 }}>Downloads</Tag>
+            </Badge>
           </div>
 
-          {/* Download Cards Grid */}
-          <Row gutter={[20, 20]}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+            {[
+              { label: 'All Resources', value: '' },
+              { label: 'PDF E-Books', value: 'pdf' },
+              { label: 'Printable Worksheets', value: 'printable' },
+              { label: 'Yoga Safety Guides', value: 'yoga' },
+              { label: 'Wellness Kits', value: 'kit' }
+            ].map(cat => (
+              <button
+                key={cat.value}
+                onClick={() => setSelectedDownloadCategory(cat.value)}
+                style={{
+                  padding: '6px 14px', borderRadius: 10,
+                  border: selectedDownloadCategory === cat.value ? '2px solid #16a34a' : '1px solid var(--line)',
+                  background: selectedDownloadCategory === cat.value ? '#f0fdf4' : '#fff',
+                  color: selectedDownloadCategory === cat.value ? '#15803d' : 'var(--muted)',
+                  fontWeight: selectedDownloadCategory === cat.value ? 800 : 500,
+                  fontSize: 12, cursor: 'pointer', transition: 'all 0.2s ease', fontFamily: 'inherit'
+                }}
+              >{cat.label}</button>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
             {downloadableResources
               .filter(res => !selectedDownloadCategory || res.category === selectedDownloadCategory)
               .map(res => (
-                <Col xs={24} sm={12} lg={8} key={res.id}>
-                  <Card
-                    hoverable
-                    style={{
-                      borderRadius: '20px',
-                      border: '1px solid #f1f5f9',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.01)',
-                      transition: 'all 0.3s ease'
-                    }}
-                    styles={{ body: { padding: '24px' } }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fdf2f8', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#be123c' }}>
-                        <FilePdfOutlined style={{ fontSize: '20px' }} />
-                      </div>
-                      <Tag color="cyan">{res.fileSize} · {res.fileType}</Tag>
+                <Card
+                  key={res.id}
+                  hoverable
+                  className="quick-action-card-premium"
+                  style={{ borderRadius: 22, border: '1px solid var(--line)', background: '#fff' }}
+                  styles={{ body: { padding: 24, display: 'flex', flexDirection: 'column', height: '100%' } }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#fdf2f8', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#be123c' }}>
+                      <FilePdfOutlined style={{ fontSize: 22 }} />
                     </div>
-
-                    <Title level={4} style={{ fontSize: '16px', color: 'var(--brand-maroon-dark)', margin: '0 0 8px 0', minHeight: '44px' }}>
-                      {res.title}
-                    </Title>
-
-                    <Paragraph type="secondary" style={{ fontSize: '13px', minHeight: '60px', marginBottom: '16px' }}>
-                      {res.description}
-                    </Paragraph>
-
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '20px', minHeight: '28px' }}>
-                      {res.tags.map(tag => (
-                        <Tag key={tag} style={{ borderRadius: '6px', fontSize: '10px' }}>
-                          {tag}
-                        </Tag>
-                      ))}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                      <Button
-                        style={{ flex: 1 }}
-                        onClick={() => {
-                          setReadingItem({
-                            id: res.id,
-                            contentType: 'pdf',
-                            slug: res.title.toLowerCase().replace(/ /g, '-') + '.pdf',
-                            translation: {
-                              title: res.title,
-                              body: res.description
-                            },
-                            translations: [
-                              { language: 'en', title: res.title, body: res.description }
-                            ]
-                          });
-                        }}
-                      >
-                        Preview
-                      </Button>
-                      <Button
-                        type="primary"
-                        icon={<DownloadOutlined />}
-                        style={{ flex: 1, background: '#be123c', borderColor: '#be123c' }}
-                        onClick={() => {
-                          const nextCount = downloadCount + 1;
-                          setDownloadCount(nextCount);
-                          localStorage.setItem('total_downloads_count', nextCount.toString());
-                          toast.success(`Downloading ${res.title}...`);
-                          window.open(res.url, '_blank');
-                        }}
-                      >
-                        Download
-                      </Button>
-                    </div>
-                  </Card>
-                </Col>
+                    <Tag style={{ borderRadius: 8, fontSize: 10, fontWeight: 600 }}>{res.fileSize} · {res.fileType}</Tag>
+                  </div>
+                  <Title level={5} style={{ fontSize: 15, color: 'var(--brand-maroon-dark)', margin: '0 0 8px 0', lineHeight: 1.4 }}>{res.title}</Title>
+                  <Paragraph type="secondary" style={{ fontSize: 12, flex: 1, marginBottom: 16, lineHeight: 1.6 }}>{res.description}</Paragraph>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 16 }}>
+                    {res.tags.map(tag => <Tag key={tag} style={{ borderRadius: 6, fontSize: 10 }}>{tag}</Tag>)}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+                    <Button style={{ flex: 1, borderRadius: 10 }} onClick={() => setReadingItem({ id: res.id, contentType: 'pdf', slug: res.title.toLowerCase().replace(/ /g, '-') + '.pdf', translation: { title: res.title, body: res.description }, translations: [{ language: 'en', title: res.title, body: res.description }] })}>Preview</Button>
+                    <Button type="primary" icon={<DownloadOutlined />} style={{ flex: 1, background: 'var(--brand-maroon)', borderColor: 'var(--brand-maroon)', borderRadius: 10 }} onClick={() => { const n = downloadCount + 1; setDownloadCount(n); localStorage.setItem('total_downloads_count', n.toString()); toast.success(`Downloading ${res.title}...`); window.open(res.url, '_blank'); }}>Download</Button>
+                  </div>
+                </Card>
               ))}
-          </Row>
+          </div>
         </div>
       ) : view === 'paths' ? (
-        // Learning Paths UI
+        /* ─── Learning Paths ─── */
         <div>
           {learningPaths.loading ? (
-            <Card style={{ borderRadius: '16px' }}><Skeleton active /></Card>
+            <Card style={{ borderRadius: 24, border: '1px solid var(--line)' }}><Skeleton active /></Card>
           ) : learningPaths.data?.myLearningPaths?.length ? (
-            <Row gutter={[24, 24]}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 24 }}>
               {learningPaths.data.myLearningPaths.map((path) => (
-                <Col xs={24} lg={12} key={path.id}>
-                  <Card
-                    style={{
-                      borderRadius: '24px',
-                      border: '1px solid #f1f5f9',
-                      boxShadow: '0 6px 18px rgba(0,0,0,0.02)',
-                      background: '#fff'
-                    }}
-                    styles={{ body: { padding: '24px' } }}
-                  >
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
-                      <span style={{ fontSize: '32px', background: '#fdf2f8', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {path.icon}
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <Title level={4} style={{ margin: 0, color: 'var(--brand-maroon-dark)', fontSize: '18px' }}>
-                          {path.title}
-                        </Title>
-                        <Text type="secondary" style={{ fontSize: '13px' }}>
-                          {path.items.length} structured milestones
-                        </Text>
-                      </div>
+                <Card
+                  key={path.id}
+                  className="quick-action-card-premium"
+                  style={{ borderRadius: 24, border: '1px solid var(--line)', background: '#fff' }}
+                  styles={{ body: { padding: 24 } }}
+                >
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 20 }}>
+                    <span style={{ fontSize: 32, background: 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)', width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {path.icon}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <Title level={4} style={{ margin: 0, color: 'var(--brand-maroon-dark)', fontSize: 18 }}>{path.title}</Title>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{path.items.length} structured milestones</Text>
                     </div>
+                  </div>
 
-                    <Paragraph type="secondary" style={{ fontSize: '14px', marginBottom: '20px' }}>
-                      {path.description}
-                    </Paragraph>
+                  <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>{path.description}</Paragraph>
 
-                    <div style={{ marginBottom: '24px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <Text strong style={{ fontSize: '12px' }}>Curriculum Progress</Text>
-                        <Text strong style={{ color: '#be123c', fontSize: '12px' }}>{path.progressPercent}%</Text>
-                      </div>
-                      <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ width: `${path.progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #be123c, #fda4af)', borderRadius: '4px', transition: 'width 0.4s ease' }} />
-                      </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text strong style={{ fontSize: 12 }}>Curriculum Progress</Text>
+                      <Text strong style={{ color: 'var(--brand-maroon)', fontSize: 12 }}>{path.progressPercent}%</Text>
                     </div>
+                    <div style={{ width: '100%', height: 8, background: 'var(--line)', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ width: `${path.progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, var(--brand-maroon), #fda4af)', borderRadius: 4, transition: 'width 0.4s ease' }} />
+                    </div>
+                  </div>
 
-                    <Divider style={{ margin: '16px 0' }} />
+                  <Divider style={{ margin: '16px 0' }} />
+                  <Title level={5} style={{ fontSize: 13, marginBottom: 12, color: '#475569' }}>Learning Path Steps:</Title>
 
-                    <Title level={5} style={{ fontSize: '14px', marginBottom: '12px', color: '#475569' }}>
-                      Learning Path Steps:
-                    </Title>
-
-                    <List
-                      dataSource={path.items}
-                      renderItem={(item, index) => (
-                        <List.Item
-                          actions={[
-                            ['video', 'audio'].includes(item.contentType) ? (
-                              <Button size="small" type="primary" style={{ background: '#be123c', borderColor: '#be123c' }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
-                            ) : (
-                              <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e' }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
-                            )
-                          ]}
-                        >
-                          <List.Item.Meta
-                            avatar={<Tag color={item.completed ? 'success' : 'default'}>{item.completed ? '✓' : index + 1}</Tag>}
-                            title={<Text strong style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#94a3b8' : '#1e293b' }}>{item.translation?.title}</Text>}
-                            description={
-                              <Space size={6}>
-                                <Tag color="rose" style={{ fontSize: '10px' }}>{item.category?.name || item.contentType.toUpperCase()}</Tag>
-                                {item.trimester1Safe && <Tag color="blue" style={{ fontSize: '10px' }}>T1 Safe</Tag>}
-                              </Space>
-                            }
-                          />
-                        </List.Item>
-                      )}
-                    />
-                  </Card>
-                </Col>
+                  <List
+                    dataSource={path.items}
+                    renderItem={(item, index) => (
+                      <List.Item
+                        actions={[
+                          ['video', 'audio'].includes(item.contentType) ? (
+                            <Button size="small" type="primary" style={{ background: 'var(--brand-maroon)', borderColor: 'var(--brand-maroon)', borderRadius: 8 }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
+                          ) : (
+                            <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e', borderRadius: 8 }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
+                          )
+                        ]}
+                      >
+                        <List.Item.Meta
+                          avatar={<Tag color={item.completed ? 'success' : 'default'} style={{ borderRadius: 8 }}>{item.completed ? '✓' : index + 1}</Tag>}
+                          title={<Text strong style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#94a3b8' : '#1e293b' }}>{item.translation?.title}</Text>}
+                          description={
+                            <Space size={6}>
+                              <Tag color="rose" style={{ fontSize: 10, borderRadius: 6 }}>{item.category?.name || item.contentType.toUpperCase()}</Tag>
+                              {item.trimester1Safe && <Tag color="blue" style={{ fontSize: 10, borderRadius: 6 }}>T1 Safe</Tag>}
+                            </Space>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                </Card>
               ))}
-            </Row>
+            </div>
           ) : (
             <Empty description="No learning paths currently configured." />
           )}
         </div>
       ) : (
-        // Explore/Saved lists view
+        /* ─── Explore / Saved Content ─── */
         <div>
+          {/* Personalized Recommendations Rail */}
           {view === 'explore' && !activeQuery && recommendedFeed.data?.recommendedContentFeed?.length > 0 && (
-            <div style={{ marginBottom: '32px' }}>
-              <Title level={4} style={{ color: 'var(--brand-maroon-dark)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
-                ✨ Recommended for You <Tag color="rose">Personalized</Tag>
-              </Title>
-              <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '12px', scrollbarWidth: 'thin' }}>
+            <div style={{ marginBottom: 36 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                <Title level={4} style={{ margin: 0, color: 'var(--brand-maroon-dark)', fontSize: 18, fontWeight: 800 }}>✨ Recommended for You</Title>
+                <Tag style={{ background: 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)', color: 'var(--brand-maroon)', border: '1px solid rgba(190,18,60,0.15)', borderRadius: 8, fontWeight: 700, fontSize: 10 }}>Personalized</Tag>
+              </div>
+              <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'thin' }}>
                 {recommendedFeed.data.recommendedContentFeed.map(item => (
-                  <div key={item.id} style={{ minWidth: '300px', width: '300px', flexShrink: 0 }}>
+                  <div key={item.id} style={{ minWidth: 300, width: 300, flexShrink: 0 }}>
                     <Card
                       hoverable
-                      style={{ borderRadius: '16px', border: '1px solid #f1f5f9', background: '#fff', height: '100%' }}
-                      styles={{ body: { padding: '16px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' } }}
+                      className="quick-action-card-premium"
+                      style={{ borderRadius: 20, border: '1px solid var(--line)', background: '#fff', height: '100%' }}
+                      styles={{ body: { padding: 18, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' } }}
                     >
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ color: '#be123c' }}>{iconFor(item.contentType)}</span>
-                            <Tag color="rose">{item.category?.name || item.contentType.toUpperCase()}</Tag>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ color: 'var(--brand-maroon)' }}>{iconFor(item.contentType)}</span>
+                            <Tag color="rose" style={{ borderRadius: 6, fontSize: 10 }}>{item.category?.name || item.contentType.toUpperCase()}</Tag>
                           </div>
-                          {item.completed && <Tag color="success">✓ Completed</Tag>}
+                          {item.completed && <Tag color="success" style={{ borderRadius: 6, fontSize: 10 }}>✓ Done</Tag>}
                         </div>
-                        <Title level={5} style={{ margin: '0 0 8px 0', fontSize: '14px', lineHeight: 1.3 }}>{item.translation?.title}</Title>
-                        <Paragraph ellipsis={{ rows: 2 }} type="secondary" style={{ fontSize: '12px', margin: 0 }}>{item.translation?.summary || item.translation?.body}</Paragraph>
+                        <Title level={5} style={{ margin: '0 0 8px 0', fontSize: 14, lineHeight: 1.4 }}>{item.translation?.title}</Title>
+                        <Paragraph ellipsis={{ rows: 2 }} type="secondary" style={{ fontSize: 12, margin: 0, lineHeight: 1.5 }}>{item.translation?.summary || item.translation?.body}</Paragraph>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: 12, marginTop: 14 }}>
                         <Space size={4}>
                           <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')} />
                           {['video', 'audio'].includes(item.contentType) && (
@@ -617,76 +644,78 @@ export default function ContentLibrary({ lang = 'en' }) {
                           )}
                         </Space>
                         {['video', 'audio'].includes(item.contentType) ? (
-                          <Button size="small" type="primary" style={{ background: '#be123c', borderColor: '#be123c' }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
+                          <Button size="small" type="primary" style={{ background: 'var(--brand-maroon)', borderColor: 'var(--brand-maroon)', borderRadius: 8 }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
                         ) : (
-                          <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e' }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
+                          <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e', borderRadius: 8 }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
                         )}
                       </div>
                     </Card>
                   </div>
                 ))}
               </div>
-              <Divider style={{ margin: '24px 0 16px 0' }} />
+              <Divider style={{ margin: '28px 0 0 0' }} />
             </div>
           )}
 
+          {/* Main Content Grid */}
           {items?.length ? (
-            <Row gutter={[20, 20]}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
               {items.map((item) => (
-                <Col xs={24} sm={12} lg={8} key={item.id}>
-                  <Card 
-                    className="library-content-card"
-                    style={{ 
-                      borderRadius: '16px', 
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.01)', 
-                      border: '1px solid #f1f5f9',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff1f2', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#be123c' }}>
-                        {iconFor(item.contentType)}
-                      </div>
-                      <Tag color="rose">{item.category?.name || item.contentType.toUpperCase()}</Tag>
+                <Card
+                  key={item.id}
+                  hoverable
+                  className="quick-action-card-premium"
+                  style={{ borderRadius: 22, border: '1px solid var(--line)', background: '#fff' }}
+                  styles={{ body: { padding: 20, display: 'flex', flexDirection: 'column', height: '100%' } }}
+                >
+                  {/* Card Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #fff1f2 0%, #fdf2f8 100%)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--brand-maroon)' }}>
+                      {iconFor(item.contentType)}
                     </div>
-                    
-                    <Title level={4} style={{ margin: '0 0 8px 0', fontSize: '16px', minHeight: '44px' }}>
-                      {item.translation?.title}
-                    </Title>
-                    <Paragraph ellipsis={{ rows: 3 }} type="secondary" style={{ fontSize: '13px', marginBottom: '16px' }}>
-                      {item.translation?.summary || item.translation?.body}
-                    </Paragraph>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                      <Text type="secondary" style={{ fontSize: '11px' }}>
-                        {item.visibility === 'free' ? 'Free access' : `${item.visibility} access`}
-                      </Text>
-                      
-                      <Space size={4}>
-                        {view === 'explore' ? (
-                          <>
-                            <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')} />
-                            {['video', 'audio'].includes(item.contentType) && (
-                              <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<ClockCircleOutlined />} onClick={() => save(item.id, 'watch_later')} />
-                            )}
-                          </>
-                        ) : (
-                          <Button size="small" danger onClick={() => save(item.id, view, false)}>Remove</Button>
-                        )}
-                        
-                        {['video', 'audio'].includes(item.contentType) ? (
-                          <Button size="small" type="primary" style={{ background: '#be123c', borderColor: '#be123c' }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
-                        ) : (
-                          <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e' }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
-                        )}
-                      </Space>
-                    </div>
-                  </Card>
-                </Col>
+                    <Tag color="rose" style={{ borderRadius: 8, fontSize: 10 }}>{item.category?.name || item.contentType.toUpperCase()}</Tag>
+                    <div style={{ flex: 1 }} />
+                    <Text type="secondary" style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {item.visibility === 'free' ? '🔓 Free' : `🔒 ${item.visibility}`}
+                    </Text>
+                  </div>
+
+                  {/* Card Body */}
+                  <Title level={5} style={{ margin: '0 0 8px 0', fontSize: 15, lineHeight: 1.4, color: 'var(--brand-maroon-dark)' }}>
+                    {item.translation?.title}
+                  </Title>
+                  <Paragraph ellipsis={{ rows: 3 }} type="secondary" style={{ fontSize: 12, flex: 1, marginBottom: 16, lineHeight: 1.6 }}>
+                    {item.translation?.summary || item.translation?.body}
+                  </Paragraph>
+
+                  {/* Card Footer Actions */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: 14 }}>
+                    <Space size={4}>
+                      {view === 'explore' ? (
+                        <>
+                          <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<StarOutlined />} onClick={() => save(item.id, 'bookmark')} />
+                          {['video', 'audio'].includes(item.contentType) && (
+                            <Button size="small" shape="circle" disabled={bookmarkState.loading} icon={<ClockCircleOutlined />} onClick={() => save(item.id, 'watch_later')} />
+                          )}
+                        </>
+                      ) : (
+                        <Button size="small" danger style={{ borderRadius: 8 }} onClick={() => save(item.id, view, false)}>Remove</Button>
+                      )}
+                    </Space>
+
+                    {['video', 'audio'].includes(item.contentType) ? (
+                      <Button size="small" type="primary" style={{ background: 'var(--brand-maroon)', borderColor: 'var(--brand-maroon)', borderRadius: 8, fontWeight: 700 }} icon={<PlayCircleOutlined />} onClick={() => { if (item.contentType === 'video') setPlayingVideo(item); else { setPlaybackTracks([]); setPlayingAudio(item); } }}>Play</Button>
+                    ) : (
+                      <Button size="small" type="primary" style={{ background: '#0f766e', borderColor: '#0f766e', borderRadius: 8, fontWeight: 700 }} icon={<BookOutlined />} onClick={() => setReadingItem(item)}>Read</Button>
+                    )}
+                  </div>
+                </Card>
               ))}
-            </Row>
+            </div>
           ) : (
-            <Empty description={activeQuery ? `No results for “${activeQuery}”.` : 'No items yet.'} />
+            <Card style={{ borderRadius: 24, padding: 48, textAlign: 'center', border: '1px solid var(--line)' }}>
+              <Empty description={activeQuery ? `No results for "${activeQuery}".` : 'No items yet.'} />
+            </Card>
           )}
         </div>
       )}

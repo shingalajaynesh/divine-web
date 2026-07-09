@@ -526,13 +526,12 @@ export default function TodayDashboard({ user, t }) {
       `}</style>
 
       {/* Greeting Banner */}
-      {/* Greeting Banner */}
       <Card
         style={{
-          background: 'linear-gradient(135deg, var(--brand-maroon) 0%, var(--brand-maroon-dark) 100%)',
+          background: 'radial-gradient(circle at 90% 10%, rgba(251, 191, 36, 0.25) 0%, transparent 60%), linear-gradient(135deg, var(--brand-maroon) 0%, var(--brand-maroon-dark) 100%)',
           border: 0,
           borderRadius: 24,
-          boxShadow: '0 8px 24px rgba(63, 10, 17, 0.18)',
+          boxShadow: '0 12px 32px rgba(63, 10, 17, 0.22)',
           minHeight: '220px',
           marginBottom: '24px'
         }}
@@ -626,6 +625,7 @@ export default function TodayDashboard({ user, t }) {
             key={act.key}
             hoverable
             onClick={() => navigate(act.key)}
+            className="quick-action-card-premium"
             style={{ borderRadius: 16, border: '1px solid var(--line)', background: '#fff' }}
             styles={{ body: { padding: '16px' } }}
           >
@@ -642,74 +642,80 @@ export default function TodayDashboard({ user, t }) {
         ))}
       </div>
 
-      {recLoading ? (
-        <Card loading={true} style={{ borderRadius: 20, border: '1px solid #f1f5f9', height: 180, margin: '24px 0' }} />
-      ) : recommendations.length > 0 ? (
-        <div style={{ margin: '24px 0' }}>
+      {/* Personalized Recommendations Container to prevent Cumulative Layout Shift (CLS) */}
+      {(recLoading || recommendations.length > 0) && (
+        <div style={{ margin: '24px 0', minHeight: '238px' }}>
           <Title level={4} style={{ color: 'var(--brand-maroon-dark)', margin: '0 0 16px 0', fontSize: '18px', fontWeight: 'bold' }}>
             ✨ {isHi ? "आपके लिए दैनिक सिफारिशें" : "Personalized Recommendations"}
           </Title>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-            {recommendations.map((rec) => (
-              <Card 
-                key={rec.id}
-                style={{ 
-                  borderRadius: '20px', 
-                  border: '1px solid #f1f5f9', 
-                  background: rec.isPremium && !rec.unlocked ? '#fafafa' : '#fff',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.015)' 
-                }}
-                styles={{ body: { padding: '16px', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' } }}
-              >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <Tag color={
-                      rec.category === 'DIET' ? 'green' : 
-                      rec.category === 'MINDFULNESS' ? 'purple' : 
-                      rec.category === 'EXERCISE' ? 'blue' : 
-                      rec.category === 'AUDIO' ? 'magenta' : 'orange'
-                    }>
-                      {rec.category}
-                    </Tag>
-                    {rec.isPremium && (
-                      <Tag color={rec.unlocked ? 'gold' : 'error'}>
-                        {rec.unlocked ? '🔓 Unlocked' : '🔒 Premium'}
+          
+          {recLoading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              <Card loading={true} style={{ borderRadius: '20px', border: '1px solid #f1f5f9', height: 180 }} />
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              {recommendations.map((rec) => (
+                <Card 
+                  key={rec.id}
+                  style={{ 
+                    borderRadius: '20px', 
+                    border: '1px solid #f1f5f9', 
+                    background: rec.isPremium && !rec.unlocked ? '#fafafa' : '#fff',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.015)' 
+                  }}
+                  styles={{ body: { padding: '16px', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' } }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <Tag color={
+                        rec.category === 'DIET' ? 'green' : 
+                        rec.category === 'MINDFULNESS' ? 'purple' : 
+                        rec.category === 'EXERCISE' ? 'blue' : 
+                        rec.category === 'AUDIO' ? 'magenta' : 'orange'
+                      }>
+                        {rec.category}
                       </Tag>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '28px' }}>{rec.icon}</span>
-                    <div>
-                      <Text strong style={{ display: 'block', fontSize: '13px', color: '#1e293b' }}>
-                        {rec.title}
-                      </Text>
-                      <Paragraph type="secondary" style={{ fontSize: '11px', margin: '4px 0 0 0', lineHeight: 1.4 }}>
-                        {rec.description}
-                      </Paragraph>
+                      {rec.isPremium && (
+                        <Tag color={rec.unlocked ? 'gold' : 'error'}>
+                          {rec.unlocked ? '🔓 Unlocked' : '🔒 Premium'}
+                        </Tag>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '28px' }}>{rec.icon}</span>
+                      <div>
+                        <Text strong style={{ display: 'block', fontSize: '13px', color: '#1e293b' }}>
+                          {rec.title}
+                        </Text>
+                        <Paragraph type="secondary" style={{ fontSize: '11px', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                          {rec.description}
+                        </Paragraph>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <Button 
-                  type={rec.unlocked ? 'primary' : 'default'} 
-                  block
-                  onClick={() => navigate(rec.unlocked ? rec.actionLink : '/pricing')}
-                  style={{ 
-                    borderRadius: '8px', 
-                    fontWeight: 'bold',
-                    background: rec.unlocked ? '#be123c' : undefined,
-                    borderColor: rec.unlocked ? '#be123c' : undefined,
-                    color: rec.unlocked ? '#fff' : undefined,
-                    fontSize: '12px',
-                    height: '32px'
-                  }}
-                >
-                  {rec.unlocked ? (isHi ? "अभ्यास पर जाएं" : "Go to Practice") : (isHi ? "प्रीमियम अनलॉक करें" : "Unlock Premium")}
-                </Button>
-              </Card>
-            ))}
-          </div>
+                  <Button 
+                    type={rec.unlocked ? 'primary' : 'default'} 
+                    block
+                    onClick={() => navigate(rec.unlocked ? rec.actionLink : '/pricing')}
+                    style={{ 
+                      borderRadius: '8px', 
+                      fontWeight: 'bold',
+                      background: rec.unlocked ? '#be123c' : undefined,
+                      borderColor: rec.unlocked ? '#be123c' : undefined,
+                      color: rec.unlocked ? '#fff' : undefined,
+                      fontSize: '12px',
+                      height: '32px'
+                    }}
+                  >
+                    {rec.unlocked ? (isHi ? "अभ्यास पर जाएं" : "Go to Practice") : (isHi ? "प्रीमियम अनलॉक करें" : "Unlock Premium")}
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
-      ) : null}
+      )}
 
       {/* 280-Day Calendar & Navigation */}
       <Card style={{ 
@@ -987,18 +993,7 @@ export default function TodayDashboard({ user, t }) {
                 <Col xs={12} sm={6} key={key}>
                   <div
                     onClick={() => setActiveQuotient(key)}
-                    style={{
-                      padding: '16px',
-                      borderRadius: '16px',
-                      border: `2px solid ${isActive ? '#f97316' : '#f1f5f9'}`,
-                      background: isActive ? '#fffaf8' : '#fff',
-                      cursor: 'pointer',
-                      height: '110px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      transition: 'all 0.2s'
-                    }}
+                    className={`quotient-tab-card ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                       <span style={{ fontSize: '24px' }}>{q.icon}</span>

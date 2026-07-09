@@ -12,7 +12,7 @@ import {
 } from '@ant-design/icons';
 import { 
   GET_INQUIRIES, REPLY_TO_INQUIRY, UPDATE_INQUIRY_STATUS 
-} from '../features/inquiries/inquiryOperations';
+} from '../graphql/operations';
 import { gql } from '@apollo/client';
 
 const { Title, Paragraph, Text } = Typography;

@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { Card, Form, Input, Button, Typography } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { useMutation } from '@apollo/client';
-import { SUBMIT_INQUIRY } from '../features/inquiries/inquiryOperations';
+import { SUBMIT_INQUIRY } from '../graphql/operations';
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
