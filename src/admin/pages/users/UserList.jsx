@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { 
-  Table, Card, Input, Select, Button, Space, Drawer, Form, 
+  Card, Input, Select, Button, Space, Drawer, Form, 
   Switch, Descriptions, Alert, Spin, Tag 
 } from 'antd';
 import { SearchOutlined, ReloadOutlined, EditOutlined } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import { StatusTag } from '../../components/StatusTag';
+import { EnterpriseResponsiveTable, EnterpriseTableToolbar } from '../../../shared/components';
+import { useViewport } from '../../../shared/hooks/useViewport';
+
 
 const GET_USERS_PAGINATED = gql`
   query AdminGetUsers(
@@ -163,6 +166,20 @@ export default function UserList({ user }) {
     }
   };
 
+  const { isMobile } = useViewport();
+
+  const getRowActions = (record) => [
+    {
+      key: 'manage',
+      label: 'Manage',
+      icon: <EditOutlined />,
+      onClick: () => {
+        setSelectedUser(record);
+        setDrawerVisible(true);
+      }
+    }
+  ];
+
   const columns = [
     {
       title: 'Name',
@@ -170,24 +187,32 @@ export default function UserList({ user }) {
       key: 'displayName',
       sorter: true,
       render: (text, record) => `${record.firstName || ''} ${record.lastName || ''}`.trim() || record.displayName || 'N/A',
+      mobileRole: 'primary',
+      responsivePriority: 1
     },
     {
       title: 'Email',
       dataIndex: 'emailAddress',
       key: 'emailAddress',
       sorter: true,
+      mobileRole: 'secondary',
+      responsivePriority: 2
     },
     {
       title: 'Role',
       dataIndex: ['role', 'name'],
       key: 'role',
       render: (text) => <Tag color="blue">{text || 'Mother'}</Tag>,
+      responsivePriority: 2,
+      reuseRenderInDetails: true
     },
     {
       title: 'Center',
       dataIndex: ['center', 'name'],
       key: 'center',
       render: (text) => text || 'Global',
+      responsivePriority: 3,
+      reuseRenderInDetails: true
     },
     {
       title: 'Status',
@@ -195,6 +220,9 @@ export default function UserList({ user }) {
       key: 'isActive',
       sorter: true,
       render: (isActive) => <StatusTag status={isActive ? 'ACTIVE' : 'INACTIVE'} />,
+      mobileRole: 'status',
+      responsivePriority: 1,
+      reuseRenderInDetails: true
     },
     {
       title: 'Action',
@@ -211,79 +239,76 @@ export default function UserList({ user }) {
           Manage
         </Button>
       ),
+      responsivePriority: 1
     },
   ];
 
   return (
     <Card style={{ borderRadius: '8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
-        <Space wrap size="middle">
-          <Input
-            placeholder="Search users..."
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            style={{ width: 220 }}
-          />
-
-          <Select
-            placeholder="Filter status"
-            allowClear
-            value={status}
-            onChange={(val) => {
-              setStatus(val);
-              setPage(1);
-            }}
-            style={{ width: 140 }}
-          >
-            <Select.Option value="active">Active</Select.Option>
-            <Select.Option value="inactive">Inactive</Select.Option>
-          </Select>
-
-          <Select
-            placeholder="Filter Role"
-            allowClear
-            value={selectedRole}
-            onChange={(val) => {
-              setSelectedRole(val);
-              setPage(1);
-            }}
-            loading={filterLoading}
-            style={{ width: 160 }}
-          >
-            {filterData?.getRoles?.map((r) => (
-              <Select.Option key={r.id} value={r.id}>{r.name}</Select.Option>
-            ))}
-          </Select>
-
-          {user?.role?.roleType === 'SUPER_ADMIN' && (
+      <EnterpriseTableToolbar
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        searchPlaceholder="Search users..."
+        filterCount={[status, selectedRole, selectedCenter].filter(Boolean).length}
+        filters={
+          <>
             <Select
-              placeholder="Filter Center"
+              placeholder="Filter status"
               allowClear
-              value={selectedCenter}
+              value={status}
               onChange={(val) => {
-                setSelectedCenter(val);
+                setStatus(val);
+                setPage(1);
+              }}
+              style={{ width: isMobile ? '100%' : 140 }}
+            >
+              <Select.Option value="active">Active</Select.Option>
+              <Select.Option value="inactive">Inactive</Select.Option>
+            </Select>
+
+            <Select
+              placeholder="Filter Role"
+              allowClear
+              value={selectedRole}
+              onChange={(val) => {
+                setSelectedRole(val);
                 setPage(1);
               }}
               loading={filterLoading}
-              style={{ width: 180 }}
+              style={{ width: isMobile ? '100%' : 160 }}
             >
-              {filterData?.getCenters?.map((c) => (
-                <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
+              {filterData?.getRoles?.map((r) => (
+                <Select.Option key={r.id} value={r.id}>{r.name}</Select.Option>
               ))}
             </Select>
-          )}
-        </Space>
 
-        <Button type="primary" icon={<ReloadOutlined />} onClick={() => refetch()} loading={loading}>
-          Reload
-        </Button>
-      </div>
+            {user?.role?.roleType === 'SUPER_ADMIN' && (
+              <Select
+                placeholder="Filter Center"
+                allowClear
+                value={selectedCenter}
+                onChange={(val) => {
+                  setSelectedCenter(val);
+                  setPage(1);
+                }}
+                loading={filterLoading}
+                style={{ width: isMobile ? '100%' : 180 }}
+              >
+                {filterData?.getCenters?.map((c) => (
+                  <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
+                ))}
+              </Select>
+            )}
+          </>
+        }
+        onReload={() => refetch()}
+        loading={loading}
+      />
 
-      <Table
+      <EnterpriseResponsiveTable
         dataSource={data?.adminGetUsers?.items || []}
         columns={columns}
         rowKey="id"
@@ -292,8 +317,14 @@ export default function UserList({ user }) {
           pageSize: pageSize,
           total: data?.adminGetUsers?.total || 0,
           showSizeChanger: true,
+          onChange: (p, ps) => {
+            setPage(p);
+            setPageSize(ps);
+          }
         }}
         loading={loading}
+        onRetry={() => refetch()}
+        getRowActions={getRowActions}
         onChange={handleTableChange}
       />
 

@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { 
-  Table, Card, Input, Select, Button, Space, Modal, Form, 
+  Card, Input, Select, Button, Space, Modal, Form, 
   Tag, Alert, Descriptions, Tooltip, Typography 
 } from 'antd';
 import { SearchOutlined, ReloadOutlined, PlusOutlined, CopyOutlined, SendOutlined } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import { StatusTag } from '../../components/StatusTag';
 import { formatDate } from '../../components/Formatters';
+import { EnterpriseResponsiveTable, EnterpriseTableToolbar } from '../../../shared/components';
+import { useViewport } from '../../../shared/hooks/useViewport';
+
 
 const GET_STAFF_INVITATIONS = gql`
   query AdminGetStaffInvitations(
@@ -137,40 +140,75 @@ export default function StaffList({ user }) {
     toast.success('Activation link copied to clipboard!');
   };
 
+  const { isMobile } = useViewport();
+
+  const getRowActions = (record) => {
+    const isPending = ['INVITED', 'PENDING_ACTIVATION', 'INVITATION_EXPIRED'].includes(record.status);
+    return [
+      isPending && {
+        key: 'resend',
+        label: 'Resend Invite',
+        icon: <SendOutlined />,
+        onClick: () => resendInvitation({ variables: { invitationId: record.id } })
+      },
+      {
+        key: 'copy',
+        label: 'Copy Token Link',
+        icon: <CopyOutlined />,
+        onClick: () => copyToClipboard(`http://localhost:3000/register?token=${record.token}`)
+      }
+    ].filter(Boolean);
+  };
+
   const columns = [
     {
       title: 'Email Address',
       dataIndex: 'emailAddress',
       key: 'emailAddress',
+      mobileRole: 'primary',
+      responsivePriority: 1
     },
     {
       title: 'Role',
       dataIndex: ['role', 'name'],
       key: 'role',
       render: (text) => <Tag color="blue">{text}</Tag>,
+      mobileRole: 'secondary',
+      responsivePriority: 2,
+      reuseRenderInDetails: true
     },
     {
       title: 'Center',
       dataIndex: ['center', 'name'],
       key: 'center',
+      render: (text) => text || 'Global',
+      responsivePriority: 2,
+      reuseRenderInDetails: true
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (status) => <StatusTag status={status} />,
+      mobileRole: 'status',
+      responsivePriority: 1,
+      reuseRenderInDetails: true
     },
     {
       title: 'Expires At',
       dataIndex: 'expiresAt',
       key: 'expiresAt',
       render: (val) => formatDate(val),
+      responsivePriority: 3,
+      reuseRenderInDetails: true
     },
     {
       title: 'Creator',
       dataIndex: ['creator', 'displayName'],
       key: 'creator',
       render: (text) => text || 'System',
+      responsivePriority: 3,
+      reuseRenderInDetails: true
     },
     {
       title: 'Actions',
@@ -201,75 +239,74 @@ export default function StaffList({ user }) {
           </Space>
         );
       },
+      responsivePriority: 1
     },
   ];
 
   return (
     <Card
-      title={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Staff Invitations & Scope Control</span>
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={() => refetch()}>Reload</Button>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={() => {
-                setGeneratedLink('');
-                setModalVisible(true);
-              }}
-            >
-              Invite Staff Member
-            </Button>
-          </Space>
-        </div>
-      }
+      title="Staff Invitations & Scope Control"
       style={{ borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
     >
-      <Space wrap style={{ marginBottom: 16 }} size="middle">
-        <Input
-          placeholder="Search email..."
-          prefix={<SearchOutlined />}
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          style={{ width: 250 }}
-          allowClear
-        />
-        <Select
-          placeholder="Status"
-          value={status}
-          onChange={(val) => {
-            setStatus(val);
-            setPage(1);
-          }}
-          style={{ width: 180 }}
-          allowClear
-        >
-          <Select.Option value="INVITED">Invited</Select.Option>
-          <Select.Option value="PENDING_ACTIVATION">Pending Activation</Select.Option>
-          <Select.Option value="ACTIVE">Active</Select.Option>
-          <Select.Option value="INVITATION_EXPIRED">Expired</Select.Option>
-        </Select>
-        {user?.role?.roleType === 'SUPER_ADMIN' && (
-          <Select
-            placeholder="Center"
-            value={selectedCenter}
-            onChange={(val) => {
-              setSelectedCenter(val);
-              setPage(1);
+      <EnterpriseTableToolbar
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        searchPlaceholder="Search email..."
+        filterCount={[status, selectedCenter].filter(Boolean).length}
+        filters={
+          <>
+            <Select
+              placeholder="Status"
+              value={status}
+              onChange={(val) => {
+                setStatus(val);
+                setPage(1);
+              }}
+              style={{ width: isMobile ? '100%' : 180 }}
+              allowClear
+            >
+              <Select.Option value="INVITED">Invited</Select.Option>
+              <Select.Option value="PENDING_ACTIVATION">Pending Activation</Select.Option>
+              <Select.Option value="ACTIVE">Active</Select.Option>
+              <Select.Option value="INVITATION_EXPIRED">Expired</Select.Option>
+            </Select>
+            {user?.role?.roleType === 'SUPER_ADMIN' && (
+              <Select
+                placeholder="Center"
+                value={selectedCenter}
+                onChange={(val) => {
+                  setSelectedCenter(val);
+                  setPage(1);
+                }}
+                style={{ width: isMobile ? '100%' : 180 }}
+                allowClear
+              >
+                {filterData?.getCenters?.map((c) => (
+                  <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
+                ))}
+              </Select>
+            )}
+          </>
+        }
+        onReload={() => refetch()}
+        loading={loading}
+        extra={
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => {
+              setGeneratedLink('');
+              setModalVisible(true);
             }}
-            style={{ width: 180 }}
-            allowClear
+            style={{ width: isMobile ? '100%' : 'auto' }}
           >
-            {filterData?.getCenters?.map((c) => (
-              <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
-            ))}
-          </Select>
-        )}
-      </Space>
+            Invite Staff Member
+          </Button>
+        }
+      />
 
       {generatedLink && (
         <Alert
@@ -290,7 +327,7 @@ export default function StaffList({ user }) {
         />
       )}
 
-      <Table
+      <EnterpriseResponsiveTable
         dataSource={data?.adminGetStaffInvitations?.items || []}
         columns={columns}
         rowKey="id"
@@ -299,8 +336,14 @@ export default function StaffList({ user }) {
           pageSize,
           total: data?.adminGetStaffInvitations?.total || 0,
           showSizeChanger: true,
+          onChange: (p, ps) => {
+            setPage(p);
+            setPageSize(ps);
+          }
         }}
         loading={loading}
+        onRetry={() => refetch()}
+        getRowActions={getRowActions}
         onChange={(pagination) => {
           setPage(pagination.current);
           setPageSize(pagination.pageSize);

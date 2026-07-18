@@ -1317,4 +1317,120 @@ a:focus-visible {
   }
 }
 
+/* Enterprise Responsive Table & Mobile List Styles */
+.enterprise-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.enterprise-mobile-card {
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(63, 10, 17, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.enterprise-mobile-card:hover {
+  box-shadow: 0 6px 16px rgba(63, 10, 17, 0.04);
+}
+
+.enterprise-mobile-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.enterprise-mobile-card-primary {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 70%;
+}
+
+.enterprise-mobile-card-secondary {
+  font-size: 13px;
+  color: #64748b;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Semantic Details dl/dt/dd List */
+.mobile-details-list {
+  margin: 12px 0 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  font-size: 13px;
+}
+
+.mobile-details-list dt {
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
+}
+
+.mobile-details-list dd {
+  color: #1e293b;
+  margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Sticky Bulk Action Bar */
+.bulk-action-bar-sticky {
+  position: sticky;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideUpSticky 0.3s ease-out;
+}
+
+@keyframes slideUpSticky {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Checkbox Touch Target minimums */
+.touch-target-checkbox .ant-checkbox-wrapper {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touch-target-checkbox .ant-checkbox {
+  transform: scale(1.1);
+}
+
+.mobile-row-actions-trigger {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
 

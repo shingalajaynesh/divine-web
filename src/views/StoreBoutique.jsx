@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Button, List, Tag, Typography, Row, Col, Space, Drawer, Input, Form, Divider, Badge, Select } from 'antd';
+import { Button, List, Tag, Typography, Row, Col, Space, Drawer, Input, Form, Divider, Badge, Select, Empty } from 'antd';
 import { 
   GET_STORE_DATA_QUERY, 
   ADD_TO_CART_MUTATION, 

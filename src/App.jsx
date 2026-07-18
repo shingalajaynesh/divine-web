@@ -51,10 +51,11 @@ import { clearAllUserRecords } from './shared/utils/offlineDb';
 
 function App() {
   const navigate = useNavigate();
-  const [activeRole, setActiveRole] = useState('MOTHER');
+  const [activeRole, setActiveRole] = useState(null); // No default role
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [authLoaded, setAuthLoaded] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [cachedUser, setCachedUser] = useState(() => {
     try {
@@ -84,12 +85,30 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setFirebaseUser(user);
-      setAuthLoaded(true);
       if (!user) {
-        setCachedUser(null);
-        localStorage.removeItem('divine_cached_user');
-        clearAllUserRecords().catch(err => console.error('Failed to clear offline DB on sign out:', err));
+        const hasSession = localStorage.getItem('divine_cached_user');
+        if (hasSession) {
+          setIsLoggingOut(true);
+          setCachedUser(null);
+          setActiveRole(null); // Reset role immediately
+          localStorage.removeItem('divine_cached_user');
+          
+          Promise.all([
+            clearAllUserRecords().catch(err => console.error('Failed to clear offline DB on sign out:', err)),
+            client.clearStore().catch(err => console.error('Failed to clear Apollo store on sign out:', err))
+          ]).finally(() => {
+            setFirebaseUser(null);
+            setAuthLoaded(true);
+            setIsLoggingOut(false);
+          });
+        } else {
+          setFirebaseUser(null);
+          setAuthLoaded(true);
+          setActiveRole(null);
+        }
+      } else {
+        setFirebaseUser(user);
+        setAuthLoaded(true);
       }
     });
     return unsubscribe;
@@ -131,10 +150,17 @@ function App() {
         meError.graphQLErrors?.some(e => e.extensions?.code === 'UNAUTHENTICATED');
       
       if (isAuthError && firebaseUser) {
+        setIsLoggingOut(true);
         setCachedUser(null);
+        setActiveRole(null);
         localStorage.removeItem('divine_cached_user');
-        client.clearStore().catch(() => {});
-        signOut(auth).catch(err => console.error('Sign out error:', err));
+        Promise.all([
+          clearAllUserRecords().catch(err => console.error('Failed to clear offline DB:', err)),
+          client.clearStore().catch(err => console.error('Failed to clear Apollo store:', err))
+        ]).finally(() => {
+          signOut(auth).catch(err => console.error('Sign out error:', err));
+          setIsLoggingOut(false);
+        });
       }
     }
   }, [meError, firebaseUser]);
@@ -146,6 +172,8 @@ function App() {
   useEffect(() => {
     if (user?.role?.roleType) {
       setActiveRole(user.role.roleType);
+    } else {
+      setActiveRole(null);
     }
   }, [user]);
 
@@ -444,6 +472,25 @@ function App() {
     meError.message.includes('device limit reached')
   );
 
+  // Derived Auth State Machine
+  const authState = useMemo(() => {
+    if (isLoggingOut) return 'logging-out';
+    if (!authLoaded) return 'initializing';
+    if (!firebaseUser) return 'unauthenticated';
+    if (meError && !isLockScreen) {
+      const isAuthError = 
+        meError.message.includes('Authentication required') || 
+        meError.message.includes('SESSION_EXPIRED') ||
+        meError.message.includes('Session invalid') ||
+        meError.message.includes('Context creation failed') ||
+        meError.graphQLErrors?.some(e => e.extensions?.code === 'UNAUTHENTICATED');
+      if (isAuthError) return 'unauthenticated';
+      return 'error';
+    }
+    if (meLoading || syncing || !user || !activeRole) return 'authenticated-profile-loading';
+    return 'authenticated-ready';
+  }, [authLoaded, firebaseUser, meLoading, syncing, user, activeRole, meError, isLoggingOut, isLockScreen]);
+
   return (
     <ConfigProvider
       theme={divineTheme}
@@ -451,17 +498,52 @@ function App() {
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Toaster position="top-center" reverseOrder={false} />
 
-        {!authLoaded ? (
+        {authState === 'initializing' && (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-            <Spin size="large" />
+            <Spin size="large" tip="Initializing application..." />
           </div>
-        ) : !firebaseUser ? (
+        )}
+
+        {authState === 'logging-out' && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <Spin size="large" tip="Signing out safely..." />
+          </div>
+        )}
+
+        {authState === 'unauthenticated' && (
           <>
             <WelcomeScreen t={t} onSignInClick={() => setAuthModalVisible(true)} />
             <AuthModal visible={authModalVisible} onClose={() => setAuthModalVisible(false)} />
           </>
-        ) : (
-          <>
+        )}
+
+        {authState === 'authenticated-profile-loading' && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <Spin size="large" tip="Retrieving your profile..." />
+          </div>
+        )}
+
+        {authState === 'error' && (
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: '16px' }}>
+            <Alert
+              message="Application Error"
+              description={meError?.message || "Failed to load user profile. Please try again."}
+              type="error"
+              showIcon
+              style={{ maxWidth: '400px' }}
+            />
+            <Space>
+              <Button type="primary" onClick={() => refetchMe()}>
+                Retry Load
+              </Button>
+              <Button onClick={() => signOut(auth)}>
+                Sign Out
+              </Button>
+            </Space>
+          </div>
+        )}
+
+        {authState === 'authenticated-ready' && (
           <Suspense fallback={
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
               <Spin size="large" />
@@ -484,7 +566,6 @@ function App() {
               />
             ) : null}
           </Suspense>
-          </>
         )}
       </div>
     </ConfigProvider>

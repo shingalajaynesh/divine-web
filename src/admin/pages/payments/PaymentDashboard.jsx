@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { 
-  Table, Card, Tabs, Button, Space, Modal, Form, 
+  Card, Tabs, Button, Space, Modal, Form, 
   Input, InputNumber, Alert, Descriptions, Tag 
 } from 'antd';
 import { ReloadOutlined, DollarOutlined, RetweetOutlined, BellOutlined } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import { StatusTag } from '../../components/StatusTag';
 import { formatDate, formatMoney } from '../../components/Formatters';
+import { EnterpriseResponsiveTable } from '../../../shared/components';
+import { useViewport } from '../../../shared/hooks/useViewport';
+
 import { ConfirmAction } from '../../components/ConfirmAction';
 
 const generateIdempotencyKey = () => {
@@ -213,13 +216,84 @@ export default function PaymentDashboard() {
     }
   };
 
+  const { isMobile } = useViewport();
+
+  const getPaymentRowActions = (record) => {
+    const canRefund = ['captured', 'succeeded', 'partially_refunded'].includes(record.status);
+    return [
+      canRefund && {
+        key: 'refund',
+        label: 'Refund',
+        icon: <DollarOutlined />,
+        danger: true,
+        onClick: () => {
+          setSelectedPayment(record);
+          setRefundAmountPaise(record.amountMinor - (record.totalRefundedMinor || 0));
+          setRefundReason('');
+          setRefundModalVisible(true);
+        }
+      }
+    ].filter(Boolean);
+  };
+
+  const getIntentRowActions = (record) => [
+    {
+      key: 'reconcile',
+      label: 'Reconcile',
+      icon: <RetweetOutlined />,
+      onClick: () => reconcileCheckout({ variables: { checkoutIntentId: record.id } })
+    }
+  ];
+
   const paymentColumns = [
-    { title: 'User', dataIndex: ['user', 'displayName'], key: 'userName' },
-    { title: 'Razorpay Payment ID', dataIndex: 'razorpayPaymentId', key: 'paymentId' },
-    { title: 'Amount', dataIndex: 'amountMinor', key: 'amount', render: (val) => formatMoney(val) },
-    { title: 'Refunded', dataIndex: 'totalRefundedMinor', key: 'refunded', render: (val) => formatMoney(val) },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <StatusTag status={status} /> },
-    { title: 'Date', dataIndex: 'createdAt', key: 'date', render: (val) => formatDate(val) },
+    { 
+      title: 'User', 
+      dataIndex: ['user', 'displayName'], 
+      key: 'userName',
+      mobileRole: 'primary',
+      responsivePriority: 1
+    },
+    { 
+      title: 'Razorpay Payment ID', 
+      dataIndex: 'razorpayPaymentId', 
+      key: 'paymentId',
+      responsivePriority: 4,
+      mobileLabel: 'Razorpay Payment ID'
+    },
+    { 
+      title: 'Amount', 
+      dataIndex: 'amountMinor', 
+      key: 'amount', 
+      render: (val) => formatMoney(val),
+      mobileRole: 'secondary',
+      responsivePriority: 2,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Refunded', 
+      dataIndex: 'totalRefundedMinor', 
+      key: 'refunded', 
+      render: (val) => formatMoney(val),
+      responsivePriority: 2,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Status', 
+      dataIndex: 'status', 
+      key: 'status', 
+      render: (status) => <StatusTag status={status} />,
+      mobileRole: 'status',
+      responsivePriority: 1,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Date', 
+      dataIndex: 'createdAt', 
+      key: 'date', 
+      render: (val) => formatDate(val),
+      responsivePriority: 3,
+      reuseRenderInDetails: true
+    },
     {
       title: 'Action',
       key: 'action',
@@ -240,16 +314,52 @@ export default function PaymentDashboard() {
             Refund
           </Button>
         ) : null;
-      }
+      },
+      responsivePriority: 1
     }
   ];
 
   const intentColumns = [
-    { title: 'User', dataIndex: ['user', 'displayName'], key: 'userName' },
-    { title: 'Razorpay Order ID', dataIndex: 'razorpayOrderId', key: 'orderId' },
-    { title: 'Expected Amount', dataIndex: 'expectedAmountMinor', key: 'expectedAmount', render: (val) => formatMoney(val) },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <StatusTag status={status} /> },
-    { title: 'Expires At', dataIndex: 'expiresAt', key: 'expiresAt', render: (val) => formatDate(val) },
+    { 
+      title: 'User', 
+      dataIndex: ['user', 'displayName'], 
+      key: 'userName',
+      mobileRole: 'primary',
+      responsivePriority: 1
+    },
+    { 
+      title: 'Razorpay Order ID', 
+      dataIndex: 'razorpayOrderId', 
+      key: 'orderId',
+      responsivePriority: 4,
+      mobileLabel: 'Razorpay Order ID'
+    },
+    { 
+      title: 'Expected Amount', 
+      dataIndex: 'expectedAmountMinor', 
+      key: 'expectedAmount', 
+      render: (val) => formatMoney(val),
+      mobileRole: 'secondary',
+      responsivePriority: 2,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Status', 
+      dataIndex: 'status', 
+      key: 'status', 
+      render: (status) => <StatusTag status={status} />,
+      mobileRole: 'status',
+      responsivePriority: 1,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Expires At', 
+      dataIndex: 'expiresAt', 
+      key: 'expiresAt', 
+      render: (val) => formatDate(val),
+      responsivePriority: 3,
+      reuseRenderInDetails: true
+    },
     {
       title: 'Action',
       key: 'action',
@@ -262,26 +372,108 @@ export default function PaymentDashboard() {
         >
           Reconcile
         </Button>
-      )
+      ),
+      responsivePriority: 1
     }
   ];
 
   const eventColumns = [
-    { title: 'Provider Event ID', dataIndex: 'providerEventId', key: 'eventId' },
-    { title: 'Event Type', dataIndex: 'eventType', key: 'eventType' },
-    { title: 'Payment Ref', dataIndex: 'razorpayPaymentId', key: 'paymentId' },
-    { title: 'Status', dataIndex: 'processingStatus', key: 'status', render: (status) => <StatusTag status={status} /> },
-    { title: 'Attempts', dataIndex: 'processingAttempts', key: 'attempts' },
-    { title: 'Received At', dataIndex: 'firstReceivedAt', key: 'receivedAt', render: (val) => formatDate(val) }
+    { 
+      title: 'Event Type', 
+      dataIndex: 'eventType', 
+      key: 'eventType',
+      mobileRole: 'primary',
+      responsivePriority: 1
+    },
+    { 
+      title: 'Provider Event ID', 
+      dataIndex: 'providerEventId', 
+      key: 'eventId',
+      responsivePriority: 4,
+      mobileLabel: 'Provider Event ID'
+    },
+    { 
+      title: 'Payment Ref', 
+      dataIndex: 'razorpayPaymentId', 
+      key: 'paymentId',
+      responsivePriority: 4,
+      mobileLabel: 'Razorpay Payment ID Reference'
+    },
+    { 
+      title: 'Status', 
+      dataIndex: 'processingStatus', 
+      key: 'status', 
+      render: (status) => <StatusTag status={status} />,
+      mobileRole: 'status',
+      responsivePriority: 1,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Attempts', 
+      dataIndex: 'processingAttempts', 
+      key: 'attempts',
+      mobileRole: 'secondary',
+      responsivePriority: 2,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Received At', 
+      dataIndex: 'firstReceivedAt', 
+      key: 'receivedAt', 
+      render: (val) => formatDate(val),
+      responsivePriority: 3,
+      reuseRenderInDetails: true
+    }
   ];
 
   const refundColumns = [
-    { title: 'Razorpay Payment ID', dataIndex: 'razorpayPaymentId', key: 'paymentId' },
-    { title: 'Razorpay Refund ID', dataIndex: 'razorpayRefundId', key: 'refundId' },
-    { title: 'Amount', dataIndex: 'requestedAmountMinor', key: 'amount', render: (val) => formatMoney(val) },
-    { title: 'Reason', dataIndex: 'reason', key: 'reason' },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <StatusTag status={status} /> },
-    { title: 'Requested At', dataIndex: 'createdAt', key: 'date', render: (val) => formatDate(val) }
+    { 
+      title: 'Amount', 
+      dataIndex: 'requestedAmountMinor', 
+      key: 'amount', 
+      render: (val) => formatMoney(val),
+      mobileRole: 'primary',
+      responsivePriority: 1
+    },
+    { 
+      title: 'Razorpay Payment ID', 
+      dataIndex: 'razorpayPaymentId', 
+      key: 'paymentId',
+      responsivePriority: 4,
+      mobileLabel: 'Razorpay Payment ID Reference'
+    },
+    { 
+      title: 'Razorpay Refund ID', 
+      dataIndex: 'razorpayRefundId', 
+      key: 'refundId',
+      responsivePriority: 4,
+      mobileLabel: 'Razorpay Refund ID Reference'
+    },
+    { 
+      title: 'Reason', 
+      dataIndex: 'reason', 
+      key: 'reason',
+      mobileRole: 'secondary',
+      responsivePriority: 2,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Status', 
+      dataIndex: 'status', 
+      key: 'status', 
+      render: (status) => <StatusTag status={status} />,
+      mobileRole: 'status',
+      responsivePriority: 1,
+      reuseRenderInDetails: true
+    },
+    { 
+      title: 'Requested At', 
+      dataIndex: 'createdAt', 
+      key: 'date', 
+      render: (val) => formatDate(val),
+      responsivePriority: 3,
+      reuseRenderInDetails: true
+    }
   ];
 
   return (
@@ -292,13 +484,15 @@ export default function PaymentDashboard() {
       <Tabs activeKey={activeTab} onChange={setActiveTab} destroyInactiveTabPane>
         <Tabs.TabPane tab="Payments Transactions" key="payments">
           <div style={{ marginBottom: 12, textAlign: 'right' }}>
-            <Button icon={<ReloadOutlined />} onClick={() => refetchPay()}>Reload Payments</Button>
+            <Button icon={<ReloadOutlined />} onClick={() => refetchPay()} loading={payLoading}>Reload Payments</Button>
           </div>
-          <Table
+          <EnterpriseResponsiveTable
             dataSource={payData?.adminGetPayments?.items || []}
             columns={paymentColumns}
             rowKey="id"
             loading={payLoading}
+            onRetry={() => refetchPay()}
+            getRowActions={getPaymentRowActions}
             pagination={{
               current: payPage,
               pageSize: 10,
@@ -310,13 +504,15 @@ export default function PaymentDashboard() {
         
         <Tabs.TabPane tab="Checkout Intents" key="intents">
           <div style={{ marginBottom: 12, textAlign: 'right' }}>
-            <Button icon={<ReloadOutlined />} onClick={() => refetchIntent()}>Reload Intents</Button>
+            <Button icon={<ReloadOutlined />} onClick={() => refetchIntent()} loading={intentLoading}>Reload Intents</Button>
           </div>
-          <Table
+          <EnterpriseResponsiveTable
             dataSource={intentData?.adminGetCheckoutIntents?.items || []}
             columns={intentColumns}
             rowKey="id"
             loading={intentLoading}
+            onRetry={() => refetchIntent()}
+            getRowActions={getIntentRowActions}
             pagination={{
               current: intentPage,
               pageSize: 10,
@@ -325,16 +521,17 @@ export default function PaymentDashboard() {
             }}
           />
         </Tabs.TabPane>
-
+ 
         <Tabs.TabPane tab="Provider Webhook Events" key="events">
           <div style={{ marginBottom: 12, textAlign: 'right' }}>
-            <Button icon={<ReloadOutlined />} onClick={() => refetchEvent()}>Reload Events</Button>
+            <Button icon={<ReloadOutlined />} onClick={() => refetchEvent()} loading={eventLoading}>Reload Events</Button>
           </div>
-          <Table
+          <EnterpriseResponsiveTable
             dataSource={eventData?.adminGetProviderEvents?.items || []}
             columns={eventColumns}
             rowKey="id"
             loading={eventLoading}
+            onRetry={() => refetchEvent()}
             pagination={{
               current: eventPage,
               pageSize: 10,
@@ -343,16 +540,17 @@ export default function PaymentDashboard() {
             }}
           />
         </Tabs.TabPane>
-
+ 
         <Tabs.TabPane tab="Refund History" key="refunds">
           <div style={{ marginBottom: 12, textAlign: 'right' }}>
-            <Button icon={<ReloadOutlined />} onClick={() => refetchRefund()}>Reload Refunds</Button>
+            <Button icon={<ReloadOutlined />} onClick={() => refetchRefund()} loading={refundLoading}>Reload Refunds</Button>
           </div>
-          <Table
+          <EnterpriseResponsiveTable
             dataSource={refundData?.adminGetRefunds?.items || []}
             columns={refundColumns}
             rowKey="id"
             loading={refundLoading}
+            onRetry={() => refetchRefund()}
             pagination={{
               current: refundPage,
               pageSize: 10,

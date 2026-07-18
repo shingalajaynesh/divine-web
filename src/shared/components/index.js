@@ -21,4 +21,8 @@ export { enterpriseTokens } from '../theme/enterpriseTokens';
 export { responsiveTokens } from '../theme/responsiveTokens';
 export { default as MotherLayout } from './MotherLayout';
 export { default as MotherBabyIllustration } from './MotherBabyIllustration';
+export { default as EnterpriseResponsiveTable } from './EnterpriseResponsiveTable';
+export { default as EnterpriseMobileDataList } from './EnterpriseMobileDataList';
+export { default as EnterpriseTableToolbar } from './EnterpriseTableToolbar';
+
 
