@@ -46,9 +46,8 @@ export default function BabyGrowthTracker({ user, t }) {
     <div>
       <EnterprisePageHeader
         activeRole="MOTHER"
-        kicker="Milestones Tracking"
         title="My Pregnancy Growth"
-        subtitle="Follow your baby's physical development and growth milestones week-by-week"
+        subtitle="Follow your baby's weekly development and important milestones."
         actions={weekSelect}
       />
 

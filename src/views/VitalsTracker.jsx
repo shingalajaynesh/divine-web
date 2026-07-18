@@ -236,9 +236,8 @@ export default function VitalsTracker({ user, lang }) {
       <div>
         <EnterprisePageHeader
           activeRole="MOTHER"
-          kicker="Health & Wellness"
-          title="Daily Tasks & Vitals Tracker"
-          subtitle="Treat vital medical details with security. These are online-only by default."
+          title="Daily Tasks & Vitals"
+          subtitle="Track your daily routine, symptoms, hydration and wellness."
         />
         <div style={{ textAlign: 'center', padding: '60px 24px' }}>
           <WifiOutlined style={{ fontSize: '48px', color: theme.primaryColor, marginBottom: '16px' }} />
@@ -255,9 +254,8 @@ export default function VitalsTracker({ user, lang }) {
     <div>
       <EnterprisePageHeader
         activeRole="MOTHER"
-        kicker="Health & Wellness"
-        title="Daily Tasks & Vitals Tracker"
-        subtitle="Log and monitor your daily wellness parameters, symptoms, appointments, and medicine checklists."
+        title="Daily Tasks & Vitals"
+        subtitle="Track your daily routine, symptoms, hydration and wellness."
       />
 
       <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">

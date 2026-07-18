@@ -116,8 +116,7 @@ export default function SupportHub({ lang = 'en' }) {
     <div>
       <EnterprisePageHeader
         activeRole="MOTHER"
-        kicker="HELP & DESK"
-        title="Help & Customer Support"
+        title="Support Hub"
         subtitle="Submit tickets, review conversations or request immediate WhatsApp help with our support guides."
       />
 

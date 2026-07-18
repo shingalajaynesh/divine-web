@@ -56,7 +56,7 @@ export default function EnterprisePageHeader({
           )}
         </Col>
         {actions && (
-          <Col xs={24} sm={8} style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <Col xs={24} sm={8} style={{ display: 'flex', justifyContent: 'flex-start', justifySelf: 'stretch', gap: '8px', flexWrap: 'wrap' }}>
             {actions}
           </Col>
         )}

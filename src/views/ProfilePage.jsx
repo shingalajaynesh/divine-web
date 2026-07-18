@@ -108,9 +108,8 @@ export default function ProfilePage({ user, lang = 'en' }) {
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <EnterprisePageHeader
         activeRole="MOTHER"
-        kicker="Account Management"
-        title="Personal Profile & Settings"
-        subtitle="Manage your personal preferences, language settings, and emergency contacts"
+        title="Profile Settings"
+        subtitle="Manage your personal preferences, language settings, and emergency contacts."
       />
 
       <Row gutter={[24, 24]}>

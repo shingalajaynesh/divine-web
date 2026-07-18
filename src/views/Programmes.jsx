@@ -49,9 +49,8 @@ export default function Programmes() {
       <div>
         <EnterprisePageHeader
           activeRole="MOTHER"
-          kicker="DIVINE LEARNING"
-          title="Programmes Catalog"
-          subtitle="Prepare structured maternal coaching sessions"
+          title="Journey Programmes"
+          subtitle="Structured practices and lessons designed for each phase of your pregnancy."
         />
         <EnterpriseEmptyState title="Programmes are being prepared" description="Check back soon for active course guides." />
       </div>
@@ -62,9 +61,8 @@ export default function Programmes() {
     <div>
       <EnterprisePageHeader
         activeRole="MOTHER"
-        kicker="DIVINE LEARNING"
-        title="Programmes for your journey"
-        subtitle="Original, structured practices that help you move from learning to a calm daily routine."
+        title="Journey Programmes"
+        subtitle="Structured practices and lessons designed for each phase of your pregnancy."
       />
 
       {data.programCatalog.map((program) => {

@@ -124,9 +124,8 @@ export default function JourneyArchive({ user, t, lang }) {
     <div>
       <EnterprisePageHeader
         activeRole="MOTHER"
-        kicker="ARCHIVE & TRANSITION"
         title="Pregnancy Journey Archive"
-        subtitle={`Day ${archive.pregnancyDay} (Week ${archive.weekNumber}) on your complete journey overview`}
+        subtitle="Review and preserve completed pregnancy journeys."
         actions={progressWidget}
       />
 

@@ -172,9 +172,8 @@ export default function StoreBoutique({ user, lang = 'en' }) {
     <div>
       <EnterprisePageHeader
         activeRole="MOTHER"
-        kicker="Maternal Boutique"
-        title="Maternal Store & Wellness Kits"
-        subtitle="Organic pregnancy oils, nutrition books, and development kits curated for mothers"
+        title="Maternal Boutique"
+        subtitle="Organic pregnancy oils, nutrition books, and development kits curated for mothers."
         actions={cartHeaderAction}
       />
 

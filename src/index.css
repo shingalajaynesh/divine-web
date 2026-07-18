@@ -963,11 +963,17 @@ a:focus-visible {
 
   .app-topbar {
     height: 62px;
-    padding: 0 12px;
+    padding: 0 10px;
+    gap: 0;
   }
 
   .language-select {
-    width: 96px;
+    width: 60px;
+    min-width: 60px;
+  }
+  /* On mobile, hide the language dropdown label text, show only the globe icon */
+  .language-select .ant-select-selection-item {
+    display: none;
   }
 
   .content-heading {
@@ -1097,7 +1103,16 @@ a:focus-visible {
 .global-search-result:hover,.global-search-result:focus-visible { background: #fff5df; outline: none; }
 .global-search-result-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 10px; color: #68111b; background: #f9eef0; font-size: 18px; }
 .global-search-result>span:last-child { color: #a49496; }
-@media (max-width: 767px) { .global-search-trigger { width: 42px; min-width: 42px; padding: 0; justify-content: center; } .global-search-trigger>span,.global-search-trigger kbd { display: none; } }
+@media (max-width: 767px) {
+  /* Icon-only button — text hidden via JSX isMobile check */
+  .global-search-trigger { width: 36px; min-width: 36px; padding: 0 !important; justify-content: center; }
+
+  /* Search modal: full-width, anchored near top */
+  .global-search-modal { top: 8px !important; margin: 0 auto !important; }
+  .global-search-modal .ant-modal-content { border-radius: 16px !important; padding: 16px !important; }
+  .global-search-modal .ant-modal-body { padding: 0 !important; }
+  .global-search-result { min-height: 52px; gap: 10px; }
+}
 
 /* Enterprise admin dashboard */
 .admin-console {
@@ -1169,3 +1184,75 @@ a:focus-visible {
     width: 100%;
   }
 }
+
+/* Centralized Responsive Utilities */
+.hide-on-mobile {
+  @media (max-width: 767px) {
+    display: none !important;
+  }
+}
+
+.hide-on-desktop {
+  @media (min-width: 768px) {
+    display: none !important;
+  }
+}
+
+/* Touch Targets Minimum Standard */
+.minimum-touch-target,
+.ant-btn,
+.ant-select-selector,
+.ant-input,
+.ant-checkbox-wrapper,
+.ant-radio-wrapper {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Safe Area Paddings for Modern Mobile Viewports */
+.safe-area-bottom {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+}
+
+/* Responsive Table card transformation helper */
+@media (max-width: 767px) {
+  .responsive-table .ant-table {
+    background: transparent !important;
+  }
+  .responsive-table .ant-table-thead {
+    display: none !important;
+  }
+  .responsive-table .ant-table-tbody {
+    display: block !important;
+  }
+  .responsive-table .ant-table-row {
+    display: block !important;
+    margin-bottom: 16px !important;
+    background: #ffffff !important;
+    border: 1px solid #f1f5f9 !important;
+    border-radius: 16px !important;
+    padding: 16px !important;
+    box-shadow: 0 4px 12px rgba(63, 10, 17, 0.03) !important;
+  }
+  .responsive-table .ant-table-cell {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 8px 0 !important;
+    border-bottom: 1px solid #f8fafc !important;
+    background: transparent !important;
+    width: 100% !important;
+  }
+  .responsive-table .ant-table-cell:last-child {
+    border-bottom: none !important;
+  }
+  .responsive-table .ant-table-cell::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #5f5254;
+    text-align: left;
+    margin-right: 16px;
+  }
+}
+

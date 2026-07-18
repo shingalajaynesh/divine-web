@@ -112,9 +112,8 @@ export default function ContentLibrary({ lang = 'en' }) {
     <div>
       <EnterprisePageHeader
         activeRole="MOTHER"
-        kicker="Calming Media Hub"
         title="Garbh Sanskar Media Library"
-        subtitle="Spotify-like auditory and visual guide for positive development"
+        subtitle="Auditory and visual guides for positive maternal and fetal development."
       />
 
       {/* Tab Selectors */}

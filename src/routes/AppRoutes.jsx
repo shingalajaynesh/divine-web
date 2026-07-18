@@ -66,6 +66,8 @@ function BrandBlock({ compact = false }) {
 function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const screens = useBreakpoint();
+  const isMobile = screens.xs || (screens.sm && !screens.md);
   const [navOpen, setNavOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -180,20 +182,30 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
         <div className="sidebar-version">Divine App · v1.1.0</div>
       </Sider>
 
-      <Layout className="app-main-layout">
-        <Header className="app-topbar">
+      <Layout className="app-main-layout">        <Header className="app-topbar">
           <Space size={12}>
             <Button className="mobile-only-layout" type="text" icon={<MenuOutlined />} onClick={() => setNavOpen(true)} aria-label="Open navigation" />
             <div className="mobile-only-layout"><BrandBlock compact /></div>
             <div className="desktop-only-layout page-context">
-              <Text>{currentItem?.label || 'Dashboard'}</Text>
-              <span>{user?.center?.name || 'Divine Garbh Sanskar'}</span>
+              <Space size={8} align="center">
+                <Text style={{ margin: 0, fontWeight: 700 }}>{user?.center?.name || 'Divine Garbh Sanskar'}</Text>
+                {activeRole === 'MOTHER' && user?.currentWeek && (
+                  <Tag style={{ border: 'none', background: '#ffe4e6', color: '#be123c', fontWeight: 600, margin: 0 }}>
+                    Week {user.currentWeek} · Trimester {user.currentTrimester}
+                  </Tag>
+                )}
+              </Space>
             </div>
           </Space>
 
-          <Space size={16} align="center">
-            <Button className="global-search-trigger" icon={<SearchOutlined />} onClick={() => setSearchOpen(true)}>
-              <span>Search</span><kbd>Ctrl K</kbd>
+          <Space size={8} align="center" style={{ flexWrap: 'nowrap' }}>
+            {isMobile && activeRole === 'MOTHER' && user?.currentWeek && (
+              <Tag style={{ border: 'none', background: '#ffe4e6', color: '#be123c', fontWeight: 600, margin: 0, padding: '0 6px' }}>
+                W{user.currentWeek}·T{user.currentTrimester}
+              </Tag>
+            )}
+            <Button className="global-search-trigger" icon={<SearchOutlined />} onClick={() => setSearchOpen(true)} aria-label="Search">
+              {!isMobile && <><span>Search</span><kbd>Ctrl K</kbd></>}
             </Button>
             <Select
               value={lang}
@@ -240,19 +252,10 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
         </Header>
 
         <Content className="app-content">
-          {selectedPath !== '/dashboard' && <div className="content-heading">
-            <div>
-              <span className="content-kicker">{roleLabel}</span>
-              <Title level={2}>{currentItem?.label || 'Dashboard'}</Title>
-            </div>
-            {user?.currentWeek && (
-              <Tag className="week-tag">Week {user.currentWeek} · Trimester {user.currentTrimester}</Tag>
-            )}
-          </div>}
           <div className="content-frame"><Outlet /></div>
         </Content>
 
-        <nav className="mobile-only-layout mobile-bottom-nav" aria-label="Primary navigation">
+        <nav className="mobile-only-layout mobile-bottom-nav safe-area-bottom" aria-label="Primary navigation">
           {primaryMobileItems.map((item) => (
             <button key={item.key} className={selectedPath === item.key ? 'active' : ''} onClick={() => goTo(item)}>
               {item.icon}<span>{item.label}</span>
