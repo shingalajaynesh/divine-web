@@ -160,7 +160,7 @@ export default function VideoPlayerModal({
           <span>{title || (isHi ? "सुरक्षित वीडियो सत्र" : "Secure Video Session")}</span>
         </div>
       }
-      destroyOnClose
+      destroyOnHidden
       style={{ borderRadius: '24px', overflow: 'hidden' }}
     >
       <div 

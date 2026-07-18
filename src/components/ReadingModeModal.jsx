@@ -224,7 +224,7 @@ export default function ReadingModeModal({
           )}
         </div>
       }
-      destroyOnClose
+      destroyOnHidden
       style={{ borderRadius: '24px', overflow: 'hidden' }}
     >
       {/* Reader Settings & Controls Toolbar */}

@@ -50,3 +50,13 @@ VITE_GRAPHQL_API_URL=http://localhost:4000/graphql
 - **`npm run dev`**: Start the Vite developer hot-reloading server on `http://localhost:3000`.
 - **`npm run build`**: Compile and compress the production asset bundles (with Brotli and Gzip plugins).
 - **`npm run preview`**: Review the compiled production build locally.
+
+---
+
+## ⚠️ Security Warning: Rotate Credentials
+
+> [!WARNING]
+> If any secrets, API keys, passwords, database connection strings, or tokens were previously hardcoded in the source code files, those values remain visible in the repository's git commit history. 
+> 
+> **You must immediately rotate all previously hardcoded keys and credentials before deploying this application to production.**
+

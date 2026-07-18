@@ -300,7 +300,7 @@ export default function AudioPlayerModal({ visible, onClose, mediaUrl, title, co
         footer={null}
         width={460}
         title={isHi ? "संगीत और ध्यान प्लेयर" : "Music & Meditation Player"}
-        destroyOnClose
+        destroyOnHidden
         style={{ borderRadius: '24px', overflow: 'hidden' }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 12px 0' }}>

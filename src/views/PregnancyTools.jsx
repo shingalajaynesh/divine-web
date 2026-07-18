@@ -42,7 +42,8 @@ import {
   LOG_VITALS_MUTATION, 
   ADD_BAG_ITEM_MUTATION, 
   TOGGLE_BAG_ITEM_MUTATION, 
-  CLEAR_BAG_ITEMS_MUTATION 
+  CLEAR_BAG_ITEMS_MUTATION,
+  SAVE_EMERGENCY_CONTACTS_MUTATION
 } from '../graphql/operations';
 
 const { Title, Text, Paragraph } = Typography;
@@ -279,9 +280,19 @@ export default function PregnancyTools({ user, lang }) {
   };
 
   // --- EMERGENCY CONTACTS ---
+  const [saveEmergencyContacts] = useMutation(SAVE_EMERGENCY_CONTACTS_MUTATION, {
+    onError: (err) => toast.error('Failed to save emergency contacts: ' + err.message)
+  });
+
   const [emergencyContacts, setEmergencyContacts] = useState(() => {
-    const saved = localStorage.getItem('pregnancy_emergency_contacts');
-    return saved ? JSON.parse(saved) : {
+    try {
+      if (user?.emergencyContacts) {
+        return JSON.parse(user.emergencyContacts);
+      }
+    } catch (e) {
+      console.error('Failed to parse cached emergency contacts:', e);
+    }
+    return {
       doctorName: '',
       doctorPhone: '',
       pediatrician: '',
@@ -292,10 +303,24 @@ export default function PregnancyTools({ user, lang }) {
     };
   });
 
+  useEffect(() => {
+    if (user?.emergencyContacts) {
+      try {
+        setEmergencyContacts(JSON.parse(user.emergencyContacts));
+      } catch (e) {
+        console.error('Failed to parse emergency contacts prop:', e);
+      }
+    }
+  }, [user?.emergencyContacts]);
+
   const handleSaveContact = (key, val) => {
     const updated = { ...emergencyContacts, [key]: val };
     setEmergencyContacts(updated);
-    localStorage.setItem('pregnancy_emergency_contacts', JSON.stringify(updated));
+    saveEmergencyContacts({
+      variables: {
+        contactsJson: JSON.stringify(updated)
+      }
+    });
   };
 
   return (

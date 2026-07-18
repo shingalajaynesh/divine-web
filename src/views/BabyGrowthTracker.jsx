@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_BABY_DEVELOPMENT_QUERY } from '../graphql/operations';
-import { Card, Select, Typography, Row, Col, Tag, Spin, Image, Divider } from 'antd';
+import { Select, Typography, Row, Col, Tag, Image, Divider } from 'antd';
+import {
+  EnterpriseCard,
+  EnterprisePageHeader,
+  EnterpriseLoading,
+  EnterpriseEmptyState,
+  getRoleTheme
+} from '../shared/components';
+import { enterpriseTokens } from '../shared/theme/enterpriseTokens';
 
 const { Title, Paragraph, Text } = Typography;
 
 export default function BabyGrowthTracker({ user, t }) {
   const [selectedWeek, setSelectedWeek] = useState(user.currentWeek || 1);
+  const theme = getRoleTheme('MOTHER');
+
   const { data, loading } = useQuery(GET_BABY_DEVELOPMENT_QUERY, {
     variables: { weekNumber: selectedWeek }
   });
@@ -18,60 +28,63 @@ export default function BabyGrowthTracker({ user, t }) {
     label: `Week ${w} ${w === user.currentWeek ? '(Current)' : ''}`
   }));
 
-  return (
-    <Card style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <Title level={4} style={{ margin: 0 }}>👶 Weekly Baby Development Tracker</Title>
-          <Paragraph type="secondary" style={{ margin: 0, fontSize: '13px' }}>
-            Follow your baby's physical development and growth milestones week-by-week
-          </Paragraph>
-        </div>
+  const weekSelect = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <Text strong style={{ color: theme.textSecondary, fontSize: enterpriseTokens.typography.sizes.xs }}>
+        SELECT WEEK:
+      </Text>
+      <Select 
+        value={selectedWeek} 
+        onChange={setSelectedWeek} 
+        options={weekOptions} 
+        style={{ width: 150 }}
+      />
+    </div>
+  );
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Text strong type="secondary" style={{ fontSize: '11px', textTransform: 'uppercase' }}>Select Week:</Text>
-          <Select 
-            value={selectedWeek} 
-            onChange={setSelectedWeek} 
-            options={weekOptions} 
-            style={{ width: 160 }}
-            size="large"
-          />
-        </div>
-      </div>
+  return (
+    <div>
+      <EnterprisePageHeader
+        activeRole="MOTHER"
+        kicker="Milestones Tracking"
+        title="My Pregnancy Growth"
+        subtitle="Follow your baby's physical development and growth milestones week-by-week"
+        actions={weekSelect}
+      />
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '60px 0' }}>
-          <Spin description="Loading baby development milestones..." />
-        </div>
+        <EnterpriseLoading type="card" count={1} />
       ) : baby ? (
-        <Card 
-          style={{ 
-            borderRadius: 20, 
-            background: 'linear-gradient(135deg, #fffcf9 0%, #fffbf0 100%)',
-            border: '1px solid #fef3c7' 
-          }}
-          styles={{ body: { padding: '24px' } }}
-        >
+        <EnterpriseCard activeRole="MOTHER" hoverable={false}>
           <Row align="middle" gutter={[24, 24]}>
             <Col xs={24} md={14}>
-              <Tag color="orange" style={{ fontWeight: 'bold', padding: '4px 12px', borderRadius: '12px' }}>Week {baby.weekNumber}</Tag>
+              <Tag color="rose" style={{ fontWeight: 'bold', color: theme.primaryColor, backgroundColor: '#fff1f2', borderColor: '#ffe4e6', borderRadius: '8px' }}>
+                Week {baby.weekNumber}
+              </Tag>
               
-              <Title level={3} style={{ margin: '16px 0 4px 0', color: '#1e293b' }}>
+              <Title level={3} style={{ margin: '16px 0 4px 0', color: theme.textPrimary, fontWeight: enterpriseTokens.typography.weights.bold }}>
                 Size: {baby.size}
               </Title>
               {baby.weight && (
-                <Text strong style={{ color: '#f97316', fontSize: '14px' }}>
+                <Text strong style={{ color: theme.accentColor, fontSize: enterpriseTokens.typography.sizes.sm }}>
                   Average Weight: {baby.weight}
                 </Text>
               )}
               
               <Divider style={{ margin: '16px 0' }} />
               
-              <Title level={5} style={{ margin: '0 0 8px 0', fontSize: '14px' }}>Development Milestones:</Title>
-              <Paragraph type="secondary" style={{ fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
-                {baby.milestone}
+              <Title level={5} style={{ margin: '0 0 8px 0', fontSize: enterpriseTokens.typography.sizes.sm, color: theme.textPrimary }}>
+                Development Milestones:
+              </Title>
+              <Paragraph style={{ fontSize: enterpriseTokens.typography.sizes.sm, color: theme.textSecondary, lineHeight: 1.6, margin: 0 }}>
+                {baby.milestone || baby.description}
               </Paragraph>
+              
+              <div style={{ marginTop: '20px' }}>
+                <Text type="secondary" style={{ fontSize: '11px', fontStyle: 'italic' }}>
+                  * This content is for general wellness education and does not replace advice from your doctor.
+                </Text>
+              </div>
             </Col>
 
             <Col xs={24} md={10} style={{ display: 'flex', justifyContent: 'center' }}>
@@ -83,18 +96,20 @@ export default function BabyGrowthTracker({ user, t }) {
                   preview={false}
                 />
               ) : (
-                <div style={{ width: 140, height: 140, borderRadius: '50%', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>
-                  🌱
+                <div style={{ width: 140, height: 140, borderRadius: '50%', background: '#fff5f5', border: '1px solid #ffe4e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>
+                  👶
                 </div>
               )}
             </Col>
           </Row>
-        </Card>
+        </EnterpriseCard>
       ) : (
-        <Paragraph type="secondary" style={{ textAlign: 'center', padding: '40px 0', margin: 0, fontStyle: 'italic' }}>
-          No weekly milestone details saved for Week {selectedWeek} yet.
-        </Paragraph>
+        <EnterpriseEmptyState
+          activeRole="MOTHER"
+          title={`No data for Week ${selectedWeek}`}
+          description="Development guidance is not available for this week."
+        />
       )}
-    </Card>
+    </div>
   );
 }

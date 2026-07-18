@@ -6,8 +6,10 @@ import App from './App.jsx';
 import client from './graphql/client.js';
 import './index.css';
 
-// Keep-Alive Frontend Ping Loop
+// Optional production keep-alive. Disabled by default so local startup is never
+// delayed or polluted by requests to a backend that is still booting.
 const startFrontendPing = () => {
+  if (import.meta.env.VITE_ENABLE_KEEP_ALIVE !== 'true') return;
   const graphqlUrl = import.meta.env.VITE_GRAPHQL_API_URL || 'http://localhost:4000/graphql';
   const pingUrl = graphqlUrl.replace(/\/graphql$/, '/ping');
 

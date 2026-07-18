@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Avatar,
@@ -13,6 +13,9 @@ import {
   Tag,
   Typography,
   Dropdown,
+  Modal,
+  Input,
+  Empty,
 } from 'antd';
 import {
   CustomerServiceOutlined,
@@ -22,10 +25,20 @@ import {
   PhoneOutlined,
   SafetyCertificateOutlined,
   LogoutOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  SearchOutlined,
+  ArrowRightOutlined,
 } from '@ant-design/icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase.js';
+import { useMutation } from '@apollo/client';
+import toast from 'react-hot-toast';
+import { DELETE_MY_ACCOUNT_MUTATION } from '../graphql/operations.js';
 import { routeConfig } from './routeConfig';
+import StaffLayout from '../staff/layout/StaffLayout';
+import { MotherLayout } from '../shared/components';
+import { getActiveMotherNavigationItem } from '../shared/utils/navigationHelper';
 
 const { Header, Content, Sider } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -54,9 +67,77 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
   const location = useLocation();
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
-  const selectedPath = location.pathname === '/' ? '/dashboard' : location.pathname;
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const selectedPath = useMemo(() => {
+    if (activeRole === 'MOTHER') {
+      return getActiveMotherNavigationItem(location);
+    }
+    return location.pathname === '/' ? '/dashboard' : location.pathname;
+  }, [location, activeRole]);
+
+  useEffect(() => {
+    if (activeRole === 'MOTHER') {
+      const pathname = location.pathname;
+      const searchParams = new URLSearchParams(location.search);
+      const tab = searchParams.get('tab');
+
+      if (pathname === '/library') {
+        if (!tab || !['meditation', 'music', 'videos'].includes(tab)) {
+          navigate('/library?tab=meditation', { replace: true });
+        }
+      }
+      if (pathname === '/store') {
+        if (tab && tab !== 'orders') {
+          navigate('/store', { replace: true });
+        }
+      }
+    }
+  }, [location, activeRole, navigate]);
+
   const currentItem = menuItems.find((item) => item.key === selectedPath) || menuItems[0];
   const primaryMobileItems = menuItems.slice(0, 4);
+  const searchResults = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return menuItems.slice(0, 8);
+    return menuItems.filter((item) => String(item.label).toLowerCase().includes(term));
+  }, [menuItems, searchQuery]);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const [deleteMyAccount] = useMutation(DELETE_MY_ACCOUNT_MUTATION, {
+    onCompleted: async () => {
+      toast.success('Account successfully deleted.');
+      await signOut(auth);
+    },
+    onError: (err) => {
+      toast.error('Failed to delete account: ' + err.message);
+    }
+  });
+
+  const showDeleteConfirm = () => {
+    Modal.confirm({
+      title: 'Are you sure you want to delete your account?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'This action is permanent and cannot be undone. All of your personal data will be anonymized or deleted immediately.',
+      okText: 'Yes, Delete My Account',
+      okType: 'danger',
+      cancelText: 'No, Cancel',
+      onOk: async () => {
+        await deleteMyAccount();
+      }
+    });
+  };
 
 
   const roleLabel = useMemo(() => ({
@@ -69,6 +150,8 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
   const goTo = ({ key }) => {
     navigate(key);
     setNavOpen(false);
+    setSearchOpen(false);
+    setSearchQuery('');
   };
 
   const navigation = (
@@ -109,6 +192,9 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
           </Space>
 
           <Space size={16} align="center">
+            <Button className="global-search-trigger" icon={<SearchOutlined />} onClick={() => setSearchOpen(true)}>
+              <span>Search</span><kbd>Ctrl K</kbd>
+            </Button>
             <Select
               value={lang}
               onChange={handleLanguageToggle}
@@ -130,6 +216,12 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
                       icon: <LogoutOutlined />,
                       label: 'Sign Out',
                       onClick: () => signOut(auth)
+                    },
+                    {
+                      key: 'delete-account',
+                      icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+                      label: <span style={{ color: '#ff4d4f' }}>Delete Account</span>,
+                      onClick: () => showDeleteConfirm()
                     }
                   ]
                 }}
@@ -176,7 +268,7 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
         placement="left"
         open={navOpen}
         onClose={() => setNavOpen(false)}
-        width={300}
+        size={300}
         title={<BrandBlock />}
         className="mobile-nav-drawer"
       >
@@ -186,6 +278,18 @@ function MainAppLayout({ user, menuItems, lang, handleLanguageToggle, activeRole
         </div>
         {navigation}
       </Drawer>
+      <Modal open={searchOpen} onCancel={() => setSearchOpen(false)} footer={null} width={620} className="global-search-modal" title={null} destroyOnHidden>
+        <Input autoFocus size="large" prefix={<SearchOutlined />} placeholder="Search features and tools" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} allowClear />
+        <div className="global-search-results">
+          <span className="global-search-label">{searchQuery ? `${searchResults.length} results` : 'Quick navigation'}</span>
+          {searchResults.map((item) => (
+            <button key={item.key} type="button" className="global-search-result" onClick={() => goTo(item)}>
+              <span className="global-search-result-icon">{item.icon}</span><strong>{item.label}</strong><ArrowRightOutlined />
+            </button>
+          ))}
+          {!searchResults.length && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No matching feature" />}
+        </div>
+      </Modal>
     </Layout>
   );
 }
@@ -212,13 +316,23 @@ export default function AppRoutes({ user, menuItems, activeRole, t, lang, handle
     <Routes>
       <Route element={<MainAppLayout user={user} menuItems={menuItems} lang={lang} handleLanguageToggle={handleLanguageToggle} activeRole={activeRole} />}>
         <Route path="/" element={<Navigate to={defaultRoute} replace />} />
-        {routeConfig.map(({ path, component: Component, roles }) => (
+        {routeConfig.map(({ path, component: Component, roles, permission }) => (
           <Route
             key={path}
             path={path}
             element={roles.includes(activeRole) ? (
               <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px 0' }}><Spin size="large" /></div>}>
-                <Component user={user} t={t} lang={lang} />
+                {path.startsWith('/staff') ? (
+                  <StaffLayout user={user} permission={permission}>
+                    <Component user={user} t={t} lang={lang} />
+                  </StaffLayout>
+                ) : roles.includes('MOTHER') ? (
+                  <MotherLayout user={user}>
+                    <Component user={user} t={t} lang={lang} />
+                  </MotherLayout>
+                ) : (
+                  <Component user={user} t={t} lang={lang} />
+                )}
               </Suspense>
             ) : <Navigate to={defaultRoute} replace />}
           />

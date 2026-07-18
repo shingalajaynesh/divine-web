@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
+import React, { useRef, useState } from 'react';
+import { useLazyQuery, useQuery, useMutation } from '@apollo/client';
 import toast from 'react-hot-toast';
 import { Card, Button, Typography, Row, Col, Space, Modal, Input, Divider, Alert, Tag } from 'antd';
 import { gql } from '@apollo/client';
@@ -64,13 +64,11 @@ const CREATE_RAZORPAY_ORDER_MUTATION = gql`
 
 const VERIFY_RAZORPAY_PAYMENT_MUTATION = gql`
   mutation VerifyRazorpayPayment(
-    $planId: ID!
     $razorpayOrderId: String!
     $razorpayPaymentId: String!
     $razorpaySignature: String!
   ) {
     verifyRazorpayPayment(
-      planId: $planId
       razorpayOrderId: $razorpayOrderId
       razorpayPaymentId: $razorpayPaymentId
       razorpaySignature: $razorpaySignature
@@ -99,12 +97,15 @@ export default function UpgradePlans({ user, lang }) {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const verificationInFlightRef = useRef(false);
 
   // Queries & Mutations
   const { data, loading, refetch } = useQuery(GET_PLANS_QUERY);
+  const [validateCoupon] = useLazyQuery(VALIDATE_COUPON_QUERY, { fetchPolicy: 'network-only' });
   const [startTrial] = useMutation(START_TRIAL_MUTATION, { onCompleted: () => { refetch(); toast.success('Trial started!'); } });
   const [createRazorpayOrder] = useMutation(CREATE_RAZORPAY_ORDER_MUTATION);
-  const [verifyRazorpayPayment] = useMutation(VERIFY_RAZORPAY_PAYMENT_MUTATION, { onCompleted: () => { refetch(); setCheckoutModalOpen(false); toast.success('Subscription upgraded successfully!'); } });
+  const [verifyRazorpayPayment] = useMutation(VERIFY_RAZORPAY_PAYMENT_MUTATION);
   const [cancelSub] = useMutation(CANCEL_SUBSCRIPTION_MUTATION, { onCompleted: () => { refetch(); toast.success('Subscription cancelled'); } });
 
   const plans = data?.getPlans || [];
@@ -121,10 +122,16 @@ export default function UpgradePlans({ user, lang }) {
   const handleValidateCoupon = async () => {
     if (!couponCode) return;
     try {
-      // Direct validation
-      toast.success('Coupon valid: 50% discount applied!');
-      setCouponDiscount({ percent: 50 });
+      const result = await validateCoupon({ variables: { code: couponCode.trim() } });
+      const coupon = result.data?.validateCoupon;
+      if (!coupon) throw new Error('Invalid coupon code');
+      setCouponDiscount({
+        percent: coupon.discountPercent,
+        amount: coupon.discountAmount
+      });
+      toast.success('Coupon validated');
     } catch (err) {
+      setCouponDiscount(null);
       toast.error('Invalid coupon code');
     }
   };
@@ -144,7 +151,8 @@ export default function UpgradePlans({ user, lang }) {
   };
 
   const handleSubscribeSubmit = async () => {
-    if (!selectedPlan) return;
+    if (!selectedPlan || checkoutLoading) return;
+    setCheckoutLoading(true);
     try {
       const loaded = await loadRazorpayScript();
       if (!loaded) {
@@ -159,24 +167,40 @@ export default function UpgradePlans({ user, lang }) {
       const orderData = orderRes.data.createRazorpayOrder;
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TAOLi8UJVrA3yN',
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || '',
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'Divine Garbh Sanskar',
         description: selectedPlan.name,
         order_id: orderData.id,
         handler: async function (response) {
+          if (verificationInFlightRef.current) return;
+          verificationInFlightRef.current = true;
+          const toastId = toast.loading('Processing payment confirmation...');
           try {
             await verifyRazorpayPayment({
               variables: {
-                planId: selectedPlan.id,
                 razorpayOrderId: response.razorpay_order_id,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature
               }
             });
+            await refetch();
+            setCheckoutModalOpen(false);
+            toast.success('Subscription upgraded successfully!', { id: toastId });
           } catch (err) {
-            toast.error('Payment verification failed: ' + err.message);
+            const isPending = err.message?.toLowerCase().includes('pending provider capture');
+            toast.error(
+              isPending
+                ? 'Payment is processing. Please refresh your subscription status shortly.'
+                : 'Payment verification failed: ' + err.message,
+              { id: toastId }
+            );
+            if (isPending) {
+              await refetch();
+            }
+          } finally {
+            verificationInFlightRef.current = false;
           }
         },
         prefill: {
@@ -189,9 +213,15 @@ export default function UpgradePlans({ user, lang }) {
       };
 
       const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function () {
+        verificationInFlightRef.current = false;
+        toast.error('Payment failed or was cancelled. Please try again.');
+      });
       rzp.open();
     } catch (err) {
       toast.error(err.message);
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -291,12 +321,12 @@ export default function UpgradePlans({ user, lang }) {
 
       {/* Checkout Upgrade Modal */}
       <Modal
-        title="💳 Complete Subscription Upgrade"
+        title="Complete Subscription Upgrade"
         open={checkoutModalOpen}
         onCancel={() => { setCheckoutModalOpen(false); setCouponDiscount(null); setCouponCode(''); }}
         footer={[
-          <Button key="cancel" onClick={() => setCheckoutModalOpen(false)}>Cancel</Button>,
-          <Button key="ok" type="primary" onClick={handleSubscribeSubmit} style={{ background: '#be123c', borderColor: '#be123c' }}>
+          <Button key="cancel" onClick={() => setCheckoutModalOpen(false)} disabled={checkoutLoading}>Cancel</Button>,
+          <Button key="ok" type="primary" loading={checkoutLoading} onClick={handleSubscribeSubmit} style={{ background: '#be123c', borderColor: '#be123c' }}>
             Pay Securely with Razorpay
           </Button>
         ]}
@@ -323,8 +353,8 @@ export default function UpgradePlans({ user, lang }) {
 
             {couponDiscount && (
               <div style={{ background: '#f0fdf4', padding: '10px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: '#16a34a', fontSize: '12px' }}>Discount applied: {couponDiscount.percent}% OFF</Text>
-                <Text strong style={{ color: '#16a34a' }}>-₹{selectedPlan.price * 0.5}</Text>
+                <Text style={{ color: '#16a34a', fontSize: '12px' }}>Coupon validated. Final amount will be calculated by the server.</Text>
+                <Text strong style={{ color: '#16a34a' }}>{couponDiscount.percent ? `${couponDiscount.percent}% OFF` : `₹${couponDiscount.amount} OFF`}</Text>
               </div>
             )}
 
@@ -333,7 +363,7 @@ export default function UpgradePlans({ user, lang }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text strong>Final checkout amount:</Text>
               <Text strong style={{ fontSize: '20px', color: '#be123c' }}>
-                ₹{couponDiscount ? selectedPlan.price * 0.5 : selectedPlan.price}
+                ₹{selectedPlan.price}
               </Text>
             </div>
           </div>

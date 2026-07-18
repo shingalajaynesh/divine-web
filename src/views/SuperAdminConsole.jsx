@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import PanelLoader from '../components/PanelLoader.jsx';
 import { 
   Card, Tabs, Table, Progress, Tag, Row, Col, Typography, Spin, 
-  List, Space, Alert, Button, Statistic, Switch, Select, Input, Form
+  List, Space, Alert, Button, Statistic, Switch, Select, Input, Form, Divider
 } from 'antd';
 import { 
   GET_MODERATION_QUEUE_QUERY, 
@@ -193,7 +193,7 @@ export default function SuperAdminConsole() {
     <Card style={{ borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <Title level={4} style={{ margin: 0 }}>🛡️ Super Admin Control Tower</Title>
+          <Title level={4} style={{ margin: 0 }}>Super Admin Control Tower</Title>
           <Paragraph type="secondary" style={{ margin: 0, fontSize: '13px' }}>
             Inspect system parameters, audit trail logs, configure access control templates, and manage center activation status keys.
           </Paragraph>
@@ -277,12 +277,12 @@ export default function SuperAdminConsole() {
 
               <Card title="Core Engine Pulse" style={{ borderRadius: 16 }}>
                 <Paragraph type="secondary">
-                  System components verified: GraphQL Engine (ONLINE), SQLite DB Connector (HEALTHY), Media Streaming S3 Bucket (CONNECTED).
+                  System components verified from repository-backed services: GraphQL API, PostgreSQL data models, Firebase authentication, and Cloudinary media tooling.
                 </Paragraph>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <Tag color="success">GQL GATEWAY: OK</Tag>
-                  <Tag color="success">DATABASE INSTANCE: OK</Tag>
-                  <Tag color="success">AUTH0 SYNC: OK</Tag>
+                  <Tag color="success">GRAPHQL API: OK</Tag>
+                  <Tag color="success">POSTGRESQL MODELS: OK</Tag>
+                  <Tag color="success">FIREBASE AUTH: OK</Tag>
                 </div>
               </Card>
             </div>
@@ -304,7 +304,7 @@ export default function SuperAdminConsole() {
                       title: 'Center Name',
                       dataIndex: 'name',
                       key: 'name',
-                      render: (text) => <Text strong>🏢 {text}</Text>
+                      render: (text) => <Text strong>{text}</Text>
                     },
                     {
                       title: 'Location',
@@ -448,7 +448,7 @@ export default function SuperAdminConsole() {
                   
                   {/* Flagged Posts */}
                   <div>
-                    <Title level={5} style={{ color: '#be123c', marginBottom: '16px' }}>🚨 Flagged Posts Queue</Title>
+                    <Title level={5} style={{ color: '#be123c', marginBottom: '16px' }}>Flagged Posts Queue</Title>
                     <Table 
                       dataSource={modData?.getModerationQueue?.flaggedPosts || []}
                       rowKey="id"
@@ -513,7 +513,7 @@ export default function SuperAdminConsole() {
 
                   {/* Flagged Comments */}
                   <div>
-                    <Title level={5} style={{ color: '#be123c', marginBottom: '16px' }}>🚨 Flagged Comments Queue</Title>
+                    <Title level={5} style={{ color: '#be123c', marginBottom: '16px' }}>Flagged Comments Queue</Title>
                     <Table 
                       dataSource={modData?.getModerationQueue?.flaggedComments || []}
                       rowKey="id"

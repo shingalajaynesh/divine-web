@@ -153,6 +153,7 @@ export const ME_QUERY = gql`
       shareVitalsWithPartner
       shareReportsWithPartner
       postpartumPlan
+      emergencyContacts
       partner {
         id
         emailAddress
@@ -1428,6 +1429,34 @@ export const PLACE_ORDER_MUTATION = gql`
   }
 `;
 
+export const CREATE_STORE_CHECKOUT_MUTATION = gql`
+  mutation CreateStoreCheckout($addressId: ID!, $couponCode: String) {
+    createStoreCheckout(addressId: $addressId, couponCode: $couponCode) {
+      id
+      razorpayOrderId
+      amount
+      currency
+      receipt
+      status
+      expiresAt
+    }
+  }
+`;
+
+export const VERIFY_STORE_PAYMENT_MUTATION = gql`
+  mutation VerifyStorePayment($razorpayOrderId: String!, $razorpayPaymentId: String!, $razorpaySignature: String!) {
+    verifyStorePayment(
+      razorpayOrderId: $razorpayOrderId
+      razorpayPaymentId: $razorpayPaymentId
+      razorpaySignature: $razorpaySignature
+    ) {
+      id
+      status
+      paymentStatus
+    }
+  }
+`;
+
 export const GET_PARTNER_DASHBOARD_QUERY = gql`
   query GetPartnerDashboard {
     getPartnerDashboard {
@@ -1914,8 +1943,8 @@ export const GET_EVENT_ATTENDEES_QUERY = gql`
       user {
         id
         displayName
-        emailAddress
-        mobileNo
+        email
+        phone
       }
     }
   }
@@ -2013,8 +2042,8 @@ export const GET_REFERRALS_REPORT_QUERY = gql`
       referrer {
         id
         displayName
-        emailAddress
-        mobileNo
+        email
+        phone
       }
     }
   }
@@ -2052,7 +2081,7 @@ export const GET_TESTIMONIALS_QUERY = gql`
       user {
         id
         displayName
-        emailAddress
+        email
       }
     }
   }
@@ -2087,8 +2116,8 @@ export const GET_AMBASSADOR_APPLICATIONS_QUERY = gql`
       user {
         id
         displayName
-        emailAddress
-        mobileNo
+        email
+        phone
       }
     }
   }
@@ -2648,5 +2677,131 @@ export const SUBMIT_INQUIRY = gql`
   }
 `;
 
+export const SAVE_EMERGENCY_CONTACTS_MUTATION = gql`
+  mutation SaveEmergencyContacts($contactsJson: String!) {
+    saveEmergencyContacts(contactsJson: $contactsJson) {
+      id
+      emergencyContacts
+    }
+  }
+`;
+
+export const DELETE_MY_ACCOUNT_MUTATION = gql`
+  mutation DeleteMyAccount {
+    deleteMyAccount
+  }
+`;
+
+export const GET_STAFF_TASKS_QUERY = gql`
+  query GetStaffTasks {
+    getStaffTasks {
+      id
+      title
+      description
+      dueDate
+      completed
+      status
+      createdAt
+      user {
+        id
+        displayName
+        emailAddress
+      }
+    }
+  }
+`;
+
+export const CREATE_STAFF_TASK_MUTATION = gql`
+  mutation CreateStaffTask($userId: ID, $title: String!, $description: String, $dueDate: String) {
+    createStaffTask(userId: $userId, title: $title, description: $description, dueDate: $dueDate) {
+      id
+      title
+      completed
+      status
+    }
+  }
+`;
+
+export const UPDATE_STAFF_TASK_STATUS_MUTATION = gql`
+  mutation UpdateStaffTaskStatus($id: ID!, $status: String!) {
+    updateStaffTaskStatus(id: $id, status: $status) {
+      id
+      status
+      completed
+      description
+    }
+  }
+`;
+
+export const DELETE_STAFF_TASK_MUTATION = gql`
+  mutation DeleteStaffTask($id: ID!) {
+    deleteStaffTask(id: $id)
+  }
+`;
+
+export const GET_MY_NOTIFICATIONS_QUERY = gql`
+  query GetMyNotifications($status: String, $limit: Int, $offset: Int) {
+    myNotifications(status: $status, limit: $limit, offset: $offset) {
+      items {
+        id
+        kind
+        title
+        body
+        actionUrl
+        status
+        readAt
+        createdAt
+      }
+      unreadCount
+    }
+  }
+`;
+
+export const GET_CLASS_BOOKINGS_QUERY = gql`
+  query GetClassBookings($classId: ID!) {
+    getLiveClassBookings(classId: $classId) {
+      userId
+      liveClassId
+      attended
+      user {
+        id
+        displayName
+        emailAddress
+        mobileNo
+      }
+    }
+  }
+`;
+
+export const RECORD_ATTENDANCE_MUTATION = gql`
+  mutation RecordClassAttendance($classId: ID!, $userId: ID!, $attended: Boolean!) {
+    recordClassAttendance(classId: $classId, userId: $userId, attended: $attended) {
+      userId
+      liveClassId
+      attended
+    }
+  }
+`;
+
+export const UPDATE_USER_MUTATION = gql`
+  mutation UpdateUser($id: ID!, $firstName: String, $lastName: String, $displayName: String, $mobileNo: String) {
+    updateUser(id: $id, firstName: $firstName, lastName: $lastName, displayName: $displayName, mobileNo: $mobileNo) {
+      id
+      firstName
+      lastName
+      displayName
+      mobileNo
+    }
+  }
+`;
+
+export const REQUEST_ORDER_RETURN_MUTATION = gql`
+  mutation RequestOrderReturn($orderId: ID!, $reason: String!) {
+    requestOrderReturn(orderId: $orderId, reason: $reason) {
+      id
+      status
+    }
+  }
+`;
 
 

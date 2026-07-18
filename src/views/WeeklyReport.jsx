@@ -25,7 +25,11 @@ import {
   ClockCircleOutlined,
   BookOutlined,
   CalendarOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  LockOutlined,
+  StarOutlined,
+  EditOutlined,
+  SmileOutlined
 } from '@ant-design/icons';
 import { 
   MY_STREAK_QUERY, 
@@ -42,21 +46,21 @@ const badgeDefinitions = {
     titleHi: 'पहला कदम',
     desc: 'Completed your first daily activity ritual.',
     descHi: 'अपनी पहली दैनिक गतिविधि पूरी की।',
-    emoji: '👣'
+    emoji: <SmileOutlined style={{ color: '#52c41a' }} />
   },
   THREE_DAY_STREAK: {
     title: 'Three-Day Streak',
     titleHi: 'तीन दिवसीय लय',
     desc: 'Consistent for three consecutive days.',
     descHi: 'लगातार तीन दिनों तक पूर्णता बनाए रखी।',
-    emoji: '⭐'
+    emoji: <FireOutlined style={{ color: '#ff4d4f' }} />
   },
   PERFECT_WEEK: {
     title: 'Perfect Week',
     titleHi: 'सर्वश्रेष्ठ सप्ताह',
     desc: 'Maintained a perfect 7-day completion streak.',
     descHi: 'एक आदर्श 7-दिवसीय पूर्णता लय बनाए रखी।',
-    emoji: '👑'
+    emoji: <TrophyOutlined style={{ color: '#faad14' }} />
   }
 };
 
@@ -198,8 +202,8 @@ export default function WeeklyReport({ user, lang }) {
       {/* Header section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <Title level={2} style={{ margin: 0, color: 'var(--brand-maroon-dark)', fontWeight: 'bold' }}>
-            ✨ {isHi ? 'गर्भ संस्कार यात्रा पत्रिका और रिपोर्ट' : 'Garbh Sanskar Journey Journal & Reports'}
+          <Title level={2} style={{ margin: 0, color: 'var(--brand-maroon-dark)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <StarOutlined style={{ color: '#faad14' }} /> {isHi ? 'गर्भ संस्कार यात्रा पत्रिका और रिपोर्ट' : 'Garbh Sanskar Journey Journal & Reports'}
           </Title>
           <Text type="secondary" style={{ fontSize: '14px' }}>
             {isHi ? 'शिशु के बहु-आयामी विकास का साप्ताहिक एवं मासिक प्रलेखन' : 'Weekly & monthly journey dashboards with printable memories'}
@@ -306,8 +310,8 @@ export default function WeeklyReport({ user, lang }) {
                         opacity: unlocked ? 1 : 0.6
                       }}
                     >
-                      <div style={{ fontSize: '28px' }}>
-                        {unlocked ? def.emoji : '🔒'}
+                      <div style={{ fontSize: '28px', display: 'flex', alignItems: 'center' }}>
+                        {unlocked ? def.emoji : <LockOutlined style={{ color: '#bfbfbf' }} />}
                       </div>
                       <div>
                         <Text strong style={{ display: 'block', fontSize: '13px' }}>
@@ -341,8 +345,8 @@ export default function WeeklyReport({ user, lang }) {
           }}>
             {/* Custom customizable journal entry */}
             <div style={{ marginBottom: '24px', background: '#fffcfc', padding: '16px', borderRadius: '16px', border: '1px dashed #fecdd3' }} className="no-print">
-              <Text strong style={{ fontSize: '13px', color: 'var(--brand-maroon-dark)', display: 'block', marginBottom: '8px' }}>
-                ✍️ {isHi ? "इस अवधि का आपका व्यक्तिगत अनुभव या विचार (अभिलेख में शामिल करें)" : "Add Custom Reflections / Gratitude Note for Printout"}
+              <Text strong style={{ fontSize: '13px', color: 'var(--brand-maroon-dark)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                <EditOutlined style={{ color: '#be123c' }} /> {isHi ? "इस अवधि का आपका व्यक्तिगत अनुभव या विचार (अभिलेख में शामिल करें)" : "Add Custom Reflections / Gratitude Note for Printout"}
               </Text>
               <Input.TextArea
                 rows={3}
@@ -410,8 +414,8 @@ export default function WeeklyReport({ user, lang }) {
 
                   {customSummary && (
                     <div style={{ background: '#fafafa', borderLeft: '4px solid #be123c', padding: '12px 16px', borderRadius: '0 12px 12px 0', marginBottom: '24px' }}>
-                      <Text strong style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>
-                        🌟 {isHi ? "माँ के विचार और कृतज्ञता" : "Mother's Reflection & Gratitude Summary"}
+                      <Text strong style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <StarOutlined style={{ color: '#faad14' }} /> {isHi ? "माँ के विचार और कृतज्ञता" : "Mother's Reflection & Gratitude Summary"}
                       </Text>
                       <Paragraph style={{ margin: '4px 0 0 0', fontStyle: 'italic', fontSize: '13px', color: '#334155' }}>
                         "{customSummary}"
@@ -494,8 +498,8 @@ export default function WeeklyReport({ user, lang }) {
 
                   {customSummary && (
                     <div style={{ background: '#fafafa', borderLeft: '4px solid #be123c', padding: '12px 16px', borderRadius: '0 12px 12px 0', marginBottom: '24px' }}>
-                      <Text strong style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>
-                        🌟 {isHi ? "मासिक माँ के विचार और डायरी" : "Monthly Reflections Summary"}
+                      <Text strong style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <StarOutlined style={{ color: '#faad14' }} /> {isHi ? "मासिक माँ के विचार और डायरी" : "Monthly Reflections Summary"}
                       </Text>
                       <Paragraph style={{ margin: '4px 0 0 0', fontStyle: 'italic', fontSize: '13px', color: '#334155' }}>
                         "{customSummary}"
