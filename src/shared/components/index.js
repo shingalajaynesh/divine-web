@@ -20,3 +20,5 @@ export { getRoleTheme, roleThemes } from '../theme/roleThemes';
 export { enterpriseTokens } from '../theme/enterpriseTokens';
 export { responsiveTokens } from '../theme/responsiveTokens';
 export { default as MotherLayout } from './MotherLayout';
+export { default as MotherBabyIllustration } from './MotherBabyIllustration';
+

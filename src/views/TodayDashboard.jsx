@@ -73,7 +73,8 @@ import {
   EnterpriseHeroCard,
   EnterpriseQuickActions,
   EnterpriseMetricCard,
-  EnterpriseOfflineBanner
+  EnterpriseOfflineBanner,
+  MotherBabyIllustration
 } from '../shared/components';
 import { enterpriseTokens } from '../shared/theme/enterpriseTokens';
 
@@ -565,12 +566,13 @@ export default function TodayDashboard({ user, t }) {
         <Col xs={24} md={16}>
           <EnterpriseHeroCard
             activeRole="MOTHER"
-            greeting={t.hello_mother}
+            greeting={isHi ? "नमस्ते, सुंदर माँ!" : "HELLO, BEAUTIFUL MOTHER!"}
             title={babyName ? `${babyName}'s Home` : (isHi ? "स्वर्ण मातृत्व यात्रा" : "My Holy Pregnancy")}
+            quote={isHi ? "हर धड़कन प्यार से शुरू होती है।" : "Every heartbeat begins with love."}
             subtitle={isHi 
-              ? `सप्ताह ${user.currentWeek} • ${trimesterStory.title}` 
-              : `Week ${user.currentWeek} • ${trimesterStory.title}`}
-            illustration={<Avatar src="/logo.jpg" size={90} shape="square" />}
+              ? `सप्ताह ${user.currentWeek} • ${trimesterStory.title} • प्राण संचार` 
+              : `Week ${user.currentWeek} • Trimester ${user.currentTrimester} • Prana Sanchar`}
+            illustration={<MotherBabyIllustration />}
           />
         </Col>
 
