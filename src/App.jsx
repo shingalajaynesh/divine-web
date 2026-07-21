@@ -452,6 +452,11 @@ function App() {
         label: lang === 'hi' ? 'सूचनाएं' : 'Notifications',
       },
       {
+        key: '/pricing',
+        icon: <DollarOutlined />,
+        label: lang === 'hi' ? 'सदस्यता योजनाएं' : lang === 'gu' ? 'મેમ્બરશિપ પ્લાન' : 'Membership Plans',
+      },
+      {
         key: '/profile',
         icon: <UserOutlined />,
         label: lang === 'hi' ? 'प्रोफ़ाइल' : 'Profile',
